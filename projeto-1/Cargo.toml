@@ -1,0 +1,13 @@
+[package]
+name = "image-cluster"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+fastembed = "5.13"
+anyhow = "1"
+walkdir = "2"
+indicatif = "0.17"
+rand = "0.9"
+plotters = "0.3"
+image = "0.25"
