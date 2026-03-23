@@ -131,7 +131,7 @@
   <p class="author">
     <span class="badge badge-rust">Rust</span>
     <span class="badge badge-clip">CLIP</span>
-    <span class="badge badge-k">K-Means++</span>
+    <span class="badge badge-k">K-Means</span>
   </p>
   <p class="author">Vitor Yeso &mdash; Mestrado 2026</p>
 </section>
@@ -162,7 +162,7 @@
       </div>
       <h3>Clustering</h3>
       <ul>
-        <li><span class="hl">K-Means++</span> <sup>[2]</sup> &mdash; init inteligente</li>
+        <li><span class="hl">K-Means</span> <sup>[2]</sup></li>
         <li>K &isin; {2, ..., 15}, 3 runs/K, melhor por WCSS</li>
         <li>Convergencia: max 100 iter ou estabilizacao</li>
       </ul>
@@ -175,7 +175,7 @@
     <span class="sep">├──</span> <a href="https://plotters-rs.github.io/" target="_blank">plotters</a> <span class="version">0.3</span> <span class="comment">&nbsp;# graficos PNG</span><br>
     <span class="sep">├──</span> <a href="https://crates.io/crates/image" target="_blank">image</a> <span class="version">0.25</span> <span class="comment">&nbsp;&nbsp;&nbsp;# dimensoes de imagem</span><br>
     <span class="sep">├──</span> <a href="https://crates.io/crates/walkdir" target="_blank">walkdir</a> <span class="version">2</span> <span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;# file discovery recursivo</span><br>
-    <span class="sep">└──</span> <a href="https://crates.io/crates/rand" target="_blank">rand</a> <span class="version">0.9</span> <span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# amostragem + K-Means++ init</span>
+    <span class="sep">└──</span> <a href="https://crates.io/crates/rand" target="_blank">rand</a> <span class="version">0.9</span> <span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# amostragem + K-Means init</span>
   </div>
 </section>
 
@@ -231,9 +231,9 @@
   <table>
     <tr><th>Cluster</th><th>N</th><th>%</th><th>Descricao</th><th>Top Folders</th><th>Orientacao</th><th>Tam. Med.</th></tr>
     <tr><td>0</td><td>2125</td><td>26.6</td><td><strong>Arte digital</strong></td><td>wallpapers 35%, ai_images 32%</td><td>43% sq, 46% land</td><td>413 KB</td></tr>
-    <tr><td>1</td><td>2301</td><td>28.8</td><td><strong>Pessoas/retratos</strong></td><td>people 50%, iPhone 33%</td><td>75% portrait</td><td>5.9 MB</td></tr>
+    <tr><td>1</td><td>2301</td><td>28.8</td><td><strong>Retratos/pessoas</strong></td><td>people 50%, iPhone 33%</td><td>75% portrait</td><td>5.9 MB</td></tr>
     <tr><td>2</td><td>1602</td><td>20.0</td><td><strong>Screenshots</strong></td><td>iPhone 57%, backup 28%</td><td>55% port, 36% land</td><td>241 KB</td></tr>
-    <tr><td>3</td><td>1972</td><td>24.6</td><td><strong>Fotos pessoais</strong></td><td>iPhone 81%, people 8%</td><td>70% portrait</td><td>8.5 MB</td></tr>
+    <tr><td>3</td><td>1972</td><td>24.6</td><td><strong>Cenas/ambientes</strong></td><td>iPhone 81%, people 8%</td><td>70% portrait</td><td>8.5 MB</td></tr>
   </table>
   <p style="text-align:center; font-size:0.65em; margin-top:0.4em;">
     <span class="hl">Insight:</span> CLIP agrupou por <span class="hl">semantica visual</span>, nao por metadados.
@@ -277,7 +277,7 @@
 
   <div class="references">
     <span class="ref-num">[1]</span> Radford, A. et al. <em>Learning Transferable Visual Models From Natural Language Supervision.</em> ICML, 2021.<br>
-    <span class="ref-num">[2]</span> Arthur, D. &amp; Vassilvitskii, S. <em>K-means++: The Advantages of Careful Seeding.</em> SODA, 2007.<br>
+    <span class="ref-num">[2]</span> MacQueen, J. <em>Some methods for classification and analysis of multivariate observations.</em> Berkeley Symp., 1967.<br>
     <span class="ref-num">[3]</span> Rousseeuw, P. <em>Silhouettes: A graphical aid to the interpretation and validation of cluster analysis.</em> J. Comput. Appl. Math., 1987.
   </div>
 </section>
