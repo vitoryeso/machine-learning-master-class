@@ -21,13 +21,36 @@ CLUSTER ANALYSIS REPORT — K=4
   Aspect: landscape=970 (46%), portrait=244 (11%), square=911 (43%)
   Unique top-folders: 16
   Sample files:
-    - 00089-3995519130.png
-    - 00191-614192975.png
-    - 1514466925912.jpg
-    - IMG_1728(1).jpg
-    - mono-3.jpg
+    - a_group_of_small_flowers.png
+    - IMG_1895.JPG
+    - a_sports_car_with_neon_lights.png
+    - xyz_grid-0000-165581953.jpg
+    - a_black_and_white_circular_design.png
 
---- Cluster 1 (2301 images, 28.8%) ---
+--- Cluster 1 (1972 images, 24.6%) ---
+  Top folders:
+    iphone 12: 1589 (80.6%)
+    people: 164 (8.3%)
+    backup: 98 (5.0%)
+    ai_images: 68 (3.4%)
+    wallpapers: 27 (1.4%)
+    colacao eng comp 2024 - vitor yeso: 17 (0.9%)
+    Capturas de tela: 7 (0.4%)
+  Extensions:
+    .png: 1396 (70.8%)
+    .jpg: 573 (29.1%)
+    .jpeg: 3 (0.2%)
+  File size: avg=7135KB, median=8524KB, min=7KB, max=22.1MB
+  Aspect: landscape=513 (26%), portrait=1371 (70%), square=88 (4%)
+  Unique top-folders: 9
+  Sample files:
+    - IMG_9947.png
+    - IMG_4651(1).png
+    - IMG_1005.png
+    - 20180113_215023.jpg
+    - 00075-3517012870.png
+
+--- Cluster 2 (2301 images, 28.8%) ---
   Top folders:
     people: 1149 (49.9%)
     iphone 12: 764 (33.2%)
@@ -45,13 +68,13 @@ CLUSTER ANALYSIS REPORT — K=4
   Aspect: landscape=437 (19%), portrait=1720 (75%), square=144 (6%)
   Unique top-folders: 8
   Sample files:
-    - IMG_4915 (2).png
-    - IMG_0343.png
-    - IMG_4084.png
-    - 1518030909543.jpg
-    - IMG_1509.png
+    - IMG_3740.png
+    - 20171119_133515.jpg
+    - IMG_0748.JPG
+    - IMG_1067.png
+    - DIM_2226.jpg
 
---- Cluster 2 (1602 images, 20.0%) ---
+--- Cluster 3 (1602 images, 20.0%) ---
   Top folders:
     iphone 12: 912 (56.9%)
     backup: 455 (28.4%)
@@ -68,31 +91,8 @@ CLUSTER ANALYSIS REPORT — K=4
   Aspect: landscape=577 (36%), portrait=885 (55%), square=140 (9%)
   Unique top-folders: 12
   Sample files:
-    - 5F88EFD5-AEEE-4571-91CE-9E1F443DC73E.jpg
-    - IMG_8047.PNG
-    - IMG_0192.PNG
-    - IMG_6086.png
-    - IMG_0048(1).png
-
---- Cluster 3 (1972 images, 24.6%) ---
-  Top folders:
-    iphone 12: 1589 (80.6%)
-    people: 164 (8.3%)
-    backup: 98 (5.0%)
-    ai_images: 68 (3.4%)
-    wallpapers: 27 (1.4%)
-    colacao eng comp 2024 - vitor yeso: 17 (0.9%)
-    Capturas de tela: 7 (0.4%)
-  Extensions:
-    .png: 1396 (70.8%)
-    .jpg: 573 (29.1%)
-    .jpeg: 3 (0.2%)
-  File size: avg=7135KB, median=8524KB, min=7KB, max=22.1MB
-  Aspect: landscape=513 (26%), portrait=1371 (70%), square=88 (4%)
-  Unique top-folders: 9
-  Sample files:
-    - IMG_1281.png
-    - IMG_3853.png
-    - IMG_0162.png
-    - IMG_7354.png
-    - IMG_4572.png
+    - IMG_2743 (2).PNG
+    - IMG_6799.PNG
+    - 1519227406859.jpg
+    - IMG_3182.jpg
+    - Screenshot 2025-09-13 112139.png

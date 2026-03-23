@@ -3,6 +3,8 @@ use fastembed::{ImageEmbedding, ImageEmbeddingModel, ImageInitOptions};
 use indicatif::{ProgressBar, ProgressStyle};
 use plotters::prelude::*;
 use rand::seq::SliceRandom;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 use std::collections::HashMap;
 use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
@@ -15,6 +17,7 @@ const K_MIN: usize = 2;
 const K_MAX: usize = 15;
 const KMEANS_MAX_ITER: usize = 100;
 const EMB_DIM: usize = 512;
+const SEED: u64 = 42;
 const OUTPUT_DIR: &str = "D:/media/cluster_output";
 
 // ─── Image Discovery ──────────────────────────────────────────────
@@ -188,19 +191,21 @@ fn compute_centroids(data: &[Vec<f32>], labels: &[usize], k: usize) -> Vec<Vec<f
     }).collect()
 }
 
-fn kmeans(data: &[Vec<f32>], k: usize) -> (Vec<usize>, Vec<Vec<f32>>, f64) {
+fn kmeans(data: &[Vec<f32>], k: usize, seed: u64) -> (Vec<usize>, Vec<Vec<f32>>, f64) {
     let n = data.len();
+    let mut rng = StdRng::seed_from_u64(seed);
 
-    // K-Means++ init
+    // K-Means init
     let mut centroids: Vec<Vec<f32>> = Vec::with_capacity(k);
-    centroids.push(data[rand::random_range(0..n)].clone());
+    use rand::Rng;
+    centroids.push(data[rng.random_range(0..n)].clone());
 
     for _ in 1..k {
         let dists: Vec<f32> = data.iter().map(|p| {
             centroids.iter().map(|c| euclidean_dist_sq(p, c)).fold(f32::MAX, f32::min)
         }).collect();
         let total: f32 = dists.iter().sum();
-        let threshold = rand::random_range(0.0..total);
+        let threshold = rng.random_range(0.0..total);
         let mut cumsum = 0.0;
         let mut chosen = 0;
         for (i, &d) in dists.iter().enumerate() {
@@ -232,7 +237,7 @@ fn silhouette_score(data: &[Vec<f32>], labels: &[usize], k: usize) -> f64 {
     let sample_size = n.min(3000);
     let indices: Vec<usize> = if sample_size < n {
         let mut idx: Vec<usize> = (0..n).collect();
-        idx.shuffle(&mut rand::rng());
+        idx.shuffle(&mut StdRng::seed_from_u64(SEED));
         idx.truncate(sample_size);
         idx
     } else {
@@ -273,7 +278,15 @@ fn dot(a: &[f32], b: &[f32]) -> f32 {
     a.iter().zip(b).map(|(x, y)| x * y).sum()
 }
 
-fn compute_pca_2d(data: &[Vec<f32>]) -> (Vec<f32>, Vec<f32>) {
+struct PcaResult {
+    scores1: Vec<f32>,
+    scores2: Vec<f32>,
+    mean: Vec<f64>,
+    pc1: Vec<f32>,
+    pc2: Vec<f32>,
+}
+
+fn compute_pca_2d(data: &[Vec<f32>]) -> PcaResult {
     let n = data.len();
     let dim = data[0].len();
 
@@ -325,7 +338,20 @@ fn compute_pca_2d(data: &[Vec<f32>]) -> (Vec<f32>, Vec<f32>) {
     }
     let scores2 = project(&pc2, &centered);
 
-    (scores1, scores2)
+    PcaResult { scores1, scores2, mean, pc1, pc2 }
+}
+
+/// Project arbitrary points (e.g. centroids) into the same PCA space
+fn project_to_pca(points: &[Vec<f32>], pca: &PcaResult) -> (Vec<f32>, Vec<f32>) {
+    let xs: Vec<f32> = points.iter().map(|p| {
+        let centered: Vec<f32> = p.iter().zip(&pca.mean).map(|(&x, &m)| x - m as f32).collect();
+        dot(&centered, &pca.pc1)
+    }).collect();
+    let ys: Vec<f32> = points.iter().map(|p| {
+        let centered: Vec<f32> = p.iter().zip(&pca.mean).map(|(&x, &m)| x - m as f32).collect();
+        dot(&centered, &pca.pc2)
+    }).collect();
+    (xs, ys)
 }
 
 // ─── Plotting helpers ─────────────────────────────────────────────
@@ -395,6 +421,65 @@ fn plot_scatter_categorical(
         chart.draw_series(other_points.iter().map(|&(x, y)| {
             Circle::new((x, y), 1, ShapeStyle::from(gray.mix(0.4)).filled())
         }))?.label("other").legend(move |(x, y)| Circle::new((x + 10, y), 4, gray.filled()));
+    }
+
+    chart.configure_series_labels()
+        .position(SeriesLabelPosition::UpperRight)
+        .background_style(WHITE.mix(0.8)).border_style(BLACK).draw()?;
+    root.present()?;
+    println!("Plot saved: {}", path);
+    Ok(())
+}
+
+/// Scatter plot by cluster with centroid markers
+fn plot_scatter_with_centroids(
+    filename: &str, title: &str,
+    xs: &[f32], ys: &[f32],
+    categories: &[String],
+    cx: &[f32], cy: &[f32],
+    k: usize,
+) -> Result<()> {
+    let path = format!("{}/{}", OUTPUT_DIR, filename);
+    let root = BitMapBackend::new(&path, (1000, 800)).into_drawing_area();
+    root.fill(&WHITE)?;
+    let (x0, x1, y0, y1) = chart_bounds(xs, ys);
+
+    let mut chart = ChartBuilder::on(&root)
+        .caption(title, ("sans-serif", 22))
+        .margin(15).x_label_area_size(35).y_label_area_size(45)
+        .build_cartesian_2d(x0..x1, y0..y1)?;
+    chart.configure_mesh().x_desc("PC1").y_desc("PC2").draw()?;
+
+    // Draw points per cluster
+    for ci in 0..k {
+        let cat = format!("cluster_{}", ci);
+        let color = PALETTE[ci % PALETTE.len()];
+        let points: Vec<(f64, f64)> = (0..xs.len())
+            .filter(|&i| categories[i] == cat)
+            .map(|i| (xs[i] as f64, ys[i] as f64))
+            .collect();
+        chart.draw_series(points.iter().map(|&(x, y)| {
+            Circle::new((x, y), 2, ShapeStyle::from(color.mix(0.5)).filled())
+        }))?.label(format!("Cluster {}", ci))
+            .legend(move |(x, y)| Circle::new((x + 10, y), 4, color.filled()));
+    }
+
+    // Draw centroids as large stars with black border
+    for ci in 0..k {
+        let color = PALETTE[ci % PALETTE.len()];
+        chart.draw_series(std::iter::once(
+            Circle::new((cx[ci] as f64, cy[ci] as f64), 12,
+                ShapeStyle::from(color).filled())
+        ))?;
+        chart.draw_series(std::iter::once(
+            Circle::new((cx[ci] as f64, cy[ci] as f64), 12,
+                ShapeStyle::from(BLACK).stroke_width(3))
+        ))?;
+        // Inner white dot for visibility
+        chart.draw_series(std::iter::once(
+            Circle::new((cx[ci] as f64, cy[ci] as f64), 4,
+                ShapeStyle::from(WHITE).filled())
+        ))?;
     }
 
     chart.configure_series_labels()
@@ -555,7 +640,7 @@ fn analyze_clusters(paths: &[PathBuf], labels: &[usize], k: usize, metas: &[Imag
         report.push_str(&format!("  Unique top-folders: {}\n", folders.len()));
         report.push_str("  Sample files:\n");
         let mut sample_idx: Vec<usize> = members.clone();
-        sample_idx.shuffle(&mut rand::rng());
+        sample_idx.shuffle(&mut StdRng::seed_from_u64(SEED + cluster as u64));
         for &i in sample_idx.iter().take(5) {
             let name = paths[i].file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_default();
             report.push_str(&format!("    - {}\n", name));
@@ -584,7 +669,7 @@ fn main() -> Result<()> {
         println!("Found {} images total", all_paths.len());
 
         // Shuffle all paths; we'll draw from this pool until we have SAMPLE_SIZE valid embeddings
-        all_paths.shuffle(&mut rand::rng());
+        all_paths.shuffle(&mut StdRng::seed_from_u64(SEED));
 
         println!("Loading CLIP ViT-B/32 model...");
         let mut model = ImageEmbedding::try_new(
@@ -651,7 +736,9 @@ fn main() -> Result<()> {
 
     // 4. PCA 2D (computed once, reused for all plots)
     println!("Computing PCA...");
-    let (pc1, pc2) = compute_pca_2d(&embeddings);
+    let pca = compute_pca_2d(&embeddings);
+    let pc1 = &pca.scores1;
+    let pc2 = &pca.scores2;
 
     // 5. Elbow + Silhouette
     let mut k_values = Vec::new();
@@ -662,8 +749,8 @@ fn main() -> Result<()> {
     for k in K_MIN..=K_MAX {
         let mut best_inertia = f64::MAX;
         let mut best_labels = vec![];
-        for _ in 0..3 {
-            let (labels, _, inertia) = kmeans(&embeddings, k);
+        for run in 0..3u64 {
+            let (labels, _, inertia) = kmeans(&embeddings, k, SEED + run + k as u64 * 100);
             if inertia < best_inertia {
                 best_inertia = inertia;
                 best_labels = labels;
@@ -692,18 +779,26 @@ fn main() -> Result<()> {
     println!("Final K-Means K={}...", best_k);
     let mut best_inertia = f64::MAX;
     let mut final_labels = vec![];
-    for _ in 0..5 {
-        let (labels, _, inertia) = kmeans(&embeddings, best_k);
-        if inertia < best_inertia { best_inertia = inertia; final_labels = labels; }
+    let mut final_centroids = vec![];
+    for run in 0..5u64 {
+        let (labels, centroids, inertia) = kmeans(&embeddings, best_k, SEED + run + 1000);
+        if inertia < best_inertia {
+            best_inertia = inertia;
+            final_labels = labels;
+            final_centroids = centroids;
+        }
     }
 
     // === ALL SCATTER PLOTS ===
 
-    // a) By cluster
+    // Project centroids to PCA space
+    let (cx, cy) = project_to_pca(&final_centroids, &pca);
+
+    // a) By cluster (with centroids)
     let cluster_cats: Vec<String> = final_labels.iter().map(|l| format!("cluster_{}", l)).collect();
-    plot_scatter_categorical("pca_by_cluster.png",
+    plot_scatter_with_centroids("pca_by_cluster.png",
         &format!("PCA — K-Means Clusters (K={})", best_k),
-        &pc1, &pc2, &cluster_cats)?;
+        pc1, pc2, &cluster_cats, &cx, &cy, best_k)?;
 
     // b) By top folder (source)
     let folder_cats: Vec<String> = metas.iter().map(|m| m.top_folder.clone()).collect();
