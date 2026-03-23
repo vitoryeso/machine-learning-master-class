@@ -90,7 +90,7 @@
   .badge-k { background: #dcfce7; color: #166534; }
   .fig-slide { text-align: center; }
   .fig-slide h3 { font-size: 1.15em; margin-bottom: 0.3em; color: #555; font-weight: 400; }
-  .fig-slide p.caption { font-size: 0.72em; color: #888; margin-top: 0.3em; }
+  .fig-slide p.caption { font-size: 0.85em; color: #888; margin-top: 0.3em; }
 </style>
 </head>
 <body>
@@ -189,7 +189,7 @@
 <!-- ==================== SLIDE 4: FIGURA Elbow + Silhouette ==================== -->
 <section class="fig-slide">
   <img class="plot-full" src="elbow_silhouette.png" alt="Elbow + Silhouette">
-  <p class="caption">Eixo esq.: WCSS (inércia) | Eixo dir.: Silhouette Score médio | Melhor K = 4</p>
+  <p class="caption">Curva de inércia (WCSS) e Silhouette Score médio em função de K. O valor ótimo K=4 maximiza a silhueta (s=0.0576).</p>
 </section>
 
 <!-- ==================== SLIDE 5: ANALISE (tabela + insights) ==================== -->
@@ -231,31 +231,31 @@
 <!-- ==================== SLIDE 6: FIGURA PCA by Cluster ==================== -->
 <section class="fig-slide">
   <img class="plot-full" src="pca_by_cluster.png" alt="PCA by Cluster">
-  <p class="caption">Círculos pretos = centroides projetados no espaço PCA</p>
+  <p class="caption">Projeção PCA dos 8.000 embeddings CLIP, coloridos pela atribuição K-Means (K=4). Marcadores indicam os centroides projetados.</p>
 </section>
 
 <!-- ==================== SLIDE 7: FIGURA PCA by Folder ==================== -->
 <section class="fig-slide">
   <img class="plot-full" src="pca_by_folder.png" alt="PCA by Folder">
-  <p class="caption">Fotos de iPhone distribuídas por todos os clusters &#8594; agrupamento semântico, não por fonte</p>
+  <p class="caption">Coloração por diretório de origem. Imagens de uma mesma fonte (e.g. iPhone) distribuem-se entre múltiplos clusters, evidenciando agrupamento por conteúdo semântico.</p>
 </section>
 
 <!-- ==================== SLIDE 8: FIGURA PCA by Extension ==================== -->
 <section class="fig-slide">
   <img class="plot-full" src="pca_by_extension.png" alt="PCA by Extension">
-  <p class="caption">Formato de arquivo <strong>não</strong> influencia a formação dos clusters</p>
+  <p class="caption">Coloração por extensão de arquivo. A distribuição uniforme de .png e .jpg entre clusters indica que o formato não é fator discriminante.</p>
 </section>
 
 <!-- ==================== SLIDE 9: FIGURA PCA by File Size ==================== -->
 <section class="fig-slide">
   <img class="plot-full" src="pca_by_filesize.png" alt="PCA by File Size">
-  <p class="caption">Correlação parcial: screenshots menores, fotos maiores (consequência, não causa)</p>
+  <p class="caption">Gradiente por tamanho de arquivo. Correlação parcial com os clusters: screenshots tendem a ser menores, fotos de câmera maiores.</p>
 </section>
 
 <!-- ==================== SLIDE 10: FIGURA PCA by Aspect ==================== -->
 <section class="fig-slide">
   <img class="plot-full" src="pca_by_aspect_cat.png" alt="PCA by Aspect Ratio">
-  <p class="caption">Forte correlação semantica: retratos &#8594; portrait, wallpapers &#8594; landscape/square</p>
+  <p class="caption">Coloração por aspect ratio. Forte correspondência com a semântica dos clusters: retratos predominam em portrait, wallpapers em landscape e square.</p>
 </section>
 
 <!-- ==================== SLIDE 11: REFERENCIAS ==================== -->
