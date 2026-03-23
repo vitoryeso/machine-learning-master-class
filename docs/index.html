@@ -131,7 +131,7 @@
         <span class="katex-eq">\hat{\mathbf{x}}_i = \frac{\mathbf{x}_i}{\|\mathbf{x}_i\|_2}</span>
         <div class="eq-label">dist. euclidiana &#8776; similaridade cosseno</div>
       </div>
-      <h3>K-Means <sup>[2]</sup></h3>
+      <h3>K-Means++ <sup>[2][4]</sup></h3>
       <ul>
         <li>K &#8712; {2, ..., 15}, <span class="hl">3 runs por K</span>, melhor por WCSS</li>
         <li>Convergência: max 100 iter ou estabilização</li>
@@ -165,7 +165,7 @@
       <h3>Silhouette Score <sup>[3]</sup></h3>
       <div class="eq-box">
         <span class="katex-eq">s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}}</span>
-        <div class="eq-label">Mede o quão próximo cada ponto em um cluster está dos pontos em seus clusters vizinhos, indicando o quão bem separados e coesos os grupos estão. [geeksforgeeks]</div>
+        <div class="eq-label">s(i) ∈ [-1, 1]: +1 = bem separado, 0 = fronteira, -1 = mal atribuído — Rousseeuw [3]</div>
       </div>
     </div>
     <div style="text-align:center;">
@@ -192,7 +192,11 @@
   <p class="caption">Curva de inércia (WCSS) e Silhouette Score médio em função de K. O valor ótimo K=4 maximiza a silhueta (s=0.0576).</p>
 </section>
 
-<!-- ==================== SLIDE 5: FIGURA Convergencia K-Means ==================== --><section class="fig-slide">  <img class="plot-full" src="convergence_k4.png" alt="K-Means Convergence">  <p class="caption">Curva de converg&#234;ncia do K-Means (K=4): WCSS por itera&#231;&#227;o. Queda acentuada nas primeiras itera&#231;&#245;es, estabilizando ap&#243;s ~10 itera&#231;&#245;es.</p></section>
+<!-- ==================== SLIDE 5: FIGURA Convergencia K-Means ==================== -->
+<section class="fig-slide">
+  <img class="plot-full" src="convergence_k4.png" alt="K-Means Convergence">
+  <p class="caption">Curva de converg&#234;ncia do K-Means (K=4): WCSS por itera&#231;&#227;o. Queda acentuada nas primeiras itera&#231;&#245;es, estabilizando ap&#243;s ~10 itera&#231;&#245;es.</p>
+</section>
 <!-- ==================== SLIDE 5: ANALISE (tabela + insights) ==================== -->
 <section>
   <h2>3. Análise dos Clusters (K=4)</h2>
@@ -266,6 +270,7 @@
     <p><span class="ref-num">[1]</span> Radford, A. et al. <em>Learning Transferable Visual Models From Natural Language Supervision.</em> ICML, 2021.</p>
     <p><span class="ref-num">[2]</span> MacQueen, J. <em>Some methods for classification and analysis of multivariate observations.</em> Berkeley Symp., 1967.</p>
     <p><span class="ref-num">[3]</span> Rousseeuw, P. <em>Silhouettes: A graphical aid to the interpretation and validation of cluster analysis.</em> J. Comput. Appl. Math., 1987.</p>
+    <p><span class="ref-num">[4]</span> Arthur, D. &amp; Vassilvitskii, S. <em>k-means++: The advantages of careful seeding.</em> SODA, 2007.</p>
   </div>
   <p style="text-align:center; margin-top: 2em; font-size: 0.7em; color: #888;">
     Código-fonte: <a href="https://github.com/vitoryeso/machine-learning-master-class" target="_blank" style="color: var(--accent);">github.com/vitoryeso/machine-learning-master-class</a>
