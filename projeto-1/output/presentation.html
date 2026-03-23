@@ -62,7 +62,7 @@
   .reveal .tiny { font-size: 0.5em; color: #888; }
   .reveal img.plot { max-height: 380px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
   .reveal img.plot-full {
-    max-height: 600px;
+    max-height: 660px;
     max-width: 95%;
     border-radius: 8px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.12);
@@ -122,7 +122,7 @@
       <ul>
         <li><span class="hl">CLIP ViT-B/32</span> <sup>[1]</sup> via fastembed-rs (ONNX Runtime)</li>
         <li>Embedding: <span class="hl">x &#8712; &#8477;<sup>512</sup></span> por imagem</li>
-        <li>Pre-proc: resize 224&#215;224, normalizacao ImageNet</li>
+        <li>Pre-proc: resize 224&#215;224, normalização ImageNet</li>
       </ul>
     </div>
     <div>
@@ -143,10 +143,10 @@
     </div>
   </div>
   <div class="tech-stack">
-    <span class="prompt">$</span> cargo build --release <span class="comment"># pipeline unico, zero Python</span><br>
+    <span class="prompt">$</span> cargo build --release <span class="comment"># pipeline único, zero Python</span><br>
     <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://github.com/Anush008/fastembed-rs" target="_blank">fastembed</a> <span class="version">5.13</span> <span class="comment"># CLIP ViT-B/32 embeddings (ONNX)</span><br>
-    <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://plotters-rs.github.io/" target="_blank">plotters</a> <span class="version">0.3</span>  <span class="comment"># graficos PNG</span><br>
-    <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://crates.io/crates/image" target="_blank">image</a> <span class="version">0.25</span>    <span class="comment"># dimensoes de imagem</span><br>
+    <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://plotters-rs.github.io/" target="_blank">plotters</a> <span class="version">0.3</span>  <span class="comment"># gráficos PNG</span><br>
+    <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://crates.io/crates/image" target="_blank">image</a> <span class="version">0.25</span>    <span class="comment"># dimensões de imagem</span><br>
     <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://crates.io/crates/walkdir" target="_blank">walkdir</a> <span class="version">2</span>     <span class="comment"># file discovery recursivo</span><br>
     <span class="sep">&#9492;&#9472;&#9472;</span> <a href="https://crates.io/crates/rand" target="_blank">rand</a> <span class="version">0.9</span>      <span class="comment"># amostragem + init</span>
   </div>
@@ -188,14 +188,13 @@
 
 <!-- ==================== SLIDE 4: FIGURA Elbow + Silhouette ==================== -->
 <section class="fig-slide">
-  <h3>Elbow Method + Silhouette Score &#8212; K &#8712; {2, ..., 15}</h3>
   <img class="plot-full" src="elbow_silhouette.png" alt="Elbow + Silhouette">
   <p class="caption">Eixo esq.: WCSS (inércia) | Eixo dir.: Silhouette Score médio | Melhor K = 4</p>
 </section>
 
 <!-- ==================== SLIDE 5: ANALISE (tabela + insights) ==================== -->
 <section>
-  <h2>3. Analise dos Clusters (K=4)</h2>
+  <h2>3. Análise dos Clusters (K=4)</h2>
   <table>
     <tr><th>Cluster</th><th>N</th><th>%</th><th>Descrição</th><th>Top Folders</th><th>Orientação</th><th>Tam. Med.</th></tr>
     <tr><td>0</td><td>2125</td><td>26.6</td><td><strong>Arte digital / wallpapers</strong></td><td>wallpapers 35%, ai_images 32%</td><td>46% land, 43% sq</td><td>413 KB</td></tr>
@@ -207,9 +206,9 @@
     <div>
       <h3>Padrões Identificados</h3>
       <ul>
-        <li><span class="hl">CLIP agrupou por semântica visual</span>, nao por metadados</li>
-        <li>Fotos de iPhone nos 4 clusters &#8212; conteudo &gt; origem</li>
-        <li>Formato (.png/.jpg) distribuido uniformemente</li>
+        <li><span class="hl">CLIP agrupou por semântica visual</span>, não por metadados</li>
+        <li>Fotos de iPhone nos 4 clusters &#8212; conteúdo &gt; origem</li>
+        <li>Formato (.png/.jpg) distribuído uniformemente</li>
         <li>Aspect ratio correlaciona: retratos=portrait, wallpapers=landscape</li>
       </ul>
     </div>
@@ -231,35 +230,30 @@
 
 <!-- ==================== SLIDE 6: FIGURA PCA by Cluster ==================== -->
 <section class="fig-slide">
-  <h3>PCA 2D &#8212; Colorido por Cluster (K=4) &#8212; centroides marcados</h3>
   <img class="plot-full" src="pca_by_cluster.png" alt="PCA by Cluster">
-  <p class="caption">Círculos pretos = centroides projetados no espaco PCA</p>
+  <p class="caption">Círculos pretos = centroides projetados no espaço PCA</p>
 </section>
 
 <!-- ==================== SLIDE 7: FIGURA PCA by Folder ==================== -->
 <section class="fig-slide">
-  <h3>PCA 2D &#8212; Colorido por Pasta de Origem</h3>
   <img class="plot-full" src="pca_by_folder.png" alt="PCA by Folder">
-  <p class="caption">Fotos de iPhone distribuídas por todos os clusters &#8594; agrupamento semântico, nao por fonte</p>
+  <p class="caption">Fotos de iPhone distribuídas por todos os clusters &#8594; agrupamento semântico, não por fonte</p>
 </section>
 
 <!-- ==================== SLIDE 8: FIGURA PCA by Extension ==================== -->
 <section class="fig-slide">
-  <h3>PCA 2D &#8212; Colorido por Tipo de Arquivo (.png / .jpg)</h3>
   <img class="plot-full" src="pca_by_extension.png" alt="PCA by Extension">
-  <p class="caption">Formato de arquivo <strong>nao</strong> influencia a formação dos clusters</p>
+  <p class="caption">Formato de arquivo <strong>não</strong> influencia a formação dos clusters</p>
 </section>
 
 <!-- ==================== SLIDE 9: FIGURA PCA by File Size ==================== -->
 <section class="fig-slide">
-  <h3>PCA 2D &#8212; Colorido por Tamanho do Arquivo</h3>
   <img class="plot-full" src="pca_by_filesize.png" alt="PCA by File Size">
-  <p class="caption">Correlação parcial: screenshots menores, fotos maiores (consequência, nao causa)</p>
+  <p class="caption">Correlação parcial: screenshots menores, fotos maiores (consequência, não causa)</p>
 </section>
 
 <!-- ==================== SLIDE 10: FIGURA PCA by Aspect ==================== -->
 <section class="fig-slide">
-  <h3>PCA 2D &#8212; Colorido por Orientação (landscape / portrait / square)</h3>
   <img class="plot-full" src="pca_by_aspect_cat.png" alt="PCA by Aspect Ratio">
   <p class="caption">Forte correlação semantica: retratos &#8594; portrait, wallpapers &#8594; landscape/square</p>
 </section>
