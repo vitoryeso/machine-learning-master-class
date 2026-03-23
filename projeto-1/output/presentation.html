@@ -99,8 +99,8 @@
 
 <!-- ==================== SLIDE 1: TITULO ==================== -->
 <section class="title-slide">
-  <h1>Analise Exploratoria com K-Means<br>em Embeddings de Imagens</h1>
-  <p class="subtitle">Clustering nao-supervisionado via CLIP ViT-B/32</p>
+  <h1>Análise Exploratória com K-Means<br>em Embeddings de Imagens</h1>
+  <p class="subtitle">Clustering não-supervisionado via CLIP ViT-B/32</p>
   <p class="author">
     <span class="badge badge-rust">100% Rust</span>
     <span class="badge badge-clip">CLIP ViT-B/32</span>
@@ -117,7 +117,7 @@
       <h3>Dataset &amp; Amostragem</h3>
       <ul>
         <li><span class="hl">22.258</span> imagens pessoais (fotos, wallpapers, AI art, screenshots, memes)</li>
-        <li>Amostra aleatoria: <span class="hl">n = 8.000</span> (seed = 42)</li>
+        <li>Amostra aleatória: <span class="hl">n = 8.000</span> (seed = 42)</li>
       </ul>
       <h3>Feature Extraction</h3>
       <ul>
@@ -127,7 +127,7 @@
       </ul>
     </div>
     <div>
-      <h3>Normalizacao L2</h3>
+      <h3>Normalização L2</h3>
       <div class="eq-box">
         <span class="katex-eq">\hat{\mathbf{x}}_i = \frac{\mathbf{x}_i}{\|\mathbf{x}_i\|_2}</span>
         <div class="eq-label">dist. euclidiana &#8776; similaridade cosseno</div>
@@ -135,11 +135,11 @@
       <h3>K-Means <sup>[2]</sup></h3>
       <ul>
         <li>K &#8712; {2, ..., 15}, <span class="hl">3 runs por K</span>, melhor por WCSS</li>
-        <li>Convergencia: max 100 iter ou estabilizacao</li>
+        <li>Convergência: max 100 iter ou estabilização</li>
       </ul>
-      <h3>Visualizacao</h3>
+      <h3>Visualização</h3>
       <ul>
-        <li>PCA 512D &#8594; 2D para visualizacao</li>
+        <li>PCA 512D &#8594; 2D para visualização</li>
       </ul>
     </div>
   </div>
@@ -155,7 +155,7 @@
 
 <!-- ==================== SLIDE 3: K OTIMO (texto) ==================== -->
 <section>
-  <h2>2. Determinacao do K Otimo</h2>
+  <h2>2. Determinação do K Ótimo</h2>
   <div class="cols">
     <div>
       <h3>Elbow Method (WCSS)</h3>
@@ -166,7 +166,7 @@
       <h3>Silhouette Score <sup>[3]</sup></h3>
       <div class="eq-box">
         <span class="katex-eq">s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}}</span>
-        <div class="eq-label">Mede proximidade intra-cluster vs. separacao inter-cluster [geeksforgeeks]</div>
+        <div class="eq-label">Mede o quão próximo cada ponto em um cluster está dos pontos em seus clusters vizinhos, indicando o quão bem separados e coesos os grupos estão. [geeksforgeeks]</div>
       </div>
     </div>
     <div style="text-align:center;">
@@ -191,14 +191,14 @@
 <section class="fig-slide">
   <h3>Elbow Method + Silhouette Score &#8212; K &#8712; {2, ..., 15}</h3>
   <img class="plot-full" src="elbow_silhouette.png" alt="Elbow + Silhouette">
-  <p class="caption">Eixo esq.: WCSS (inercia) | Eixo dir.: Silhouette Score medio | Melhor K = 4</p>
+  <p class="caption">Eixo esq.: WCSS (inércia) | Eixo dir.: Silhouette Score médio | Melhor K = 4</p>
 </section>
 
 <!-- ==================== SLIDE 5: ANALISE (tabela + insights) ==================== -->
 <section>
   <h2>3. Analise dos Clusters (K=4)</h2>
   <table>
-    <tr><th>Cluster</th><th>N</th><th>%</th><th>Descricao</th><th>Top Folders</th><th>Orientacao</th><th>Tam. Med.</th></tr>
+    <tr><th>Cluster</th><th>N</th><th>%</th><th>Descrição</th><th>Top Folders</th><th>Orientação</th><th>Tam. Med.</th></tr>
     <tr><td>0</td><td>2125</td><td>26.6</td><td><strong>Arte digital / wallpapers</strong></td><td>wallpapers 35%, ai_images 32%</td><td>46% land, 43% sq</td><td>413 KB</td></tr>
     <tr><td>1</td><td>1972</td><td>24.6</td><td><strong>Cenas e ambientes</strong></td><td>iPhone 81%, people 8%</td><td>70% portrait</td><td>8.5 MB</td></tr>
     <tr><td>2</td><td>2301</td><td>28.8</td><td><strong>Retratos / pessoas</strong></td><td>people 50%, iPhone 33%</td><td>75% portrait</td><td>5.9 MB</td></tr>
@@ -206,25 +206,25 @@
   </table>
   <div class="cols" style="margin-top: 0.4em;">
     <div>
-      <h3>Padroes Identificados</h3>
+      <h3>Padrões Identificados</h3>
       <ul>
-        <li><span class="hl">CLIP agrupou por semantica visual</span>, nao por metadados</li>
+        <li><span class="hl">CLIP agrupou por semântica visual</span>, nao por metadados</li>
         <li>Fotos de iPhone nos 4 clusters &#8212; conteudo &gt; origem</li>
         <li>Formato (.png/.jpg) distribuido uniformemente</li>
         <li>Aspect ratio correlaciona: retratos=portrait, wallpapers=landscape</li>
       </ul>
     </div>
     <div>
-      <h3>Qualidade da Segmentacao</h3>
+      <h3>Qualidade da Segmentação</h3>
       <ul>
-        <li>Silhouette 0.058 &#8212; clusters com <span class="hl">sobreposicao parcial</span></li>
+        <li>Silhouette 0.058 &#8212; clusters com <span class="hl">sobreposição parcial</span></li>
         <li>Esperado: alta variabilidade intra-classe em imagens pessoais</li>
-        <li>Validacao cruzada com metadados confirma coerencia semantica</li>
+        <li>Validação cruzada com metadados confirma coerência semântica</li>
       </ul>
-      <h3>Limitacoes</h3>
+      <h3>Limitações</h3>
       <ul>
-        <li>PCA 2D perde informacao de 512D</li>
-        <li>K-Means assume clusters esfericos</li>
+        <li>PCA 2D perde informação de 512D</li>
+        <li>K-Means assume clusters esféricos</li>
       </ul>
     </div>
   </div>
@@ -234,47 +234,47 @@
 <section class="fig-slide">
   <h3>PCA 2D &#8212; Colorido por Cluster (K=4) &#8212; centroides marcados</h3>
   <img class="plot-full" src="pca_by_cluster.png" alt="PCA by Cluster">
-  <p class="caption">Circulos pretos = centroides projetados no espaco PCA</p>
+  <p class="caption">Círculos pretos = centroides projetados no espaco PCA</p>
 </section>
 
 <!-- ==================== SLIDE 7: FIGURA PCA by Folder ==================== -->
 <section class="fig-slide">
   <h3>PCA 2D &#8212; Colorido por Pasta de Origem</h3>
   <img class="plot-full" src="pca_by_folder.png" alt="PCA by Folder">
-  <p class="caption">Fotos de iPhone distribuidas por todos os clusters &#8594; agrupamento semantico, nao por fonte</p>
+  <p class="caption">Fotos de iPhone distribuídas por todos os clusters &#8594; agrupamento semântico, nao por fonte</p>
 </section>
 
 <!-- ==================== SLIDE 8: FIGURA PCA by Extension ==================== -->
 <section class="fig-slide">
   <h3>PCA 2D &#8212; Colorido por Tipo de Arquivo (.png / .jpg)</h3>
   <img class="plot-full" src="pca_by_extension.png" alt="PCA by Extension">
-  <p class="caption">Formato de arquivo <strong>nao</strong> influencia a formacao dos clusters</p>
+  <p class="caption">Formato de arquivo <strong>nao</strong> influencia a formação dos clusters</p>
 </section>
 
 <!-- ==================== SLIDE 9: FIGURA PCA by File Size ==================== -->
 <section class="fig-slide">
   <h3>PCA 2D &#8212; Colorido por Tamanho do Arquivo</h3>
   <img class="plot-full" src="pca_by_filesize.png" alt="PCA by File Size">
-  <p class="caption">Correlacao parcial: screenshots menores, fotos maiores (consequencia, nao causa)</p>
+  <p class="caption">Correlação parcial: screenshots menores, fotos maiores (consequência, nao causa)</p>
 </section>
 
 <!-- ==================== SLIDE 10: FIGURA PCA by Aspect ==================== -->
 <section class="fig-slide">
-  <h3>PCA 2D &#8212; Colorido por Orientacao (landscape / portrait / square)</h3>
+  <h3>PCA 2D &#8212; Colorido por Orientação (landscape / portrait / square)</h3>
   <img class="plot-full" src="pca_by_aspect_cat.png" alt="PCA by Aspect Ratio">
-  <p class="caption">Forte correlacao semantica: retratos &#8594; portrait, wallpapers &#8594; landscape/square</p>
+  <p class="caption">Forte correlação semantica: retratos &#8594; portrait, wallpapers &#8594; landscape/square</p>
 </section>
 
 <!-- ==================== SLIDE 11: REFERENCIAS ==================== -->
 <section>
-  <h2>Referencias</h2>
+  <h2>Referências</h2>
   <div class="references" style="font-size: 0.65em; border-top: none;">
     <p><span class="ref-num">[1]</span> Radford, A. et al. <em>Learning Transferable Visual Models From Natural Language Supervision.</em> ICML, 2021.</p>
     <p><span class="ref-num">[2]</span> MacQueen, J. <em>Some methods for classification and analysis of multivariate observations.</em> Berkeley Symp., 1967.</p>
     <p><span class="ref-num">[3]</span> Rousseeuw, P. <em>Silhouettes: A graphical aid to the interpretation and validation of cluster analysis.</em> J. Comput. Appl. Math., 1987.</p>
   </div>
   <p style="text-align:center; margin-top: 2em; font-size: 0.7em; color: #888;">
-    Codigo-fonte: <a href="https://github.com/vitoryeso/machine-learning-master-class" target="_blank" style="color: var(--accent);">github.com/vitoryeso/machine-learning-master-class</a>
+    Código-fonte: <a href="https://github.com/vitoryeso/machine-learning-master-class" target="_blank" style="color: var(--accent);">github.com/vitoryeso/machine-learning-master-class</a>
   </p>
 </section>
 
