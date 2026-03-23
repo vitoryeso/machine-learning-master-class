@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projeto 1 — K-Means em Embeddings de Imagens</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --r-heading-font: 'Inter', sans-serif;
+    --r-main-font: 'Inter', sans-serif;
+    --r-main-font-size: 28px;
+    --r-heading-color: #1a1a2e;
+    --r-main-color: #333;
+    --accent: #2563eb;
+    --accent2: #dc2626;
+    --bg-subtle: #f8fafc;
+  }
+  .reveal { font-family: 'Inter', sans-serif; }
+  .reveal h1, .reveal h2, .reveal h3 { font-weight: 700; color: var(--r-heading-color); }
+  .reveal h1 { font-size: 2.0em; }
+  .reveal h2 { font-size: 1.4em; margin-bottom: 0.6em; border-bottom: 3px solid var(--accent); padding-bottom: 0.2em; display: inline-block; }
+  .reveal h3 { font-size: 1.1em; color: var(--accent); }
+
+  /* Slide title page */
+  .title-slide h1 { font-size: 1.6em; margin-bottom: 0.1em; }
+  .title-slide .subtitle { font-size: 0.9em; color: #666; margin-bottom: 1.5em; }
+  .title-slide .author { font-size: 0.8em; color: #888; }
+
+  /* Equations */
+  .eq-box {
+    background: var(--bg-subtle);
+    border-left: 4px solid var(--accent);
+    padding: 0.6em 1em;
+    margin: 0.5em auto;
+    border-radius: 0 8px 8px 0;
+    max-width: 90%;
+    text-align: center;
+  }
+  .eq-label {
+    font-size: 0.55em;
+    color: #888;
+    text-align: right;
+    margin-top: 0.2em;
+  }
+
+  /* Terminal/code style */
+  .tech-stack {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.52em;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 0.8em 1.2em;
+    border-radius: 10px;
+    text-align: left;
+    line-height: 1.8;
+    max-width: 85%;
+    margin: 0.5em auto;
+  }
+  .tech-stack .prompt { color: #22d3ee; }
+  .tech-stack .comment { color: #64748b; }
+  .tech-stack a { color: #60a5fa; text-decoration: none; }
+  .tech-stack a:hover { text-decoration: underline; }
+  .tech-stack .version { color: #a78bfa; }
+  .tech-stack .sep { color: #475569; }
+
+  /* Compact lists */
+  .reveal ul, .reveal ol { font-size: 0.75em; line-height: 1.5; }
+  .reveal li { margin-bottom: 0.3em; }
+  .reveal .small { font-size: 0.6em; color: #666; }
+  .reveal .tiny { font-size: 0.5em; color: #888; }
+
+  /* Images */
+  .reveal img.plot { max-height: 420px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .reveal img.plot-sm { max-height: 320px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+  /* Tables */
+  .reveal table { font-size: 0.6em; margin: 0.3em auto; border-collapse: collapse; }
+  .reveal table th { background: var(--accent); color: white; padding: 0.4em 0.7em; }
+  .reveal table td { padding: 0.3em 0.7em; border-bottom: 1px solid #e5e7eb; }
+  .reveal table tr:nth-child(even) { background: var(--bg-subtle); }
+  .reveal table .best { background: #dcfce7; font-weight: 600; }
+
+  /* Two column layout */
+  .cols { display: flex; gap: 1.5em; align-items: flex-start; }
+  .cols > * { flex: 1; }
+
+  /* References */
+  .references {
+    font-size: 0.42em;
+    text-align: left;
+    color: #666;
+    line-height: 1.6;
+    max-width: 90%;
+    margin: 0.5em auto 0;
+    border-top: 1px solid #ddd;
+    padding-top: 0.5em;
+  }
+  .references span.ref-num { color: var(--accent); font-weight: 600; }
+
+  /* Highlight */
+  .hl { color: var(--accent); font-weight: 600; }
+  .hl-red { color: var(--accent2); font-weight: 600; }
+
+  /* Badge */
+  .badge {
+    display: inline-block;
+    padding: 0.15em 0.5em;
+    border-radius: 4px;
+    font-size: 0.55em;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .badge-rust { background: #fde68a; color: #92400e; }
+  .badge-clip { background: #dbeafe; color: #1e40af; }
+  .badge-k { background: #dcfce7; color: #166534; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============ SLIDE 0: TITLE ============ -->
+<section class="title-slide">
+  <h1>Analise Exploratoria com K-Means<br>em Embeddings de Imagens</h1>
+  <p class="subtitle">Clustering nao-supervisionado via CLIP ViT-B/32</p>
+  <p class="author">
+    <span class="badge badge-rust">Rust</span>
+    <span class="badge badge-clip">CLIP</span>
+    <span class="badge badge-k">K-Means</span>
+  </p>
+  <p class="author">Vitor Yeso &mdash; Mestrado 2026</p>
+</section>
+
+<!-- ============ SLIDE 1: METODOLOGIA ============ -->
+<section>
+  <h2>1. Metodologia</h2>
+  <div class="cols">
+    <div>
+      <h3>Dataset &amp; Amostragem</h3>
+      <ul>
+        <li><span class="hl">22.258</span> imagens pessoais (fotos, wallpapers, AI art, screenshots, memes)</li>
+        <li>Amostra aleatoria: <span class="hl">n = 8.000</span></li>
+        <li>63 corrompidas descartadas (0.79%)</li>
+      </ul>
+      <h3>Feature Extraction</h3>
+      <ul>
+        <li><span class="hl">CLIP ViT-B/32</span> <sup>[1]</sup> via fastembed-rs (ONNX)</li>
+        <li>Embedding: <span class="hl">x &isin; &Ropf;<sup>512</sup></span> por imagem</li>
+        <li>Pre-proc interno: resize 224&times;224, ImageNet norm</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Normalizacao L2</h3>
+      <div class="eq-box">
+        <span class="katex-eq">\hat{\mathbf{x}}_i = \frac{\mathbf{x}_i}{\|\mathbf{x}_i\|_2}</span>
+        <div class="eq-label">dist. euclidiana &asymp; similaridade cosseno</div>
+      </div>
+      <h3>Clustering</h3>
+      <ul>
+        <li><span class="hl">K-Means</span> <sup>[2]</sup></li>
+        <li>K &isin; {2, ..., 15}, 3 runs/K, melhor por WCSS</li>
+        <li>Convergencia: max 100 iter ou estabilizacao</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tech-stack">
+    <span class="prompt">$</span> cargo build --release <span class="comment"># pipeline unico, zero Python</span><br>
+    <span class="sep">├──</span> <a href="https://github.com/Anush008/fastembed-rs" target="_blank">fastembed</a> <span class="version">5.13</span> <span class="comment"># CLIP ViT-B/32 embeddings (ONNX)</span><br>
+    <span class="sep">├──</span> <a href="https://plotters-rs.github.io/" target="_blank">plotters</a> <span class="version">0.3</span> <span class="comment">&nbsp;# graficos PNG</span><br>
+    <span class="sep">├──</span> <a href="https://crates.io/crates/image" target="_blank">image</a> <span class="version">0.25</span> <span class="comment">&nbsp;&nbsp;&nbsp;# dimensoes de imagem</span><br>
+    <span class="sep">├──</span> <a href="https://crates.io/crates/walkdir" target="_blank">walkdir</a> <span class="version">2</span> <span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;# file discovery recursivo</span><br>
+    <span class="sep">└──</span> <a href="https://crates.io/crates/rand" target="_blank">rand</a> <span class="version">0.9</span> <span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# amostragem + K-Means init</span>
+  </div>
+</section>
+
+<!-- ============ SLIDE 2: METRICAS + RESULTADOS ============ -->
+<section>
+  <h2>2. Determinacao do K Otimo</h2>
+  <div class="cols">
+    <div>
+      <h3>Elbow Method (WCSS)</h3>
+      <div class="eq-box">
+        <span class="katex-eq">\text{WCSS} = \sum_{k=1}^{K} \sum_{\mathbf{x}_i \in C_k} \|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2</span>
+        <div class="eq-label">Within-Cluster Sum of Squares</div>
+      </div>
+      <h3>Silhouette Score <sup>[3]</sup></h3>
+      <div class="eq-box">
+        <span class="katex-eq">s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}}</span>
+        <div class="eq-label">a(i) = coesao intra-cluster, b(i) = separacao inter-cluster</div>
+      </div>
+      <ul>
+        <li><span class="hl">Best K = 4</span> (silhouette = <span class="hl">0.0576</span>)</li>
+        <li>Scores ~0.05: esperado para embeddings 512D heterogeneos</li>
+        <li>Cotovelo sutil em K=4 confirmado pelo silhouette</li>
+      </ul>
+    </div>
+    <div style="text-align:center;">
+      <img class="plot" src="elbow_silhouette.png" alt="Elbow + Silhouette">
+      <table>
+        <tr><th>K</th><th>Inercia</th><th>Silhouette</th></tr>
+        <tr><td>2</td><td>3753.7</td><td>0.0559</td></tr>
+        <tr><td>3</td><td>3627.7</td><td>0.0511</td></tr>
+        <tr class="best"><td>4</td><td>3520.9</td><td>0.0576</td></tr>
+        <tr><td>5</td><td>3454.1</td><td>0.0558</td></tr>
+        <tr><td>8</td><td>3290.3</td><td>0.0488</td></tr>
+        <tr><td>15</td><td>3087.1</td><td>0.0554</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 3: CLUSTERS + METADATA ============ -->
+<section>
+  <h2>3. Analise dos Clusters (K=4)</h2>
+  <div class="cols">
+    <div style="text-align:center;">
+      <img class="plot-sm" src="pca_by_cluster.png" alt="PCA by Cluster">
+      <p class="tiny">PCA 2D &mdash; colorido por cluster</p>
+    </div>
+    <div style="text-align:center;">
+      <img class="plot-sm" src="pca_by_folder.png" alt="PCA by Folder">
+      <p class="tiny">PCA 2D &mdash; colorido por pasta de origem</p>
+    </div>
+  </div>
+  <table>
+    <tr><th>Cluster</th><th>N</th><th>%</th><th>Descricao</th><th>Top Folders</th><th>Orientacao</th><th>Tam. Med.</th></tr>
+    <tr><td>0</td><td>2125</td><td>26.6</td><td><strong>Arte digital</strong></td><td>wallpapers 35%, ai_images 32%</td><td>46% land, 43% sq</td><td>413 KB</td></tr>
+    <tr><td>1</td><td>1972</td><td>24.6</td><td><strong>Cenas/ambientes</strong></td><td>iPhone 81%, people 8%</td><td>70% portrait</td><td>8.5 MB</td></tr>
+    <tr><td>2</td><td>2301</td><td>28.8</td><td><strong>Retratos/pessoas</strong></td><td>people 50%, iPhone 33%</td><td>75% portrait</td><td>5.9 MB</td></tr>
+    <tr><td>3</td><td>1602</td><td>20.0</td><td><strong>Screenshots</strong></td><td>iPhone 57%, backup 28%</td><td>55% port, 36% land</td><td>241 KB</td></tr>
+  </table>
+  <p style="text-align:center; font-size:0.65em; margin-top:0.4em;">
+    <span class="hl">Insight:</span> CLIP agrupou por <span class="hl">semantica visual</span>, nao por metadados.
+    Fotos de iPhone aparecem nos 4 clusters. Formato (.png/.jpg) distribuido uniformemente.
+  </p>
+</section>
+
+<!-- ============ SLIDE 4: METADATA PLOTS (BONUS) ============ -->
+<section>
+  <h2>3b. Validacao Cruzada com Metadados</h2>
+  <div class="cols">
+    <div style="text-align:center;">
+      <img class="plot-sm" src="pca_by_extension.png" alt="PCA by Extension">
+      <p class="tiny">Tipo de arquivo (.png / .jpg)</p>
+    </div>
+    <div style="text-align:center;">
+      <img class="plot-sm" src="pca_by_filesize.png" alt="PCA by File Size">
+      <p class="tiny">Tamanho do arquivo (gradiente azul&rarr;vermelho)</p>
+    </div>
+  </div>
+  <div class="cols" style="margin-top: 0.5em;">
+    <div style="text-align:center;">
+      <img class="plot-sm" src="pca_by_aspect_cat.png" alt="PCA by Aspect">
+      <p class="tiny">Orientacao (landscape / portrait / square)</p>
+    </div>
+    <div style="text-align:left; font-size: 0.65em; padding-top: 1em;">
+      <h3>Observacoes</h3>
+      <ul>
+        <li><strong>Extensao:</strong> .png e .jpg misturados &rarr; formato <span class="hl-red">nao</span> influencia clusters</li>
+        <li><strong>Tamanho:</strong> correlacao parcial &rarr; screenshots menores, fotos maiores (consequencia, nao causa)</li>
+        <li><strong>Aspect ratio:</strong> forte correlacao semantica &rarr; retratos = portrait, wallpapers = landscape</li>
+      </ul>
+      <h3>Limitacoes</h3>
+      <ul>
+        <li>Silhouette ~0.05 (clusters nao perfeitamente separados)</li>
+        <li>PCA 2D perde info de 512D</li>
+        <li>K-Means assume clusters esfericos</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="references">
+    <span class="ref-num">[1]</span> Radford, A. et al. <em>Learning Transferable Visual Models From Natural Language Supervision.</em> ICML, 2021.<br>
+    <span class="ref-num">[2]</span> MacQueen, J. <em>Some methods for classification and analysis of multivariate observations.</em> Berkeley Symp., 1967.<br>
+    <span class="ref-num">[3]</span> Rousseeuw, P. <em>Silhouettes: A graphical aid to the interpretation and validation of cluster analysis.</em> J. Comput. Appl. Math., 1987.
+  </div>
+</section>
+
+</div><!-- slides -->
+</div><!-- reveal -->
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    width: 1280,
+    height: 720,
+    margin: 0.04,
+    transition: 'fade',
+    transitionSpeed: 'fast',
+  });
+
+  // Render all KaTeX equations
+  document.querySelectorAll('.katex-eq').forEach(el => {
+    katex.render(el.textContent, el, {
+      throwOnError: false,
+      displayMode: true,
+    });
+  });
+</script>
+</body>
+</html>
