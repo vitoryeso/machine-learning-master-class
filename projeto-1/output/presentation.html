@@ -23,7 +23,7 @@
   .reveal { font-family: Inter, sans-serif; }
   .reveal h1, .reveal h2, .reveal h3 { font-weight: 700; color: var(--r-heading-color); }
   .reveal h1 { font-size: 2.0em; }
-  .reveal h2 { font-size: 1.4em; margin-bottom: 0.6em; border-bottom: 3px solid var(--accent); padding-bottom: 0.2em; display: inline-block; }
+  .reveal h2 { font-size: 1.4em; margin-bottom: 0.4em; border-bottom: 3px solid var(--accent); padding-bottom: 0.15em; display: inline-block; }
   .reveal h3 { font-size: 1.1em; color: var(--accent); }
   .title-slide h1 { font-size: 1.6em; margin-bottom: 0.1em; }
   .title-slide .subtitle { font-size: 0.9em; color: #666; margin-bottom: 1.5em; }
@@ -40,15 +40,15 @@
   .eq-label { font-size: 0.55em; color: #888; text-align: right; margin-top: 0.2em; }
   .tech-stack {
     font-family: JetBrains Mono, monospace;
-    font-size: 0.50em;
+    font-size: 0.62em;
     background: #0f172a;
     color: #e2e8f0;
-    padding: 0.7em 1.1em;
+    padding: 0.5em 1.1em;
     border-radius: 10px;
     text-align: left;
-    line-height: 1.8;
+    line-height: 1.7;
     max-width: 85%;
-    margin: 0.5em auto;
+    margin: 0.3em auto 0;
   }
   .tech-stack .prompt { color: #22d3ee; }
   .tech-stack .comment { color: #64748b; }
@@ -56,8 +56,8 @@
   .tech-stack a:hover { text-decoration: underline; }
   .tech-stack .version { color: #a78bfa; }
   .tech-stack .sep { color: #475569; }
-  .reveal ul, .reveal ol { font-size: 0.75em; line-height: 1.5; }
-  .reveal li { margin-bottom: 0.3em; }
+  .reveal ul, .reveal ol { font-size: 0.75em; line-height: 1.4; }
+  .reveal li { margin-bottom: 0.2em; }
   .reveal .small { font-size: 0.6em; color: #666; }
   .reveal .tiny { font-size: 0.5em; color: #888; }
   .reveal img.plot { max-height: 380px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -108,9 +108,41 @@
   <p class="author">Vitor Y. F. Freitas &#8212; Mini-Projeto 1 &#8212; Aprendizado de Máquina 2026.1</p>
 </section>
 
-<!-- ==================== SLIDE 2: METODOLOGIA ==================== -->
+<!-- ==================== SLIDE 2: PROBLEMA ==================== -->
 <section>
-  <h2>1. Metodologia</h2>
+  <h2>Problema</h2>
+  <div style="display:flex; align-items:center; gap:2em; margin-top:1em;">
+    <div style="flex:1; text-align:center;">
+      <img src="print-windows-disk-full.png"
+           style="max-width:100%; max-height:240px; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.15);"
+           alt="Disco D: 7.27 TB cheio">
+      <p style="font-size:0.5em; color:#888; margin-top:0.4em; line-height:1.4;">
+        Disco de dados com <strong>7.27 TB</strong> ocupados &mdash; apenas 1.05 GB livres
+      </p>
+    </div>
+    <div style="flex:1; text-align:center;">
+      <p style="font-size:1.1em; color:#333; line-height:1.6; margin-bottom:0.8em;">
+        <em>"Tenho muitos arquivos, como posso organizar?"</em>
+      </p>
+      <a href="https://fortune.com/2026/01/13/anthropic-claude-cowork-ai-agent-file-managing-threaten-startups/" target="_blank" style="text-decoration:none;">
+        <img src="https://fortune.com/img-assets/wp-content/uploads/2026/01/GettyImages-2216956965-e1768310894331.jpg"
+             style="max-width:100%; max-height:200px; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.15);"
+             alt="Claude Cowork — Fortune">
+        <p style="font-size:0.5em; color:#888; margin-top:0.4em; line-height:1.4;">
+          <strong>Anthropic launches Cowork</strong>, a file-managing AI agent<br>
+          <span style="color:#aaa;">Fortune, Jan 2026</span>
+        </p>
+      </a>
+    </div>
+  </div>
+  <p class="small" style="margin-top:1.2em; text-align:left;">
+    IAs como Claude Cowork j&aacute; organizam arquivos de trabalho e dia-a-dia de forma aut&ocirc;noma &mdash; motiva&ccedil;&atilde;o para explorar t&eacute;cnicas de agrupamento autom&aacute;tico em cole&ccedil;&otilde;es pessoais de imagens.
+  </p>
+</section>
+
+<!-- ==================== SLIDE 1.1: DATASET + EXTRACTION + NORMALIZACAO ==================== -->
+<section>
+  <h2>1.1 Dataset, Extração e Normalização</h2>
   <div class="cols">
     <div>
       <h3>Dataset &amp; Amostragem</h3>
@@ -122,40 +154,41 @@
       <ul>
         <li><span class="hl">CLIP ViT-B/32</span> <sup>[1]</sup> via fastembed-rs (ONNX Runtime)</li>
         <li>Embedding: <span class="hl">x &#8712; &#8477;<sup>512</sup></span> por imagem</li>
-        <li>Pre-proc: resize 224&#215;224, normalização ImageNet</li>
+        <li>Pré-Processamento: resize 224&#215;224, normalização ImageNet</li>
       </ul>
     </div>
     <div>
-      <h3>Normalização L2</h3>
+      <h3>Normalização do Modelo de Embedding</h3>
+      <ul>
+        <li>Embeddings CLIP são normalizados em L2 pós-extração para que a distância euclidiana entre vetores seja equivalente à similaridade cosseno</li>
+      </ul>
       <div class="eq-box">
         <span class="katex-eq">\hat{\mathbf{x}}_i = \frac{\mathbf{x}_i}{\|\mathbf{x}_i\|_2}</span>
-        <div class="eq-label">dist. euclidiana &#8776; similaridade cosseno</div>
+        <div class="eq-label">Após normalização: dist. euclidiana &#8776; similaridade cosseno</div>
       </div>
-      <h3>K-Means <sup>[2]</sup></h3>
       <ul>
-        <li>K &#8712; {2, ..., 15}, <span class="hl">3 runs por K</span>, melhor por WCSS</li>
-        <li>Convergência: max 100 iter ou estabilização</li>
-      </ul>
-      <h3>Visualização</h3>
-      <ul>
-        <li>PCA 512D &#8594; 2D para visualização</li>
+        <li>Garante que K-Means opere sobre direção semântica, não magnitude</li>
       </ul>
     </div>
   </div>
-  <div class="tech-stack">
-    <span class="prompt">$</span> cargo build --release <span class="comment"># pipeline único, zero Python</span><br>
-    <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://github.com/Anush008/fastembed-rs" target="_blank">fastembed</a> <span class="version">5.13</span> <span class="comment"># CLIP ViT-B/32 embeddings (ONNX)</span><br>
-    <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://plotters-rs.github.io/" target="_blank">plotters</a> <span class="version">0.3</span>  <span class="comment"># gráficos PNG</span><br>
-    <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://crates.io/crates/image" target="_blank">image</a> <span class="version">0.25</span>    <span class="comment"># dimensões de imagem</span><br>
-    <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://crates.io/crates/walkdir" target="_blank">walkdir</a> <span class="version">2</span>     <span class="comment"># file discovery recursivo</span><br>
-    <span class="sep">&#9492;&#9472;&#9472;</span> <a href="https://crates.io/crates/rand" target="_blank">rand</a> <span class="version">0.9</span>      <span class="comment"># amostragem + init</span>
-  </div>
 </section>
 
-<!-- ==================== SLIDE 3: K OTIMO (texto) ==================== -->
+<!-- ==================== SLIDE 1.2: K-MEANS + METRICAS ==================== -->
 <section>
-  <h2>2. Determinação do K Ótimo</h2>
+  <h2>1.2 K-Means, Métricas e Visualização</h2>
   <div class="cols">
+    <div>
+      <h3>K-Means++ <sup>[2]</sup></h3>
+      <ul>
+        <li>Inicialização inteligente: escolhe centroides iniciais com probabilidade proporcional à distância ao centroide mais próximo já escolhido, evitando convergência para mínimos locais ruins</li>
+        <li>K &#8712; {2, ..., 15}, <span class="hl">3 runs por K</span>, melhor por WCSS</li>
+        <li>Convergência: max 100 iterações ou estabilização de labels</li>
+      </ul>
+      <h3>Visualização</h3>
+      <ul>
+        <li>PCA via power iteration: 512D &#8594; 2D</li>
+      </ul>
+    </div>
     <div>
       <h3>Elbow Method (WCSS)</h3>
       <div class="eq-box">
@@ -165,9 +198,61 @@
       <h3>Silhouette Score <sup>[3]</sup></h3>
       <div class="eq-box">
         <span class="katex-eq">s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}}</span>
-        <div class="eq-label">Mede o quão próximo cada ponto em um cluster está dos pontos em seus clusters vizinhos, indicando o quão bem separados e coesos os grupos estão. [geeksforgeeks]</div>
+        <div class="eq-label">Coesão intra-cluster (a) vs. separação inter-cluster (b)</div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ==================== SLIDE 1.3: SOFTWARE ==================== -->
+<section>
+  <h2>1.3 Software e Ambiente</h2>
+  <div class="cols">
+    <div>
+      <div class="tech-stack" style="font-size:0.58em;">
+        <span class="prompt">$</span> cargo build --release <span class="comment"># pipeline único, zero Python</span><br>
+        <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://github.com/Anush008/fastembed-rs" target="_blank">fastembed</a> <span class="version">5.13</span> <span class="comment"># CLIP ViT-B/32 (ONNX)</span><br>
+        <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://plotters-rs.github.io/" target="_blank">plotters</a> <span class="version">0.3</span>  <span class="comment"># gráficos PNG</span><br>
+        <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://crates.io/crates/image" target="_blank">image</a> <span class="version">0.25</span>    <span class="comment"># dimensões de imagem</span><br>
+        <span class="sep">&#9500;&#9472;&#9472;</span> <a href="https://crates.io/crates/walkdir" target="_blank">walkdir</a> <span class="version">2</span>     <span class="comment"># file discovery recursivo</span><br>
+        <span class="sep">&#9492;&#9472;&#9472;</span> <a href="https://crates.io/crates/rand" target="_blank">rand</a> <span class="version">0.9</span>      <span class="comment"># amostragem + init</span>
+      </div>
+    </div>
+    <div style="text-align:center;">
+      <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:1.5em; margin-top:0.3em;">
+        <div style="text-align:center;">
+          <img src="https://rustacean.net/assets/rustacean-orig-noshadow.svg" style="height:56px;" alt="Ferris">
+          <p style="font-size:0.42em; color:#888; margin-top:0.15em;">Rust</p>
+        </div>
+        <div style="text-align:center;">
+          <img src="https://qdrant.tech/img/logo_with_text.png" style="height:40px;" alt="Qdrant">
+          <p style="font-size:0.42em; color:#888; margin-top:0.15em;">fastembed</p>
+        </div>
+        <div style="text-align:center;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Claude_AI_logo.svg/512px-Claude_AI_logo.svg.png" style="height:48px;" alt="Claude">
+          <p style="font-size:0.42em; color:#888; margin-top:0.15em;">Claude</p>
+        </div>
+        <div style="text-align:center;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Windows_logo_-_2021.svg/512px-Windows_logo_-_2021.svg.png" style="height:48px;" alt="Windows 11">
+          <p style="font-size:0.42em; color:#888; margin-top:0.15em;">Windows 11</p>
+        </div>
+        <div style="text-align:center;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/AMD_Logo.svg/512px-AMD_Logo.svg.png" style="height:36px;" alt="AMD">
+          <p style="font-size:0.42em; color:#888; margin-top:0.15em;">Ryzen 7 (16T)</p>
+        </div>
+        <div style="text-align:center;">
+          <img src="https://upload.wikimedia.org/wikipedia/sco/thumb/2/21/Nvidia_logo.svg/512px-Nvidia_logo.svg.png" style="height:36px;" alt="NVIDIA">
+          <p style="font-size:0.42em; color:#888; margin-top:0.15em;">RTX 3060</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SLIDE 2.1: DETERMINACAO K OTIMO ==================== -->
+<section>
+  <h2>2.1 Determinação do K Ótimo</h2>
+  <div class="cols">
     <div style="text-align:center;">
       <table>
         <tr><th>K</th><th>WCSS</th><th>Silhouette</th></tr>
@@ -183,19 +268,22 @@
         <li>Cotovelo sutil em K=4, confirmado pelo pico de silhouette</li>
       </ul>
     </div>
+    <div style="text-align:center;">
+      <img class="plot" src="elbow_silhouette.png" alt="Elbow + Silhouette" style="max-height:340px;">
+    </div>
   </div>
 </section>
 
-<!-- ==================== SLIDE 4: FIGURA Elbow + Silhouette ==================== -->
+<!-- ==================== SLIDE 2.2: CONVERGENCIA ==================== -->
 <section class="fig-slide">
-  <img class="plot-full" src="elbow_silhouette.png" alt="Elbow + Silhouette">
-  <p class="caption">Curva de inércia (WCSS) e Silhouette Score médio em função de K. O valor ótimo K=4 maximiza a silhueta (s=0.0576).</p>
+  <h3>Convergência K-Means (K=4)</h3>
+  <img class="plot-full" src="convergence_k4.png" alt="K-Means Convergence">
+  <p class="caption">WCSS por iteração. Queda acentuada nas primeiras iterações, estabilizando após ~10 iterações.</p>
 </section>
 
-<!-- ==================== SLIDE 5: FIGURA Convergencia K-Means ==================== --><section class="fig-slide">  <img class="plot-full" src="convergence_k4.png" alt="K-Means Convergence">  <p class="caption">Curva de converg&#234;ncia do K-Means (K=4): WCSS por itera&#231;&#227;o. Queda acentuada nas primeiras itera&#231;&#245;es, estabilizando ap&#243;s ~10 itera&#231;&#245;es.</p></section>
-<!-- ==================== SLIDE 5: ANALISE (tabela + insights) ==================== -->
+<!-- ==================== SLIDE 2.3: ANALISE DOS CLUSTERS ==================== -->
 <section>
-  <h2>3. Análise dos Clusters (K=4)</h2>
+  <h2>2.2 Análise dos Clusters (K=4)</h2>
   <table>
     <tr><th>Cluster</th><th>N</th><th>%</th><th>Descrição</th><th>Top Folders</th><th>Orientação</th><th>Tam. Med.</th></tr>
     <tr><td>0</td><td>2125</td><td>26.6</td><td><strong>Arte digital / wallpapers</strong></td><td>wallpapers 35%, ai_images 32%</td><td>46% land, 43% sq</td><td>413 KB</td></tr>

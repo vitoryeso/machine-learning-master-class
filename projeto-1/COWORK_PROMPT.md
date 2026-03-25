@@ -13,11 +13,11 @@ Titulo: "Analise Exploratoria com K-Means em Embeddings de Imagens"
 
 - Dataset: 22.258 imagens pessoais (fotos, wallpapers, AI art, screenshots, memes)
 - Amostra: 8.000 imagens (amostragem aleatoria simples, 63 corrompidas descartadas)
-- Embedding: CLIP ViT-B/32 via fastembed-rs (Rust, ONNX runtime) - vetores de 512 dimensoes
-- Pre-processamento: resize 224x224 + ImageNet normalization (interno ao CLIP), L2-normalization pos-embedding
-- Clustering: K-Means++ (Arthur & Vassilvitskii, 2007), 3 runs por K, K=2..15
+- Embedding: ViT-patch32 via fastembed-rs (Rust, ONNX runtime) - vetores de 512 dimensoes
+- Pre-processamento: resize 224x224 + ImageNet normalization, L2-normalization pos-embedding
+- Clustering: K-Means++ (Arthur & Vassilvitskii, 2007) (aqui tem que explicar o k-means++), 3 runs por K, K=2..15
 - Metricas: Elbow Method (WCSS) e Silhouette Score (Rousseeuw, 1987)
-- Visualizacao: PCA 2D via power iteration
+- Visualizacao: PCA 2D (fazer pca 2d basico e explicar metodo)
 - Pipeline: 100% Rust, binario unico (sem dependencias Python)
 
 === SLIDE 2: Determinacao do K Otimo ===
