@@ -182,11 +182,11 @@
       <ul>
         <li>Inicialização inteligente: escolhe centroides iniciais com probabilidade proporcional à distância ao centroide mais próximo já escolhido, evitando convergência para mínimos locais ruins</li>
         <li>K &#8712; {2, ..., 15}, <span class="hl">3 runs por K</span>, melhor por WCSS</li>
-        <li>Convergência: max 100 iterações ou estabilização de labels</li>
+        <li>Rodadas de 100 iterações ou estabilização de labels</li>
       </ul>
       <h3>Visualização</h3>
       <ul>
-        <li>PCA via power iteration: 512D &#8594; 2D</li>
+        <li>PCA via power iteration: redução de 512D &#8594; 2D, extraindo as duas direções de maior variância para projetar os embeddings em um plano visualizável</li>
       </ul>
     </div>
     <div>
@@ -225,23 +225,23 @@
           <p style="font-size:0.42em; color:#888; margin-top:0.15em;">Rust</p>
         </div>
         <div style="text-align:center;">
-          <img src="https://qdrant.tech/img/logo_with_text.png" style="height:40px;" alt="Qdrant">
+          <img src="icons/qdrant.svg" style="height:48px;" alt="Qdrant">
           <p style="font-size:0.42em; color:#888; margin-top:0.15em;">fastembed</p>
         </div>
         <div style="text-align:center;">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Claude_AI_logo.svg/512px-Claude_AI_logo.svg.png" style="height:48px;" alt="Claude">
+          <img src="icons/claude.svg" style="height:48px;" alt="Claude">
           <p style="font-size:0.42em; color:#888; margin-top:0.15em;">Claude</p>
         </div>
         <div style="text-align:center;">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Windows_logo_-_2021.svg/512px-Windows_logo_-_2021.svg.png" style="height:48px;" alt="Windows 11">
+          <img src="icons/windows.svg" style="height:48px;" alt="Windows 11">
           <p style="font-size:0.42em; color:#888; margin-top:0.15em;">Windows 11</p>
         </div>
         <div style="text-align:center;">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/AMD_Logo.svg/512px-AMD_Logo.svg.png" style="height:36px;" alt="AMD">
+          <img src="icons/amd.svg" style="height:36px;" alt="AMD">
           <p style="font-size:0.42em; color:#888; margin-top:0.15em;">Ryzen 7 (16T)</p>
         </div>
         <div style="text-align:center;">
-          <img src="https://upload.wikimedia.org/wikipedia/sco/thumb/2/21/Nvidia_logo.svg/512px-Nvidia_logo.svg.png" style="height:36px;" alt="NVIDIA">
+          <img src="icons/nvidia.svg" style="height:36px;" alt="NVIDIA">
           <p style="font-size:0.42em; color:#888; margin-top:0.15em;">RTX 3060</p>
         </div>
       </div>
