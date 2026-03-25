@@ -113,6 +113,9 @@
   <h2>Problema</h2>
   <div style="display:flex; align-items:center; gap:2em; margin-top:1em;">
     <div style="flex:1; text-align:center;">
+      <p style="font-size:1.1em; color:#333; line-height:1.6; margin-bottom:0.6em;">
+        <em>"Tenho muitos arquivos, como posso organizar?"</em>
+      </p>
       <img src="print-windows-disk-full.png"
            style="max-width:100%; max-height:240px; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.15);"
            alt="Disco D: 7.27 TB cheio">
@@ -121,9 +124,6 @@
       </p>
     </div>
     <div style="flex:1; text-align:center;">
-      <p style="font-size:1.1em; color:#333; line-height:1.6; margin-bottom:0.8em;">
-        <em>"Tenho muitos arquivos, como posso organizar?"</em>
-      </p>
       <a href="https://fortune.com/2026/01/13/anthropic-claude-cowork-ai-agent-file-managing-threaten-startups/" target="_blank" style="text-decoration:none;">
         <img src="https://fortune.com/img-assets/wp-content/uploads/2026/01/GettyImages-2216956965-e1768310894331.jpg"
              style="max-width:100%; max-height:200px; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.15);"
@@ -142,7 +142,7 @@
 
 <!-- ==================== SLIDE 1.1: DATASET + EXTRACTION + NORMALIZACAO ==================== -->
 <section>
-  <h2>1.1 Dataset, Extração e Normalização</h2>
+  <h2>1.1 Dataset, Extração e Normalização de Embeddings</h2>
   <div class="cols">
     <div>
       <h3>Dataset &amp; Amostragem</h3>
@@ -158,16 +158,23 @@
       </ul>
     </div>
     <div>
-      <h3>Normalização do Modelo de Embedding</h3>
+      <h3>Normalização de Embeddings</h3>
       <ul>
-        <li>Embeddings CLIP são normalizados em L2 pós-extração para que a distância euclidiana entre vetores seja equivalente à similaridade cosseno</li>
+        <li>Embeddings CLIP são projetados em L2 pós-extração <sup>[1]</sup></li>
       </ul>
       <div class="eq-box">
-        <span class="katex-eq">\hat{\mathbf{x}}_i = \frac{\mathbf{x}_i}{\|\mathbf{x}_i\|_2}</span>
-        <div class="eq-label">Após normalização: dist. euclidiana &#8776; similaridade cosseno</div>
+        <span class="katex-eq">\hat{\mathbf{x}}_i = \frac{\mathbf{x}_i}{\|\mathbf{x}_i\|_2} \quad\Rightarrow\quad \|\hat{\mathbf{x}}_i\| = 1</span>
       </div>
       <ul>
-        <li>Garante que K-Means opere sobre direção semântica, não magnitude</li>
+        <li>Para vetores unitários, vale a identidade:</li>
+      </ul>
+      <div class="eq-box">
+        <span class="katex-eq">\|\hat{\mathbf{x}} - \hat{\mathbf{y}}\|^2 = 2\,(1 - \cos(\mathbf{x}, \mathbf{y}))</span>
+        <div class="eq-label">dist. euclidiana torna-se função monotônica da similaridade cosseno</div>
+      </div>
+      <ul>
+        <li>K-Means (euclidiano) passa a agrupar por semântica angular, não por magnitude</li>
+        <li class="small">Ex.: <strong>x</strong>=(3,4) &rarr; <strong>x̂</strong>=(0.6, 0.8) &nbsp;|&nbsp; <strong>y</strong>=(6,8) &rarr; <strong>ŷ</strong>=(0.6, 0.8) &nbsp;&mdash;&nbsp; mesma direção, mesma representação</li>
       </ul>
     </div>
   </div>
@@ -182,24 +189,34 @@
       <ul>
         <li>Inicialização inteligente: escolhe centroides iniciais com probabilidade proporcional à distância ao centroide mais próximo já escolhido, evitando convergência para mínimos locais ruins</li>
         <li>K &#8712; {2, ..., 15}, <span class="hl">3 runs por K</span>, melhor por WCSS</li>
-        <li>Rodadas de 100 iterações ou estabilização de labels</li>
+        <li>Rodadas de 100 iterações</li>
       </ul>
       <h3>Visualização</h3>
       <ul>
-        <li>PCA via power iteration: redução de 512D &#8594; 2D, extraindo as duas direções de maior variância para projetar os embeddings em um plano visualizável</li>
+        <li>PCA (Hotelling, 1933): projeção linear sobre os dois autovetores principais da matriz de covariância, computados via power iteration com deflação</li>
+        <li>Redução &#8477;<sup>512</sup> &#8594; &#8477;<sup>2</sup> para inspeção visual dos clusters</li>
       </ul>
     </div>
     <div>
       <h3>Elbow Method (WCSS)</h3>
       <div class="eq-box">
         <span class="katex-eq">\text{WCSS} = \sum_{k=1}^{K} \sum_{\mathbf{x}_i \in C_k} \|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2</span>
-        <div class="eq-label">Within-Cluster Sum of Squares</div>
       </div>
+      <ul>
+        <li><strong>K</strong> &mdash; número de clusters</li>
+        <li><strong>C<sub>k</sub></strong> &mdash; conjunto de pontos do cluster k</li>
+        <li><strong>&mu;<sub>k</sub></strong> &mdash; centroide do cluster k</li>
+        <li><strong>x<sub>i</sub></strong> &mdash; embedding da imagem i</li>
+      </ul>
       <h3>Silhouette Score <sup>[3]</sup></h3>
       <div class="eq-box">
         <span class="katex-eq">s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}}</span>
-        <div class="eq-label">Coesão intra-cluster (a) vs. separação inter-cluster (b)</div>
       </div>
+      <ul>
+        <li><strong>a(i)</strong> &mdash; distância média ao próprio cluster (coesão)</li>
+        <li><strong>b(i)</strong> &mdash; distância média ao cluster vizinho mais próximo (separação)</li>
+        <li><strong>s(i) &#8712; [&minus;1, 1]</strong> &mdash; quanto maior, melhor a atribuição</li>
+      </ul>
     </div>
   </div>
 </section>
