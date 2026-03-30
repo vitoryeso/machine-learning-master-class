@@ -295,36 +295,30 @@
   </div>
 </section>
 
-<!-- ==================== SLIDE 2.1: DETERMINACAO K OTIMO ==================== -->
+<!-- ==================== SLIDE 2.1: TABELA K OTIMO ==================== -->
 <section>
   <h2>2.1 Determinação do K Ótimo</h2>
-  <div class="cols">
-    <div style="text-align:center;">
-      <table>
-        <tr><th>K</th><th>WCSS</th><th>Silhouette</th></tr>
-        <tr><td>2</td><td>3753.7</td><td>0.0559</td></tr>
-        <tr><td>3</td><td>3627.7</td><td>0.0511</td></tr>
-        <tr class="best"><td>4</td><td>3520.9</td><td>0.0576</td></tr>
-        <tr><td>5</td><td>3454.1</td><td>0.0558</td></tr>
-        <tr><td>8</td><td>3290.3</td><td>0.0488</td></tr>
-        <tr><td>15</td><td>3087.1</td><td>0.0554</td></tr>
-      </table>
-      <ul style="text-align:left; margin-top:0.5em;">
-        <li><span class="hl">Melhor K = 4</span> (silhouette = <span class="hl">0.0576</span>)</li>
-        <li>Cotovelo sutil em K=4, confirmado pelo pico de silhouette</li>
-      </ul>
-    </div>
-    <div style="text-align:center;">
-      <a href="elbow_silhouette.png" target="_blank"><img class="plot" src="elbow_silhouette.png" alt="Elbow + Silhouette" style="max-height:340px;"></a>
-    </div>
+  <div style="text-align:center; margin-top:0.6em;">
+    <table>
+      <tr><th>K</th><th>WCSS</th><th>Silhouette</th></tr>
+      <tr><td>2</td><td>3753.7</td><td>0.0559</td></tr>
+      <tr><td>3</td><td>3627.7</td><td>0.0511</td></tr>
+      <tr class="best"><td>4</td><td>3520.9</td><td>0.0576</td></tr>
+      <tr><td>5</td><td>3454.1</td><td>0.0558</td></tr>
+      <tr><td>8</td><td>3290.3</td><td>0.0488</td></tr>
+      <tr><td>15</td><td>3087.1</td><td>0.0554</td></tr>
+    </table>
+    <ul style="text-align:left; margin-top:0.8em; display:inline-block;">
+      <li><span class="hl">Melhor K = 4</span> (silhouette = <span class="hl">0.0576</span>)</li>
+      <li>Cotovelo sutil em K=4, confirmado pelo pico de silhouette</li>
+    </ul>
   </div>
 </section>
 
-<!-- ==================== SLIDE 2.2: CONVERGENCIA ==================== -->
+<!-- ==================== SLIDE 2.2: FIGURA Elbow + Silhouette ==================== -->
 <section class="fig-slide">
-  <h3>Convergência K-Means (K=4)</h3>
-  <a href="convergence_k4.png" target="_blank"><img class="plot-full" src="convergence_k4.png" alt="K-Means Convergence"></a>
-  <p class="caption">WCSS por iteração. Queda acentuada nas primeiras iterações, estabilizando após ~10 iterações. <span style="font-size:0.8em; color:#aaa;">🔍 clique para ampliar</span></p>
+  <a href="elbow_silhouette.png" target="_blank"><img class="plot-full" src="elbow_silhouette.png" alt="Elbow + Silhouette"></a>
+  <p class="caption">Curva de inércia (WCSS) e Silhouette Score médio em função de K. K=4 maximiza a silhueta (s=0.0576). <span style="font-size:0.8em; color:#aaa;">🔍 clique para ampliar</span></p>
 </section>
 
 <!-- ==================== SLIDE 2.3: ANALISE DOS CLUSTERS ==================== -->
