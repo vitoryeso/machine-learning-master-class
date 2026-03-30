@@ -91,6 +91,35 @@
   .fig-slide { text-align: center; }
   .fig-slide h3 { font-size: 1.15em; margin-bottom: 0.3em; color: #555; font-weight: 400; }
   .fig-slide p.caption { font-size: 0.85em; color: #888; margin-top: 0.3em; }
+
+  /* ---- EDIT TOOLBAR ---- */
+  #edit-toolbar {
+    position: fixed; bottom: 18px; right: 18px; z-index: 99999;
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(15, 23, 42, 0.93);
+    padding: 8px 14px; border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    font-family: Inter, sans-serif; font-size: 13px;
+    backdrop-filter: blur(6px);
+  }
+  #edit-toolbar button {
+    border: none; cursor: pointer; padding: 6px 11px;
+    border-radius: 6px; font-size: 12px; font-weight: 600;
+    color: white; transition: opacity 0.15s;
+  }
+  #edit-toolbar button:hover { opacity: 0.82; }
+  #edit-btn     { background: #2563eb; }
+  #download-btn { background: #16a34a; }
+  #reset-btn    { background: #64748b; }
+  #save-status  { font-size: 11px; color: #22d3ee; min-width: 46px; }
+  [contenteditable="true"] {
+    outline: 1px dashed rgba(37,99,235,0.45);
+    border-radius: 2px; cursor: text;
+  }
+  [contenteditable="true"]:focus {
+    outline: 2px solid #2563eb;
+    background: rgba(37,99,235,0.06);
+  }
 </style>
 </head>
 <body>
@@ -280,9 +309,28 @@
 </div>
 </div>
 
+<div id="edit-toolbar">
+  <button id="edit-btn">✏️ Editar</button>
+  <button id="download-btn">⬇ HTML</button>
+  <button id="reset-btn">↺ Reset</button>
+  <span id="save-status"></span>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script>
+  var STORAGE_KEY = 'ml-presentation-v1';
+  var slidesEl = document.querySelector('.slides');
+
+  // Snapshot original HTML (hardcoded, pré-edição)
+  var originalHTML = slidesEl.innerHTML;
+
+  // Carrega edições salvas no localStorage
+  (function () {
+    var saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) { try { slidesEl.innerHTML = saved; } catch (e) {} }
+  })();
+
   Reveal.initialize({
     hash: true,
     slideNumber: 'c/t',
@@ -293,12 +341,79 @@
     transitionSpeed: 'fast',
     overview: true,
   });
-  document.querySelectorAll('.katex-eq').forEach(function(el) {
-    katex.render(el.textContent, el, {
-      throwOnError: false,
-      displayMode: true,
+
+  function renderKatex() {
+    document.querySelectorAll('.katex-eq').forEach(function (el) {
+      if (!el.querySelector('.katex')) {
+        katex.render(el.textContent, el, { throwOnError: false, displayMode: true });
+      }
     });
+  }
+  renderKatex();
+
+  // ---- EDIT MODE ----
+  var editMode = false;
+  var EDITABLE = '.slides h1, .slides h2, .slides h3, .slides p,'
+               + ' .slides li, .slides td, .slides th,'
+               + ' .slides .caption, .slides .eq-label, .slides .tech-stack';
+
+  function setEditMode(on) {
+    editMode = on;
+    document.querySelectorAll(EDITABLE).forEach(function (el) {
+      el.contentEditable = on ? 'true' : 'false';
+    });
+    // Desliga navegação por teclado e mouse enquanto edita
+    Reveal.configure({ keyboard: !on, controls: !on, overview: !on });
+    var btn = document.getElementById('edit-btn');
+    btn.textContent = on ? '🔒 Sair' : '✏️ Editar';
+    btn.style.background = on ? '#dc2626' : '#2563eb';
+  }
+
+  document.getElementById('edit-btn').addEventListener('click', function () {
+    setEditMode(!editMode);
+  });
+
+  // Bloqueia cliques de avançar slide quando em edit mode (fase de captura)
+  slidesEl.addEventListener('click', function (e) {
+    if (editMode) e.stopPropagation();
+  }, true);
+
+  // Auto-save no localStorage a cada input
+  slidesEl.addEventListener('input', function () {
+    localStorage.setItem(STORAGE_KEY, slidesEl.innerHTML);
+    var s = document.getElementById('save-status');
+    s.textContent = '● salvo';
+    clearTimeout(s._t);
+    s._t = setTimeout(function () { s.textContent = ''; }, 2000);
+  });
+
+  // Download do HTML atual
+  document.getElementById('download-btn').addEventListener('click', function () {
+    // Sai do edit mode antes de exportar para limpar os contenteditable
+    var wasEditing = editMode;
+    if (wasEditing) setEditMode(false);
+
+    var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'presentation-edited.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    if (wasEditing) setEditMode(true);
+  });
+
+  // Reset para o HTML original
+  document.getElementById('reset-btn').addEventListener('click', function () {
+    if (!confirm('Resetar todas as edições e voltar ao original?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    slidesEl.innerHTML = originalHTML;
+    Reveal.sync();
+    renderKatex();
+    if (editMode) setEditMode(false);
   });
 </script>
+
 </body>
 </html>
