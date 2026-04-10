@@ -191,7 +191,7 @@ fn compute_centroids(data: &[Vec<f32>], labels: &[usize], k: usize) -> Vec<Vec<f
     }).collect()
 }
 
-fn kmeans(data: &[Vec<f32>], k: usize, seed: u64) -> (Vec<usize>, Vec<Vec<f32>>, f64) {
+fn kmeans(data: &[Vec<f32>], k: usize, seed: u64) -> (Vec<usize>, Vec<Vec<f32>>, f64, Vec<f64>) {
     let n = data.len();
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -216,18 +216,29 @@ fn kmeans(data: &[Vec<f32>], k: usize, seed: u64) -> (Vec<usize>, Vec<Vec<f32>>,
     }
 
     let mut labels = assign_clusters(data, &centroids);
+    let mut wcss_history: Vec<f64> = Vec::new();
+
+    // Record initial WCSS (after init, before first update)
+    let init_wcss: f64 = data.iter().zip(&labels)
+        .map(|(p, &l)| euclidean_dist_sq(p, &centroids[l]) as f64).sum();
+    wcss_history.push(init_wcss);
+
     for _ in 0..KMEANS_MAX_ITER {
         let new_centroids = compute_centroids(data, &labels, k);
         let new_labels = assign_clusters(data, &new_centroids);
         let converged = new_labels == labels;
         centroids = new_centroids;
         labels = new_labels;
+
+        let wcss: f64 = data.iter().zip(&labels)
+            .map(|(p, &l)| euclidean_dist_sq(p, &centroids[l]) as f64).sum();
+        wcss_history.push(wcss);
+
         if converged { break; }
     }
 
-    let inertia: f64 = data.iter().zip(&labels)
-        .map(|(p, &l)| euclidean_dist_sq(p, &centroids[l]) as f64).sum();
-    (labels, centroids, inertia)
+    let inertia = *wcss_history.last().unwrap();
+    (labels, centroids, inertia, wcss_history)
 }
 
 // ─── Silhouette ───────────────────────────────────────────────────
@@ -381,15 +392,15 @@ fn plot_scatter_categorical(
     categories: &[String],
 ) -> Result<()> {
     let path = format!("{}/{}", OUTPUT_DIR, filename);
-    let root = BitMapBackend::new(&path, (1000, 800)).into_drawing_area();
+    let root = BitMapBackend::new(&path, (1920, 1200)).into_drawing_area();
     root.fill(&WHITE)?;
     let (x0, x1, y0, y1) = chart_bounds(xs, ys);
 
     let mut chart = ChartBuilder::on(&root)
-        .caption(title, ("sans-serif", 22))
-        .margin(15).x_label_area_size(35).y_label_area_size(45)
+        .caption(title, ("sans-serif", 44))
+        .margin(25).x_label_area_size(60).y_label_area_size(75)
         .build_cartesian_2d(x0..x1, y0..y1)?;
-    chart.configure_mesh().x_desc("PC1").y_desc("PC2").draw()?;
+    chart.configure_mesh().x_desc("PC1").y_desc("PC2").label_style(("sans-serif", 28)).axis_desc_style(("sans-serif", 32)).draw()?;
 
     // Get unique categories sorted by frequency
     let mut freq: HashMap<&str, usize> = HashMap::new();
@@ -398,32 +409,36 @@ fn plot_scatter_categorical(
     sorted_cats.sort_by(|a, b| b.1.cmp(&a.1));
 
     // Top 12 categories, rest = "other"
-    let top_cats: Vec<&str> = sorted_cats.iter().take(12).map(|&(c, _)| c).collect();
+    let top_cats: Vec<(&str, usize)> = sorted_cats.iter().take(12).cloned().collect();
 
-    for (ci, &cat) in top_cats.iter().enumerate() {
+    for (ci, &(cat, count)) in top_cats.iter().enumerate() {
         let color = PALETTE[ci % PALETTE.len()];
         let points: Vec<(f64, f64)> = (0..xs.len())
             .filter(|&i| categories[i] == cat)
             .map(|i| (xs[i] as f64, ys[i] as f64))
             .collect();
+        let label_text = format!("{} (n={})", cat, count);
         chart.draw_series(points.iter().map(|&(x, y)| {
-            Circle::new((x, y), 2, ShapeStyle::from(color.mix(0.6)).filled())
-        }))?.label(cat).legend(move |(x, y)| Circle::new((x + 10, y), 4, color.filled()));
+            Circle::new((x, y), 4, ShapeStyle::from(color.mix(0.6)).filled())
+        }))?.label(label_text).legend(move |(x, y)| Circle::new((x + 16, y), 9, color.filled()));
     }
 
     // "other"
+    let top_cat_names: Vec<&str> = top_cats.iter().map(|&(c, _)| c).collect();
+    let other_count = (0..xs.len()).filter(|&i| !top_cat_names.contains(&categories[i].as_str())).count();
     let other_points: Vec<(f64, f64)> = (0..xs.len())
-        .filter(|&i| !top_cats.contains(&categories[i].as_str()))
+        .filter(|&i| !top_cat_names.contains(&categories[i].as_str()))
         .map(|i| (xs[i] as f64, ys[i] as f64))
         .collect();
     if !other_points.is_empty() {
         let gray = RGBColor(200, 200, 200);
+        let other_label = format!("other (n={})", other_count);
         chart.draw_series(other_points.iter().map(|&(x, y)| {
             Circle::new((x, y), 1, ShapeStyle::from(gray.mix(0.4)).filled())
-        }))?.label("other").legend(move |(x, y)| Circle::new((x + 10, y), 4, gray.filled()));
+        }))?.label(other_label).legend(move |(x, y)| Circle::new((x + 16, y), 9, gray.filled()));
     }
 
-    chart.configure_series_labels()
+    chart.configure_series_labels().label_font(("sans-serif", 34))
         .position(SeriesLabelPosition::UpperRight)
         .background_style(WHITE.mix(0.8)).border_style(BLACK).draw()?;
     root.present()?;
@@ -440,15 +455,15 @@ fn plot_scatter_with_centroids(
     k: usize,
 ) -> Result<()> {
     let path = format!("{}/{}", OUTPUT_DIR, filename);
-    let root = BitMapBackend::new(&path, (1000, 800)).into_drawing_area();
+    let root = BitMapBackend::new(&path, (1920, 1200)).into_drawing_area();
     root.fill(&WHITE)?;
     let (x0, x1, y0, y1) = chart_bounds(xs, ys);
 
     let mut chart = ChartBuilder::on(&root)
-        .caption(title, ("sans-serif", 22))
-        .margin(15).x_label_area_size(35).y_label_area_size(45)
+        .caption(title, ("sans-serif", 44))
+        .margin(25).x_label_area_size(60).y_label_area_size(75)
         .build_cartesian_2d(x0..x1, y0..y1)?;
-    chart.configure_mesh().x_desc("PC1").y_desc("PC2").draw()?;
+    chart.configure_mesh().x_desc("PC1").y_desc("PC2").label_style(("sans-serif", 28)).axis_desc_style(("sans-serif", 32)).draw()?;
 
     // Draw points per cluster
     for ci in 0..k {
@@ -459,9 +474,9 @@ fn plot_scatter_with_centroids(
             .map(|i| (xs[i] as f64, ys[i] as f64))
             .collect();
         chart.draw_series(points.iter().map(|&(x, y)| {
-            Circle::new((x, y), 2, ShapeStyle::from(color.mix(0.5)).filled())
+            Circle::new((x, y), 4, ShapeStyle::from(color.mix(0.5)).filled())
         }))?.label(format!("Cluster {}", ci))
-            .legend(move |(x, y)| Circle::new((x + 10, y), 4, color.filled()));
+            .legend(move |(x, y)| Circle::new((x + 16, y), 9, color.filled()));
     }
 
     // Draw centroids as large stars with black border
@@ -482,7 +497,7 @@ fn plot_scatter_with_centroids(
         ))?;
     }
 
-    chart.configure_series_labels()
+    chart.configure_series_labels().label_font(("sans-serif", 34))
         .position(SeriesLabelPosition::UpperRight)
         .background_style(WHITE.mix(0.8)).border_style(BLACK).draw()?;
     root.present()?;
@@ -497,8 +512,12 @@ fn plot_scatter_gradient(
     values: &[f32], value_label: &str,
 ) -> Result<()> {
     let path = format!("{}/{}", OUTPUT_DIR, filename);
-    let root = BitMapBackend::new(&path, (1000, 800)).into_drawing_area();
+    let root = BitMapBackend::new(&path, (1920, 1200)).into_drawing_area();
     root.fill(&WHITE)?;
+
+    // Split: chart area (left) + colorbar area (right, 80px)
+    let (chart_area, bar_area) = root.split_horizontally(1840);
+
     let (x0, x1, y0, y1) = chart_bounds(xs, ys);
 
     // Use percentile clipping to handle outliers
@@ -508,11 +527,11 @@ fn plot_scatter_gradient(
     let p95 = sorted_vals[sorted_vals.len() * 95 / 100];
     let range = if (p95 - p5).abs() < 1e-6 { 1.0 } else { p95 - p5 };
 
-    let mut chart = ChartBuilder::on(&root)
-        .caption(format!("{} (color: {})", title, value_label), ("sans-serif", 22))
-        .margin(15).x_label_area_size(35).y_label_area_size(45)
+    let mut chart = ChartBuilder::on(&chart_area)
+        .caption(format!("{} (color: {})", title, value_label), ("sans-serif", 44))
+        .margin(25).x_label_area_size(60).y_label_area_size(75)
         .build_cartesian_2d(x0..x1, y0..y1)?;
-    chart.configure_mesh().x_desc("PC1").y_desc("PC2").draw()?;
+    chart.configure_mesh().x_desc("PC1").y_desc("PC2").label_style(("sans-serif", 28)).axis_desc_style(("sans-serif", 32)).draw()?;
 
     chart.draw_series((0..xs.len()).map(|i| {
         let t = ((values[i] - p5) / range).clamp(0.0, 1.0);
@@ -521,10 +540,54 @@ fn plot_scatter_gradient(
         let b = ((1.0 - t) * 255.0) as u8;
         let g = ((0.5 - (t - 0.5).abs()) * 255.0 * 2.0).max(0.0) as u8;
         Circle::new(
-            (xs[i] as f64, ys[i] as f64), 2,
+            (xs[i] as f64, ys[i] as f64), 4,
             ShapeStyle::from(RGBColor(r, g, b).mix(0.6)).filled(),
         )
     }))?;
+
+    // Draw vertical colorbar on the right
+    let bar_x = 10;
+    let bar_w = 28;
+    let bar_top = 120;
+    let bar_bottom = 1080;
+    let bar_h = bar_bottom - bar_top;
+    let steps = 256;
+    for s in 0..steps {
+        let t = 1.0 - (s as f32 / (steps - 1) as f32); // top=high, bottom=low
+        let r = (t * 255.0) as u8;
+        let b_color = ((1.0 - t) * 255.0) as u8;
+        let g = ((0.5 - (t - 0.5).abs()) * 255.0 * 2.0).max(0.0) as u8;
+        let y_start = bar_top + (s * bar_h) / steps;
+        let y_end = bar_top + ((s + 1) * bar_h) / steps;
+        bar_area.draw(&Rectangle::new(
+            [(bar_x, y_start as i32), (bar_x + bar_w, y_end as i32)],
+            RGBColor(r, g, b_color).filled(),
+        ))?;
+    }
+    // Border around colorbar
+    bar_area.draw(&Rectangle::new(
+        [(bar_x, bar_top as i32), (bar_x + bar_w, bar_bottom as i32)],
+        BLACK.stroke_width(1),
+    ))?;
+    // Labels: top = high (p95), bottom = low (p5)
+    let p95_label = if p95 > 1024.0 {
+        format!("{:.1} MB", p95 / 1024.0)
+    } else {
+        format!("{:.0} KB", p95)
+    };
+    let p5_label = if p5 > 1024.0 {
+        format!("{:.1} MB", p5 / 1024.0)
+    } else {
+        format!("{:.0} KB", p5)
+    };
+    bar_area.draw(&Text::new(
+        p95_label, (bar_x - 2, bar_top as i32 - 10),
+        ("sans-serif", 20).into_font(),
+    ))?;
+    bar_area.draw(&Text::new(
+        p5_label, (bar_x - 2, bar_bottom as i32 + 8),
+        ("sans-serif", 20).into_font(),
+    ))?;
 
     root.present()?;
     println!("Plot saved: {}", path);
@@ -533,19 +596,19 @@ fn plot_scatter_gradient(
 
 fn plot_elbow_silhouette(k_values: &[usize], inertias: &[f64], silhouettes: &[f64]) -> Result<()> {
     let path = format!("{}/elbow_silhouette.png", OUTPUT_DIR);
-    let root = BitMapBackend::new(&path, (1400, 500)).into_drawing_area();
+    let root = BitMapBackend::new(&path, (1920, 700)).into_drawing_area();
     root.fill(&WHITE)?;
     let areas = root.split_evenly((1, 2));
 
     {
         let max_i = inertias.iter().cloned().fold(0.0f64, f64::max) * 1.05;
         let mut chart = ChartBuilder::on(&areas[0])
-            .caption("Elbow Method (Inertia / WCSS)", ("sans-serif", 22))
-            .margin(15).x_label_area_size(35).y_label_area_size(60)
+            .caption("Elbow Method (Inertia / WCSS)", ("sans-serif", 44))
+            .margin(25).x_label_area_size(60).y_label_area_size(85)
             .build_cartesian_2d(
                 (*k_values.first().unwrap() as f64)..(*k_values.last().unwrap() as f64), 0.0..max_i,
             )?;
-        chart.configure_mesh().x_desc("K").y_desc("Inertia").draw()?;
+        chart.configure_mesh().x_desc("K").y_desc("Inertia").label_style(("sans-serif", 28)).axis_desc_style(("sans-serif", 32)).draw()?;
         chart.draw_series(LineSeries::new(
             k_values.iter().zip(inertias).map(|(&k, &v)| (k as f64, v)), &BLUE,
         ))?;
@@ -558,12 +621,12 @@ fn plot_elbow_silhouette(k_values: &[usize], inertias: &[f64], silhouettes: &[f6
         let best_idx = silhouettes.iter().enumerate()
             .max_by(|a, b| a.1.partial_cmp(b.1).unwrap()).unwrap().0;
         let mut chart = ChartBuilder::on(&areas[1])
-            .caption("Silhouette Score", ("sans-serif", 22))
-            .margin(15).x_label_area_size(35).y_label_area_size(60)
+            .caption("Silhouette Score", ("sans-serif", 44))
+            .margin(25).x_label_area_size(60).y_label_area_size(85)
             .build_cartesian_2d(
                 (*k_values.first().unwrap() as f64)..(*k_values.last().unwrap() as f64), min_s..max_s,
             )?;
-        chart.configure_mesh().x_desc("K").y_desc("Silhouette").draw()?;
+        chart.configure_mesh().x_desc("K").y_desc("Silhouette").label_style(("sans-serif", 28)).axis_desc_style(("sans-serif", 32)).draw()?;
         chart.draw_series(LineSeries::new(
             k_values.iter().zip(silhouettes).map(|(&k, &v)| (k as f64, v)), &RED,
         ))?;
@@ -573,6 +636,55 @@ fn plot_elbow_silhouette(k_values: &[usize], inertias: &[f64], silhouettes: &[f6
             (k_values[best_idx] as f64, silhouettes[best_idx]), 8, GREEN.filled(),
         )))?;
     }
+    root.present()?;
+    println!("Plot saved: {}", path);
+    Ok(())
+}
+
+fn plot_convergence(wcss_history: &[f64], k: usize) -> Result<()> {
+    let path = format!("{}/convergence_k{}.png", OUTPUT_DIR, k);
+    let root = BitMapBackend::new(&path, (1920, 1000)).into_drawing_area();
+    root.fill(&WHITE)?;
+
+    let n_iter = wcss_history.len();
+    let max_wcss = wcss_history.iter().cloned().fold(0.0f64, f64::max) * 1.02;
+    let min_wcss = wcss_history.iter().cloned().fold(f64::MAX, f64::min) * 0.98;
+
+    let mut chart = ChartBuilder::on(&root)
+        .caption(format!("K-Means Convergence (K={})", k), ("sans-serif", 44))
+        .margin(30).x_label_area_size(60).y_label_area_size(100)
+        .build_cartesian_2d(0f64..(n_iter as f64 - 1.0), min_wcss..max_wcss)?;
+
+    chart.configure_mesh()
+        .x_desc("Iteration")
+        .y_desc("WCSS (Inertia)")
+        .label_style(("sans-serif", 28))
+        .axis_desc_style(("sans-serif", 32))
+        .draw()?;
+
+    // Line
+    chart.draw_series(LineSeries::new(
+        wcss_history.iter().enumerate().map(|(i, &v)| (i as f64, v)),
+        BLUE.stroke_width(3),
+    ))?.label("WCSS").legend(|(x, y)| {
+        plotters::element::Rectangle::new([(x, y - 3), (x + 20, y + 3)], BLUE.filled())
+    });
+
+    // Points
+    chart.draw_series(wcss_history.iter().enumerate().map(|(i, &v)| {
+        Circle::new((i as f64, v), 6, BLUE.filled())
+    }))?;
+
+    // Annotate final value
+    let final_val = wcss_history.last().unwrap();
+    chart.draw_series(std::iter::once(Circle::new(
+        ((n_iter - 1) as f64, *final_val), 9, GREEN.filled(),
+    )))?;
+
+    chart.configure_series_labels().label_font(("sans-serif", 34))
+        .position(SeriesLabelPosition::UpperRight)
+        .background_style(WHITE.mix(0.8)).border_style(BLACK).draw()?;
+
     root.present()?;
     println!("Plot saved: {}", path);
     Ok(())
@@ -750,7 +862,7 @@ fn main() -> Result<()> {
         let mut best_inertia = f64::MAX;
         let mut best_labels = vec![];
         for run in 0..3u64 {
-            let (labels, _, inertia) = kmeans(&embeddings, k, SEED + run + k as u64 * 100);
+            let (labels, _, inertia, _) = kmeans(&embeddings, k, SEED + run + k as u64 * 100);
             if inertia < best_inertia {
                 best_inertia = inertia;
                 best_labels = labels;
@@ -780,14 +892,19 @@ fn main() -> Result<()> {
     let mut best_inertia = f64::MAX;
     let mut final_labels = vec![];
     let mut final_centroids = vec![];
+    let mut final_wcss_history = vec![];
     for run in 0..5u64 {
-        let (labels, centroids, inertia) = kmeans(&embeddings, best_k, SEED + run + 1000);
+        let (labels, centroids, inertia, wcss_hist) = kmeans(&embeddings, best_k, SEED + run + 1000);
         if inertia < best_inertia {
             best_inertia = inertia;
             final_labels = labels;
             final_centroids = centroids;
+            final_wcss_history = wcss_hist;
         }
     }
+
+    // Convergence plot
+    plot_convergence(&final_wcss_history, best_k)?;
 
     // === ALL SCATTER PLOTS ===
 
