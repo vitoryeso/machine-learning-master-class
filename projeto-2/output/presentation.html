@@ -242,46 +242,45 @@
   </p>
 </section>
 
-<!-- ==================== SLIDE 4: INTERPRETAÇÃO + CONEXÃO ==================== -->
+<!-- ==================== SLIDE 4: FROZEN vs FINE-TUNED ==================== -->
 <section>
-  <h2>Interpretação</h2>
-  <div class="cols" style="margin-top:0.5em;">
-    <div>
-      <h3>Por que CLIP &gt; ConvNeXt?</h3>
-      <ul>
-        <li><span class="hl">Pretraining contrastivo</span> em 400M pares imagem-texto força representações semânticas ortogonais por conceito — ideal para separar categorias visualmente heterogêneas</li>
-        <li>ConvNeXt aprende features para 1.000 classes ImageNet; <span class="hl">screenshot_desktop ou ai_generated não existem lá</span></li>
-        <li>Linear probe CLIP (3.591 params) &asymp; MLP ConvNeXt (230K params): as features CLIP já são quase <span class="hl">linearmente separáveis</span></li>
-        <li>ConvNeXt overfita porque 768-dim features não generalizam para domínio pessoal</li>
-      </ul>
+  <h2>Frozen vs Fine-Tuned — Comparativo Completo</h2>
+  <div style="margin-top:0.4em;">
+    <table style="margin: 0 auto; font-size:0.56em;">
+      <tr>
+        <th>Modelo</th><th>Params treináveis</th>
+        <th>type_acc</th><th>type_f1</th>
+        <th>people_f1</th><th>people_auc</th>
+      </tr>
+      <tr><td>Linear CLIP <em>(frozen)</em></td><td>3.591</td><td>0.807</td><td>0.802</td><td>0.758</td><td>0.966</td></tr>
+      <tr class="best"><td><b>MLP CLIP <em>(frozen)</em></b></td><td><b>165 K</b></td><td><b>0.869</b></td><td><b>0.868</b></td><td><b>0.898</b></td><td><b>0.992</b></td></tr>
+      <tr><td>MLP ConvNeXt <em>(frozen)</em></td><td>230 K</td><td>0.852</td><td>0.849</td><td>0.897</td><td>0.987</td></tr>
+      <tr class="warn"><td>FT CLIP ViT-B/32 <em>(e2e)</em></td><td>151 M</td><td>0.837</td><td>0.835</td><td>0.896</td><td>0.986</td></tr>
+      <tr class="warn"><td>FT ConvNeXt-Tiny <em>(e2e)</em></td><td>28 M</td><td>0.811</td><td>0.810</td><td>0.867</td><td>0.980</td></tr>
+    </table>
 
-      <h3 style="margin-top:0.6em;">Tarefas &amp; Transferência</h3>
-      <ul>
-        <li><code>has_people</code> empata (CLIP ≈ ConvNeXt, F1 ~0.83): presença humana é <span class="hl">feature visual saliente</span> para qualquer CNN profunda</li>
-        <li><code>screenshot_desktop</code> F1=0.54 — baixo suporte (44 amostras) + alta variância visual; vai melhorar com dataset completo</li>
-      </ul>
-    </div>
-
-    <div>
-      <h3>Limitações</h3>
-      <ul>
-        <li>Labels derivados de metadados — ruído em casos ambíguos</li>
-        <li><code>has_people</code> baseado apenas na pasta <em>people/</em> — falsos negativos em <em>camera_photo</em> e <em>thumbnail</em></li>
-        <li>Encoders <span class="hl">frozen</span>: sem adaptação ao domínio pessoal</li>
-        <li>Classe <span class="class-pill sd">screenshot_desktop</span> subrepresentada (3.7%)</li>
-        <li>Amostra de 8.000 imagens &mdash; dataset completo (&gt;20 K) ainda pendente</li>
-      </ul>
-
-      <h3 style="margin-top:0.6em;">Conexão com ViT Compression</h3>
-      <ul>
-        <li>CLIP ViT-B/32 com <span class="hl">frozen weights</span> já entrega type_f1=0.869 — evidência de <span class="hl">redundância representacional</span></li>
-        <li>Se quantização + poda (mestrado, Paper 3) comprime o encoder mantendo 85%+ das features, a degradação na probe deve ser mínima</li>
-        <li>Este projeto fornece um <span class="hl">benchmark de preservação de features</span> para avaliar o impacto da compressão em tarefas downstream fora de ImageNet</li>
-      </ul>
-
-      <div class="references">
-        <span class="ref-num">[1]</span> Radford et al. <em>Learning Transferable Visual Models From Natural Language Supervision.</em> ICML, 2021. arXiv:2103.00020<br>
-        <span class="ref-num">[2]</span> Liu et al. <em>A ConvNet for the 2020s.</em> CVPR, 2022. arXiv:2201.03545
+    <div class="cols" style="margin-top:0.8em;">
+      <div>
+        <h3>Achado Central</h3>
+        <ul>
+          <li><span class="hl2">Fine-tuning piorou ambos os modelos</span> em <code>image_type</code> (CLIP: 0.868→0.835, ConvNeXt: 0.849→0.810)</li>
+          <li>Causa: labels derivadas de metadados (ruídosas) + dataset relativamente pequeno — fine-tuning aprende o ruído</li>
+          <li><span class="hl">MLP frozen CLIP</span> é o modelo ótimo: 165 K params, type_f1=<b>0.868</b></li>
+          <li><code>has_people</code>: congelado ≈ fine-tuned (~0.90 F1) — feature visualmente saliente não precisa de adaptação</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Implicações</h3>
+        <ul>
+          <li>Features CLIP são <span class="hl">quase linearmente separáveis</span> para categorias pessoais — 3.591 params &asymp; 28 M params (FT ConvNeXt)</li>
+          <li>Fine-tuning só valeria com <span class="hl">labels humanas</span> e dataset maior (&gt;50K)</li>
+          <li><b>Conexão com ViT Compression:</b> se features frozen já são ótimas, compressão via quantização+poda (Paper 3) deve preservar performance downstream com degradação mínima</li>
+          <li>Este projeto é um <span class="hl">benchmark de robustez</span> para avaliar compressão fora de ImageNet</li>
+        </ul>
+        <div class="references">
+          <span class="ref-num">[1]</span> Radford et al. ICML 2021. arXiv:2103.00020 &nbsp;
+          <span class="ref-num">[2]</span> Liu et al. CVPR 2022. arXiv:2201.03545
+        </div>
       </div>
     </div>
   </div>
