@@ -13,8 +13,8 @@ import open_clip
 import torch
 from PIL import Image, UnidentifiedImageError
 
-PATHS_FILE  = "D:/media/machine-learning-master-class/projeto-2/all_paths.txt"
-OUTPUT_BIN  = "D:/media/machine-learning-master-class/projeto-2/embeddings_all.bin"
+PATHS_FILE  = "all_paths.txt"
+OUTPUT_BIN  = "embeddings_all.bin"
 BATCH_SIZE  = 64
 MODEL_NAME  = "ViT-B-32"
 PRETRAINED  = "openai"   # same weights as CLIP paper

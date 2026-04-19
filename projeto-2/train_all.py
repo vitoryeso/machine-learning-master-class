@@ -21,8 +21,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-DATASET_DIR = "D:/media/machine-learning-master-class/projeto-2/dataset"
-OUTPUT_DIR = "D:/media/machine-learning-master-class/projeto-2/output"
+DATASET_DIR = "dataset"
+OUTPUT_DIR = "output"
 SEED = 42
 BATCH_SIZE = 256
 LR = 1e-3

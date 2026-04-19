@@ -21,7 +21,7 @@ from sklearn.metrics import (
     confusion_matrix, classification_report, roc_auc_score,
 )
 
-DATASET_DIR = "D:/media/machine-learning-master-class/projeto-2/dataset"
+DATASET_DIR = "dataset"
 SEED = 42
 BATCH_SIZE = 256
 LR = 1e-3
@@ -162,7 +162,7 @@ def main():
     print("  LINEAR PROBE vs MLP PROBE (test set)")
     print("#" * 60)
     try:
-        with open("D:/media/machine-learning-master-class/projeto-2/linear_probe_metrics.json") as f:
+        with open("linear_probe_metrics.json") as f:
             lp = json.load(f)
         print(f"  {'':20s} {'Linear':>10s} {'MLP':>10s} {'Delta':>10s}")
         print(f"  {'type_acc':20s} {lp['type_acc']:10.4f} {metrics['type_acc']:10.4f} {metrics['type_acc']-lp['type_acc']:+10.4f}")
@@ -173,8 +173,8 @@ def main():
     except FileNotFoundError:
         print("  (linear probe metrics not found)")
 
-    torch.save(model.state_dict(), "D:/media/machine-learning-master-class/projeto-2/mlp_probe.pt")
-    with open("D:/media/machine-learning-master-class/projeto-2/mlp_probe_metrics.json", "w") as f:
+    torch.save(model.state_dict(), "mlp_probe.pt")
+    with open("mlp_probe_metrics.json", "w") as f:
         json.dump(metrics, f, indent=2)
     print("\nModel + metrics saved.")
 

@@ -17,8 +17,8 @@ from sklearn.metrics import (
 from PIL import Image
 from pathlib import Path
 
-DATASET_DIR = "D:/media/machine-learning-master-class/projeto-2/dataset"
-PATHS_FILE = "D:/media/cluster_output/paths.txt"
+DATASET_DIR = "dataset"
+PATHS_FILE = "all_paths.txt"
 SEED = 42
 BATCH_SIZE = 64
 EXTRACT_BATCH = 32
@@ -217,9 +217,9 @@ def main():
     print("  LINEAR (CLIP) vs MLP (CLIP) vs MLP (ConvNeXt)  [test set]")
     print("#" * 60)
     try:
-        with open("D:/media/machine-learning-master-class/projeto-2/linear_probe_metrics.json") as f:
+        with open("linear_probe_metrics.json") as f:
             lp = json.load(f)
-        with open("D:/media/machine-learning-master-class/projeto-2/mlp_probe_metrics.json") as f:
+        with open("mlp_probe_metrics.json") as f:
             mlp = json.load(f)
         cn = metrics
         print(f"  {'':20s} {'Lin(CLIP)':>10s} {'MLP(CLIP)':>10s} {'MLP(CNeXt)':>10s}")
@@ -228,8 +228,8 @@ def main():
     except FileNotFoundError:
         print("  (previous metrics not found)")
 
-    torch.save(model.state_dict(), "D:/media/machine-learning-master-class/projeto-2/convnext_probe.pt")
-    with open("D:/media/machine-learning-master-class/projeto-2/convnext_probe_metrics.json", "w") as f:
+    torch.save(model.state_dict(), "convnext_probe.pt")
+    with open("convnext_probe_metrics.json", "w") as f:
         json.dump(metrics, f, indent=2)
     print("\nModel + metrics saved.")
 

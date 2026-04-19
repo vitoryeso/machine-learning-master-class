@@ -6,9 +6,13 @@ from pathlib import Path
 
 from PIL import Image
 
-MEDIA_ROOT = "D:/media"
-OUTPUT_DIR = "D:/media/machine-learning-master-class/projeto-2"
-ALL_PATHS_FILE = "D:/media/machine-learning-master-class/projeto-2/all_paths.txt"
+import argparse as _ap
+_parser = _ap.ArgumentParser()
+_parser.add_argument("--media-root", default="media")
+_args, _ = _parser.parse_known_args()
+MEDIA_ROOT = _args.media_root
+OUTPUT_DIR = "."
+ALL_PATHS_FILE = "all_paths.txt"
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"}
 
 # Common display resolutions (w, h)
@@ -74,7 +78,7 @@ def aspect_bucket(w: int, h: int) -> str:
 
 def top_folder(path: str) -> str:
     """First folder under D:/media."""
-    rel = os.path.relpath(path, "D:/media")
+    rel = os.path.relpath(path, MEDIA_ROOT)
     parts = Path(rel).parts
     return parts[0] if parts else "root"
 

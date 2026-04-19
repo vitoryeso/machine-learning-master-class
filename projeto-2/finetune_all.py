@@ -29,10 +29,10 @@ import seaborn as sns
 from pathlib import Path
 
 # ── Paths ──────────────────────────────────────────────────────────
-PATHS_FILE   = "D:/media/machine-learning-master-class/projeto-2/all_paths.txt"
-DATASET_DIR  = "D:/media/machine-learning-master-class/projeto-2/dataset"
-OUTPUT_DIR   = "D:/media/machine-learning-master-class/projeto-2/output"
-CKPT_DIR     = "D:/media/machine-learning-master-class/projeto-2/checkpoints"
+PATHS_FILE   = "all_paths.txt"
+DATASET_DIR  = "dataset"
+OUTPUT_DIR   = "output"
+CKPT_DIR     = "checkpoints"
 
 # ── Hyperparams ────────────────────────────────────────────────────
 SEED         = 42

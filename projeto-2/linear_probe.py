@@ -17,7 +17,7 @@ from sklearn.metrics import (
     confusion_matrix, classification_report, roc_auc_score,
 )
 
-DATASET_DIR = "D:/media/machine-learning-master-class/projeto-2/dataset"
+DATASET_DIR = "dataset"
 SEED = 42
 BATCH_SIZE = 256
 LR = 1e-3

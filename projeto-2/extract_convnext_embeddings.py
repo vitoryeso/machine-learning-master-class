@@ -10,8 +10,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import models, transforms
 from PIL import Image
 
-PATHS_FILE   = "D:/media/machine-learning-master-class/projeto-2/all_paths.txt"
-OUTPUT_FILE  = "D:/media/machine-learning-master-class/projeto-2/dataset/X_convnext.npy"
+PATHS_FILE   = "all_paths.txt"
+OUTPUT_FILE  = "dataset/X_convnext.npy"
 BATCH_SIZE   = 32
 DEVICE       = "cuda" if torch.cuda.is_available() else "cpu"
 

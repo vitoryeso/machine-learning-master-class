@@ -10,10 +10,10 @@ import numpy as np
 from pathlib import Path
 from collections import Counter
 
-METADATA_FILE = "D:/media/machine-learning-master-class/projeto-2/metadata.json"
-EMBEDDINGS_FILE = "D:/media/machine-learning-master-class/projeto-2/embeddings_all.bin"
-PATHS_FILE = "D:/media/machine-learning-master-class/projeto-2/all_paths.txt"
-OUTPUT_DIR = "D:/media/machine-learning-master-class/projeto-2/dataset"
+METADATA_FILE = "metadata.json"
+EMBEDDINGS_FILE = "embeddings_all.bin"
+PATHS_FILE = "all_paths.txt"
+OUTPUT_DIR = "dataset"
 
 # === Resolution sets ===
 
