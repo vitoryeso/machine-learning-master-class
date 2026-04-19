@@ -1,0 +1,19 @@
+# Large binary files — embeddings, model weights, datasets
+*.npy
+*.bin
+*.pt
+
+# Generated data files
+metadata.json
+all_paths.txt
+
+# Dataset directory (binary arrays)
+dataset/X_*.npy
+dataset/y_*.npy
+
+# Checkpoints
+checkpoints/
+
+# Python cache
+__pycache__/
+*.pyc
