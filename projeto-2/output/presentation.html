@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projeto 2 — Classificação Multi-Task de Imagens Pessoais</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --r-heading-font: Inter, sans-serif;
+    --r-main-font: Inter, sans-serif;
+    --r-main-font-size: 28px;
+    --r-heading-color: #1a1a2e;
+    --r-main-color: #333;
+    --accent: #2563eb;
+    --accent2: #dc2626;
+    --accent3: #16a34a;
+    --bg-subtle: #f8fafc;
+  }
+  .reveal { font-family: Inter, sans-serif; }
+  .reveal h1, .reveal h2, .reveal h3 { font-weight: 700; color: var(--r-heading-color); }
+  .reveal h1 { font-size: 2.0em; }
+  .reveal h2 { font-size: 1.4em; margin-bottom: 0.4em; border-bottom: 3px solid var(--accent); padding-bottom: 0.15em; display: inline-block; }
+  .reveal h3 { font-size: 1.05em; color: var(--accent); margin-bottom: 0.25em; }
+  .title-slide h1 { font-size: 1.5em; margin-bottom: 0.3em; line-height: 1.25; }
+  .title-slide .subtitle { font-size: 0.85em; color: #555; margin-bottom: 0.4em; line-height: 1.5; }
+  .title-slide .author { font-size: 0.75em; color: #888; margin-top: 1.2em; }
+  .eq-box {
+    background: var(--bg-subtle);
+    border-left: 4px solid var(--accent);
+    padding: 0.5em 1em;
+    margin: 0.4em auto;
+    border-radius: 0 8px 8px 0;
+    max-width: 92%;
+    text-align: center;
+  }
+  .eq-label { font-size: 0.52em; color: #888; text-align: right; margin-top: 0.15em; }
+  .reveal ul, .reveal ol { font-size: 0.73em; line-height: 1.45; }
+  .reveal li { margin-bottom: 0.2em; }
+  .reveal .small { font-size: 0.6em; color: #666; }
+  .reveal .tiny { font-size: 0.5em; color: #888; }
+  .reveal img.plot { max-height: 360px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .reveal img.plot-full {
+    max-height: 620px;
+    max-width: 96%;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  }
+  .reveal table { font-size: 0.58em; margin: 0.3em auto; border-collapse: collapse; }
+  .reveal table th { background: var(--accent); color: white; padding: 0.35em 0.65em; }
+  .reveal table td { padding: 0.28em 0.65em; border-bottom: 1px solid #e5e7eb; text-align: center; }
+  .reveal table tr:nth-child(even) { background: var(--bg-subtle); }
+  .reveal table .best { background: #dcfce7; font-weight: 700; }
+  .reveal table .warn { background: #fef9c3; }
+  .cols { display: flex; gap: 1.4em; align-items: flex-start; }
+  .cols > * { flex: 1; }
+  .references {
+    font-size: 0.44em; text-align: left; color: #666; line-height: 1.65;
+    max-width: 90%; margin: 0.5em auto 0; border-top: 1px solid #ddd; padding-top: 0.5em;
+  }
+  .references span.ref-num { color: var(--accent); font-weight: 600; }
+  .hl  { color: var(--accent);  font-weight: 600; }
+  .hl2 { color: var(--accent2); font-weight: 600; }
+  .hl3 { color: var(--accent3); font-weight: 600; }
+  .badge {
+    display: inline-block; padding: 0.15em 0.55em; border-radius: 4px;
+    font-size: 0.52em; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    vertical-align: middle; margin: 0 0.15em;
+  }
+  .badge-clip    { background: #dbeafe; color: #1e40af; }
+  .badge-convnext{ background: #fce7f3; color: #9d174d; }
+  .badge-multi   { background: #dcfce7; color: #166534; }
+  .badge-py      { background: #fef9c3; color: #854d0e; }
+  .fig-slide { text-align: center; }
+  .fig-slide h3  { font-size: 1.1em; margin-bottom: 0.25em; color: #555; font-weight: 400; }
+  .fig-slide p.caption { font-size: 0.55em; color: #888; margin-top: 0.35em; line-height: 1.5; }
+  /* pipeline diagram */
+  .pipe-box {
+    background: var(--bg-subtle);
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 0.35em 0.7em;
+    font-size: 0.62em;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center;
+    margin: 0.18em auto;
+    max-width: 92%;
+    line-height: 1.45;
+  }
+  .pipe-box.accent  { border-color: var(--accent);  background: #eff6ff; }
+  .pipe-box.green   { border-color: var(--accent3); background: #f0fdf4; }
+  .pipe-box.red     { border-color: var(--accent2); background: #fff1f2; }
+  .pipe-arrow { text-align: center; font-size: 0.9em; color: #94a3b8; margin: 0.05em 0; }
+  .class-pill {
+    display: inline-block; padding: 0.1em 0.5em; border-radius: 12px;
+    font-size: 0.52em; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    margin: 0.1em 0.1em; border: 1px solid currentColor;
+  }
+  .cp  { color: #1d4ed8; background: #eff6ff; }
+  .dw  { color: #0369a1; background: #f0f9ff; }
+  .ms  { color: #7c3aed; background: #f5f3ff; }
+  .ai  { color: #9d174d; background: #fdf2f8; }
+  .sd  { color: #dc2626; background: #fff1f2; }
+  .th  { color: #d97706; background: #fffbeb; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ==================== SLIDE 1: TITULO + PROBLEMA + DATASET ==================== -->
+<section class="title-slide">
+  <h1>Classificação Multi-Task de<br>Imagens Pessoais com<br>Feature Extractors Pré-Treinados</h1>
+  <p class="subtitle">
+    <span class="badge badge-clip">CLIP ViT-B/32</span>
+    <span class="badge badge-convnext">ConvNeXt-Tiny</span>
+    <span class="badge badge-multi">Multi-Task MLP</span>
+    <span class="badge badge-py">Python · PyTorch</span>
+  </p>
+  <p class="author">Vitor Y. F. Freitas &#8212; Mini-Projeto 2 &#8212; Aprendizado de Máquina 2026.1</p>
+
+  <div class="cols" style="margin-top:1.1em;">
+    <div>
+      <h3>Problema</h3>
+      <ul>
+        <li>Mesma coleção do projeto-1: <span class="hl">~8.000 imagens pessoais</span> amostradas de <em>D:\media</em></li>
+        <li>Em vez de agrupar (unsupervised), agora <span class="hl">classificar com supervisão</span> derivada dos próprios metadados</li>
+        <li>Duas tarefas simultâneas: <span class="hl">tipo de imagem</span> (6 classes) e <span class="hl">presença de pessoas</span> (binário)</li>
+        <li>Pergunta central: um modelo aprende essas categorias a partir <em>apenas</em> das representações visuais, sem acesso aos metadados?</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Distribuição de Classes</h3>
+      <table>
+        <tr><th>Classe</th><th>N</th><th>%</th></tr>
+        <tr><td><span class="class-pill cp">camera_photo</span></td><td>4385</td><td>54.8%</td></tr>
+        <tr><td><span class="class-pill dw">desktop_wallpaper</span></td><td>1191</td><td>14.9%</td></tr>
+        <tr><td><span class="class-pill ai">ai_generated</span></td><td>1032</td><td>12.9%</td></tr>
+        <tr><td><span class="class-pill th">thumbnail</span></td><td>580</td><td>7.2%</td></tr>
+        <tr><td><span class="class-pill ms">mobile_screenshot</span></td><td>515</td><td>6.4%</td></tr>
+        <tr><td><span class="class-pill sd">screenshot_desktop</span></td><td>297</td><td>3.7%</td></tr>
+      </table>
+      <p class="small" style="margin-top:0.4em;">has_people: <span class="hl">1.323 positivos</span> (16.5%) &mdash; derivado da pasta <code>people/</code></p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SLIDE 2: PIPELINE ==================== -->
+<section>
+  <h2>Pipeline</h2>
+  <div class="cols" style="margin-top:0.5em;">
+
+    <div>
+      <h3>1 &mdash; Labeling Determinístico (3 Tiers)</h3>
+      <ul>
+        <li><strong>Tier 1</strong> &mdash; resolução exata (ex.: 3840&times;2160 &rarr; <span class="class-pill dw">desktop_wallpaper</span>)</li>
+        <li><strong>Tier 2</strong> &mdash; pasta + aspect ratio (ex.: pasta <em>iPhone</em>, portrait &rarr; <span class="class-pill cp">camera_photo</span>)</li>
+        <li><strong>Tier 3</strong> &mdash; fallback por aspect ratio genérico</li>
+        <li><code>has_people</code> = 1 se a imagem pertence a <em>people/</em></li>
+        <li>Split: <span class="hl">70/15/15</span>, estratificado por <code>image_type</code></li>
+      </ul>
+
+      <h3 style="margin-top:0.7em;">2 &mdash; Feature Extraction (Frozen)</h3>
+      <table>
+        <tr><th></th><th>CLIP ViT-B/32 <sup>[1]</sup></th><th>ConvNeXt-Tiny <sup>[2]</sup></th></tr>
+        <tr><td>Objetivo</td><td>Contrastivo (InfoNCE)</td><td>Cross-entropy</td></tr>
+        <tr><td>Dataset</td><td>WIT, 400M pares</td><td>ImageNet-1K, 1.28M</td></tr>
+        <tr><td>Embedding</td><td>512-dim</td><td>768-dim</td></tr>
+        <tr><td>Extração</td><td>fastembed-rs (ONNX)</td><td>torchvision (frozen)</td></tr>
+      </table>
+    </div>
+
+    <div>
+      <h3>3 &mdash; Arquitetura MLP Dual-Head</h3>
+      <div class="pipe-box accent">input &#8712; &#8477;<sup>D</sup> &nbsp;(D = 512 ou 768)</div>
+      <div class="pipe-arrow">&#8595;</div>
+      <div class="pipe-box">Linear(D, 256) &rarr; ReLU &rarr; Dropout(0.3)</div>
+      <div class="pipe-arrow">&#8595;</div>
+      <div class="pipe-box">Linear(256, 128) &rarr; ReLU &rarr; Dropout(0.3)</div>
+      <div class="pipe-arrow" style="display:flex; justify-content:center; gap:3.5em;">&#8601;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#8600;</div>
+      <div style="display:flex; gap:0.5em; margin-top:0.1em;">
+        <div class="pipe-box green" style="max-width:48%;">Linear(128, 1)<br><small>people logit</small></div>
+        <div class="pipe-box red"   style="max-width:48%;">Linear(128, 6)<br><small>type logits</small></div>
+      </div>
+      <div class="eq-box" style="margin-top:0.6em;">
+        <span class="katex-eq">\mathcal{L} = \text{BCE}(\hat{p},\,y_\text{people}) + \text{CE}(\hat{t},\,y_\text{type})</span>
+      </div>
+      <ul style="margin-top:0.4em;">
+        <li>Adam, lr=1e&#8209;3, weight_decay=1e&#8209;4</li>
+        <li>Cosine annealing, 200 epochs, best val type-F1</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SLIDE 3: RESULTADOS ==================== -->
+<section>
+  <h2>Resultados</h2>
+  <div class="cols" style="margin-top:0.4em;">
+    <div>
+      <h3>Comparativo — Test Set</h3>
+      <table>
+        <tr><th>Métrica</th><th>Linear<br>(CLIP)</th><th>MLP<br>(CLIP)</th><th>MLP<br>(ConvNeXt)</th></tr>
+        <tr><td>type_acc</td><td>0.823</td><td class="best">0.872</td><td>0.828</td></tr>
+        <tr><td>type_f1 (w)</td><td>0.817</td><td class="best">0.869</td><td>0.826</td></tr>
+        <tr><td>people_acc</td><td>0.898</td><td>0.941</td><td class="best">0.943</td></tr>
+        <tr><td>people_f1</td><td>0.665</td><td>0.827</td><td class="best">0.828</td></tr>
+        <tr><td>people_auc</td><td>0.952</td><td class="best">0.980</td><td>0.978</td></tr>
+        <tr><td>params</td><td>3.591</td><td>165 K</td><td>230 K</td></tr>
+      </table>
+
+      <h3 style="margin-top:0.7em;">F1 por Classe (MLP CLIP)</h3>
+      <table>
+        <tr><th>Classe</th><th>P</th><th>R</th><th>F1</th><th>N</th></tr>
+        <tr><td><span class="class-pill cp">camera_photo</span></td><td>0.89</td><td>0.92</td><td class="best">0.90</td><td>658</td></tr>
+        <tr><td><span class="class-pill dw">desktop_wallpaper</span></td><td>0.86</td><td>0.87</td><td>0.86</td><td>179</td></tr>
+        <tr><td><span class="class-pill ai">ai_generated</span></td><td>0.86</td><td>0.85</td><td>0.85</td><td>155</td></tr>
+        <tr><td><span class="class-pill ms">mobile_screenshot</span></td><td>0.82</td><td>0.87</td><td>0.84</td><td>77</td></tr>
+        <tr><td><span class="class-pill th">thumbnail</span></td><td>0.84</td><td>0.80</td><td>0.82</td><td>87</td></tr>
+        <tr><td><span class="class-pill sd">screenshot_desktop</span></td><td>0.73</td><td>0.43</td><td class="warn">0.54</td><td>44</td></tr>
+      </table>
+    </div>
+    <div style="text-align:center;">
+      <img class="plot" src="comparison_bar.png" alt="Comparison bar chart" style="max-height:220px; margin-bottom:0.5em;">
+      <img class="plot" src="confusion_matrices.png" alt="Confusion matrices" style="max-height:220px;">
+      <p class="small" style="margin-top:0.25em;">Matrizes de confusão normalizadas (Linear / MLP CLIP / MLP ConvNeXt)</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SLIDE 3b: TRAINING CURVES (figura) ==================== -->
+<section class="fig-slide">
+  <h3>Curvas de Treino — Loss &amp; Métricas de Validação</h3>
+  <img class="plot-full" src="training_curves.png" alt="Training curves">
+  <p class="caption">
+    MLP CLIP mantém val_loss estável (~0.5–0.7). MLP ConvNeXt apresenta overfitting acentuado: val_loss sobe de 1.0 a 1.66 enquanto o treino continua caindo.<br>
+    Checkpoint salvo no melhor val type-F1 (early stop implícito).
+  </p>
+</section>
+
+<!-- ==================== SLIDE 4: INTERPRETAÇÃO + CONEXÃO ==================== -->
+<section>
+  <h2>Interpretação</h2>
+  <div class="cols" style="margin-top:0.5em;">
+    <div>
+      <h3>Por que CLIP &gt; ConvNeXt?</h3>
+      <ul>
+        <li><span class="hl">Pretraining contrastivo</span> em 400M pares imagem-texto força representações semânticas ortogonais por conceito — ideal para separar categorias visualmente heterogêneas</li>
+        <li>ConvNeXt aprende features para 1.000 classes ImageNet; <span class="hl">screenshot_desktop ou ai_generated não existem lá</span></li>
+        <li>Linear probe CLIP (3.591 params) &asymp; MLP ConvNeXt (230K params): as features CLIP já são quase <span class="hl">linearmente separáveis</span></li>
+        <li>ConvNeXt overfita porque 768-dim features não generalizam para domínio pessoal</li>
+      </ul>
+
+      <h3 style="margin-top:0.6em;">Tarefas &amp; Transferência</h3>
+      <ul>
+        <li><code>has_people</code> empata (CLIP ≈ ConvNeXt, F1 ~0.83): presença humana é <span class="hl">feature visual saliente</span> para qualquer CNN profunda</li>
+        <li><code>screenshot_desktop</code> F1=0.54 — baixo suporte (44 amostras) + alta variância visual; vai melhorar com dataset completo</li>
+      </ul>
+    </div>
+
+    <div>
+      <h3>Limitações</h3>
+      <ul>
+        <li>Labels derivados de metadados — ruído em casos ambíguos</li>
+        <li><code>has_people</code> baseado apenas na pasta <em>people/</em> — falsos negativos em <em>camera_photo</em> e <em>thumbnail</em></li>
+        <li>Encoders <span class="hl">frozen</span>: sem adaptação ao domínio pessoal</li>
+        <li>Classe <span class="class-pill sd">screenshot_desktop</span> subrepresentada (3.7%)</li>
+        <li>Amostra de 8.000 imagens &mdash; dataset completo (&gt;20 K) ainda pendente</li>
+      </ul>
+
+      <h3 style="margin-top:0.6em;">Conexão com ViT Compression</h3>
+      <ul>
+        <li>CLIP ViT-B/32 com <span class="hl">frozen weights</span> já entrega type_f1=0.869 — evidência de <span class="hl">redundância representacional</span></li>
+        <li>Se quantização + poda (mestrado, Paper 3) comprime o encoder mantendo 85%+ das features, a degradação na probe deve ser mínima</li>
+        <li>Este projeto fornece um <span class="hl">benchmark de preservação de features</span> para avaliar o impacto da compressão em tarefas downstream fora de ImageNet</li>
+      </ul>
+
+      <div class="references">
+        <span class="ref-num">[1]</span> Radford et al. <em>Learning Transferable Visual Models From Natural Language Supervision.</em> ICML, 2021. arXiv:2103.00020<br>
+        <span class="ref-num">[2]</span> Liu et al. <em>A ConvNet for the 2020s.</em> CVPR, 2022. arXiv:2201.03545
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    width: 1280,
+    height: 720,
+    margin: 0.04,
+    transition: 'fade',
+    transitionSpeed: 'fast',
+    overview: true,
+  });
+  document.querySelectorAll('.katex-eq').forEach(function(el) {
+    katex.render(el.textContent, el, {
+      throwOnError: false,
+      displayMode: true,
+    });
+  });
+</script>
+</body>
+</html>
