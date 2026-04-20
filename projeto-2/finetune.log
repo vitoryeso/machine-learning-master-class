@@ -1,0 +1,148 @@
+Device: cuda  (NVIDIA GeForce RTX 4090)
+  Train: 6254, Val: 3341, Test: 3350
+Classes: ['ai_generated', 'camera_photo', 'desktop_wallpaper', 'mobile_screenshot', 'screenshot_desktop', 'thumbnail']
+
+############################################################
+  FINE-TUNE: FT CLIP ViT-B/32
+############################################################
+/home/inovailab/projeto2/venv/lib/python3.12/site-packages/open_clip/factory.py:450: UserWarning: QuickGELU mismatch between final model config (quick_gelu=False) and pretrained tag 'openai' (quick_gelu=True).
+  warnings.warn(
+  Params total=151,442,440  trainable=151,442,440
+  Epoch   1: train=1.7955  val_loss=1.3355  type_f1=0.4335  people_f1=0.6351  [0.1min]
+  Epoch   2: train=1.2168  val_loss=0.9070  type_f1=0.7298  people_f1=0.8053  [0.2min]
+  Epoch   3: train=0.8263  val_loss=0.7296  type_f1=0.7863  people_f1=0.8335  [0.3min]
+  Epoch   4: train=0.6303  val_loss=0.6714  type_f1=0.8225  people_f1=0.8556  [0.4min]
+  Epoch   5: train=0.4728  val_loss=0.6765  type_f1=0.8369  people_f1=0.8617  [0.6min]
+  Epoch   6: train=0.3656  val_loss=0.6870  type_f1=0.8360  people_f1=0.8739  [0.7min]
+  Epoch   7: train=0.2767  val_loss=0.8616  type_f1=0.8132  people_f1=0.8557  [0.8min]
+  Epoch   8: train=0.2431  val_loss=0.7403  type_f1=0.8466  people_f1=0.8531  [0.9min]
+  Epoch   9: train=0.1902  val_loss=0.8117  type_f1=0.8495  people_f1=0.8797  [1.0min]
+  Epoch  10: train=0.1604  val_loss=0.8405  type_f1=0.8235  people_f1=0.8761  [1.1min]
+  Epoch  11: train=0.1602  val_loss=0.8242  type_f1=0.8307  people_f1=0.8783  [1.2min]
+  Epoch  12: train=0.1245  val_loss=0.9240  type_f1=0.8414  people_f1=0.8736  [1.3min]
+  Epoch  13: train=0.1034  val_loss=0.9521  type_f1=0.8366  people_f1=0.8883  [1.4min]
+  Epoch  14: train=0.0938  val_loss=1.0083  type_f1=0.8400  people_f1=0.8741  [1.5min]
+  Epoch  15: train=0.0797  val_loss=1.0623  type_f1=0.8342  people_f1=0.8873  [1.6min]
+  Epoch  16: train=0.0902  val_loss=0.9314  type_f1=0.8493  people_f1=0.8762  [1.7min]
+  Epoch  17: train=0.0846  val_loss=0.9546  type_f1=0.8418  people_f1=0.8757  [1.8min]
+  Epoch  18: train=0.0723  val_loss=0.9894  type_f1=0.8400  people_f1=0.8838  [1.9min]
+  Epoch  19: train=0.0611  val_loss=1.0051  type_f1=0.8410  people_f1=0.8844  [2.0min]
+  Epoch  20: train=0.0640  val_loss=0.9660  type_f1=0.8408  people_f1=0.8905  [2.1min]
+  Epoch  21: train=0.0545  val_loss=0.9869  type_f1=0.8427  people_f1=0.8928  [2.2min]
+  Epoch  22: train=0.0475  val_loss=1.0226  type_f1=0.8467  people_f1=0.8938  [2.3min]
+  Epoch  23: train=0.0525  val_loss=1.0360  type_f1=0.8459  people_f1=0.8852  [2.4min]
+  Epoch  24: train=0.0440  val_loss=1.0387  type_f1=0.8527  people_f1=0.8789  [2.5min]
+  Epoch  25: train=0.0391  val_loss=1.0365  type_f1=0.8553  people_f1=0.8953  [2.6min]
+  Epoch  26: train=0.0395  val_loss=1.0466  type_f1=0.8530  people_f1=0.8889  [2.7min]
+  Epoch  27: train=0.0343  val_loss=1.1020  type_f1=0.8495  people_f1=0.8825  [2.8min]
+  Epoch  28: train=0.0292  val_loss=1.0574  type_f1=0.8524  people_f1=0.8942  [2.9min]
+  Epoch  29: train=0.0288  val_loss=1.1156  type_f1=0.8488  people_f1=0.8899  [3.0min]
+  Epoch  30: train=0.0280  val_loss=1.0809  type_f1=0.8508  people_f1=0.8929  [3.1min]
+  Epoch  31: train=0.0273  val_loss=1.1498  type_f1=0.8553  people_f1=0.8954  [3.2min]
+  Epoch  32: train=0.0245  val_loss=1.1299  type_f1=0.8532  people_f1=0.8911  [3.3min]
+  Epoch  33: train=0.0298  val_loss=1.1486  type_f1=0.8482  people_f1=0.8873  [3.4min]
+  Epoch  34: train=0.0258  val_loss=1.2138  type_f1=0.8457  people_f1=0.8901  [3.5min]
+  Epoch  35: train=0.0197  val_loss=1.1655  type_f1=0.8486  people_f1=0.8911  [3.6min]
+  Epoch  36: train=0.0192  val_loss=1.2065  type_f1=0.8491  people_f1=0.8929  [3.7min]
+  Epoch  37: train=0.0180  val_loss=1.2267  type_f1=0.8525  people_f1=0.8873  [3.8min]
+  Epoch  38: train=0.0196  val_loss=1.2340  type_f1=0.8520  people_f1=0.8933  [3.9min]
+  Epoch  39: train=0.0181  val_loss=1.2532  type_f1=0.8499  people_f1=0.8809  [4.0min]
+  Epoch  40: train=0.0173  val_loss=1.2319  type_f1=0.8504  people_f1=0.8834  [4.1min]
+  Early stop at epoch 40 (no improvement for 15 epochs)
+
+  Best val type_f1: 0.8553
+  Checkpoint saved: checkpoints/ft_clip_vit-b-32.pt
+
+============================================================
+  FT CLIP ViT-B/32 - TEST
+============================================================
+  has_people: Acc=0.9648  F1=0.8956  AUC=0.9865
+  image_type: Acc=0.8370  F1=0.8348
+
+                    precision    recall  f1-score   support
+
+      ai_generated       0.84      0.82      0.83       436
+      camera_photo       0.87      0.90      0.88      1848
+ desktop_wallpaper       0.83      0.83      0.83       492
+ mobile_screenshot       0.67      0.70      0.68       218
+screenshot_desktop       0.66      0.47      0.55       123
+         thumbnail       0.80      0.70      0.75       233
+
+          accuracy                           0.84      3350
+         macro avg       0.78      0.74      0.75      3350
+      weighted avg       0.83      0.84      0.83      3350
+
+
+############################################################
+  FINE-TUNE: FT ConvNeXt-Tiny
+############################################################
+  Params total=28,049,255  trainable=28,049,255
+  Epoch   1: train=1.5774  val_loss=1.0932  type_f1=0.6445  people_f1=0.6938  [0.2min]
+  Epoch   2: train=1.0280  val_loss=0.9220  type_f1=0.7349  people_f1=0.7565  [0.3min]
+  Epoch   3: train=0.8391  val_loss=0.8149  type_f1=0.7687  people_f1=0.7774  [0.4min]
+  Epoch   4: train=0.7103  val_loss=0.7675  type_f1=0.7946  people_f1=0.8004  [0.5min]
+  Epoch   5: train=0.6260  val_loss=0.7352  type_f1=0.8063  people_f1=0.8170  [0.6min]
+  Epoch   6: train=0.5378  val_loss=0.7349  type_f1=0.8043  people_f1=0.8242  [0.7min]
+  Epoch   7: train=0.4658  val_loss=0.7437  type_f1=0.8103  people_f1=0.8240  [0.8min]
+  Epoch   8: train=0.4041  val_loss=0.7668  type_f1=0.8133  people_f1=0.8405  [0.9min]
+  Epoch   9: train=0.3557  val_loss=0.7898  type_f1=0.8145  people_f1=0.8335  [1.0min]
+  Epoch  10: train=0.3155  val_loss=0.8549  type_f1=0.8123  people_f1=0.8394  [1.1min]
+  Epoch  11: train=0.2797  val_loss=0.9248  type_f1=0.8077  people_f1=0.8414  [1.2min]
+  Epoch  12: train=0.2608  val_loss=0.8966  type_f1=0.8203  people_f1=0.8496  [1.4min]
+  Epoch  13: train=0.2252  val_loss=0.9167  type_f1=0.8138  people_f1=0.8427  [1.5min]
+  Epoch  14: train=0.2199  val_loss=0.9201  type_f1=0.8211  people_f1=0.8525  [1.6min]
+  Epoch  15: train=0.1950  val_loss=0.9460  type_f1=0.8180  people_f1=0.8540  [1.7min]
+  Epoch  16: train=0.1789  val_loss=0.9926  type_f1=0.8235  people_f1=0.8450  [1.8min]
+  Epoch  17: train=0.1775  val_loss=0.9772  type_f1=0.8167  people_f1=0.8550  [1.9min]
+  Epoch  18: train=0.1597  val_loss=0.9910  type_f1=0.8262  people_f1=0.8612  [2.0min]
+  Epoch  19: train=0.1477  val_loss=1.0347  type_f1=0.8153  people_f1=0.8644  [2.1min]
+  Epoch  20: train=0.1436  val_loss=1.0141  type_f1=0.8225  people_f1=0.8651  [2.2min]
+  Epoch  21: train=0.1278  val_loss=1.1387  type_f1=0.8154  people_f1=0.8680  [2.3min]
+  Epoch  22: train=0.1145  val_loss=1.0986  type_f1=0.8216  people_f1=0.8678  [2.4min]
+  Epoch  23: train=0.1092  val_loss=1.1316  type_f1=0.8214  people_f1=0.8608  [2.5min]
+  Epoch  24: train=0.1119  val_loss=1.1029  type_f1=0.8213  people_f1=0.8597  [2.7min]
+  Epoch  25: train=0.1028  val_loss=1.1115  type_f1=0.8212  people_f1=0.8650  [2.8min]
+  Epoch  26: train=0.1048  val_loss=1.1082  type_f1=0.8197  people_f1=0.8663  [2.9min]
+  Epoch  27: train=0.1024  val_loss=1.1814  type_f1=0.8199  people_f1=0.8652  [3.0min]
+  Epoch  28: train=0.0899  val_loss=1.1761  type_f1=0.8226  people_f1=0.8663  [3.1min]
+  Epoch  29: train=0.0885  val_loss=1.1679  type_f1=0.8219  people_f1=0.8657  [3.2min]
+  Epoch  30: train=0.0817  val_loss=1.2291  type_f1=0.8226  people_f1=0.8640  [3.3min]
+  Epoch  31: train=0.0864  val_loss=1.1793  type_f1=0.8235  people_f1=0.8667  [3.4min]
+  Epoch  32: train=0.0818  val_loss=1.2218  type_f1=0.8240  people_f1=0.8738  [3.5min]
+  Epoch  33: train=0.0843  val_loss=1.2063  type_f1=0.8214  people_f1=0.8709  [3.6min]
+  Early stop at epoch 33 (no improvement for 15 epochs)
+
+  Best val type_f1: 0.8262
+  Checkpoint saved: checkpoints/ft_convnext-tiny.pt
+
+============================================================
+  FT ConvNeXt-Tiny - TEST
+============================================================
+  has_people: Acc=0.9561  F1=0.8672  AUC=0.9800
+  image_type: Acc=0.8107  F1=0.8095
+
+                    precision    recall  f1-score   support
+
+      ai_generated       0.82      0.81      0.81       436
+      camera_photo       0.85      0.88      0.87      1848
+ desktop_wallpaper       0.81      0.76      0.79       492
+ mobile_screenshot       0.61      0.70      0.65       218
+screenshot_desktop       0.57      0.48      0.52       123
+         thumbnail       0.76      0.65      0.70       233
+
+          accuracy                           0.81      3350
+         macro avg       0.74      0.71      0.72      3350
+      weighted avg       0.81      0.81      0.81      3350
+
+
+############################################################
+  FINE-TUNE RESULTS (test set)
+############################################################
+                          FT CLIP  FT ConvNeXt
+  type_acc                 0.8370       0.8107
+  type_f1                  0.8348       0.8095
+  people_f1                0.8956       0.8672
+  people_auc               0.9865       0.9800
+Plots saved to output/
+
+All done.
