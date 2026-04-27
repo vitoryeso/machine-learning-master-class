@@ -112,7 +112,7 @@
 <div class="reveal">
 <div class="slides">
 
-<!-- ==================== SLIDE 1: TITULO + PROBLEMA + DATASET ==================== -->
+<!-- ==================== SLIDE 1: TITULO ==================== -->
 <section class="title-slide">
   <h1>Classificação Multi-Task de<br>Imagens Pessoais com<br>Feature Extractors Pré-Treinados</h1>
   <p class="subtitle">
@@ -122,12 +122,16 @@
     <span class="badge badge-py">Python · PyTorch</span>
   </p>
   <p class="author">Vitor Y. F. Freitas &#8212; Mini-Projeto 2 &#8212; Aprendizado de Máquina 2026.1</p>
+</section>
 
-  <div class="cols" style="margin-top:1.1em;">
+<!-- ==================== SLIDE 2: PROBLEMA + DATASET ==================== -->
+<section>
+  <h2>Problema &amp; Dataset</h2>
+  <div class="cols" style="margin-top:0.6em;">
     <div>
-      <h3>Problema</h3>
+      <h3>Motivação</h3>
       <ul>
-        <li>Mesma coleção do projeto-1: <span class="hl">~8.000 imagens pessoais</span> amostradas de <em>D:\media</em></li>
+        <li>Coleção pessoal expandida: <span class="hl">22.328 imagens</span> de <em>D:\media</em></li>
         <li>Em vez de agrupar (unsupervised), agora <span class="hl">classificar com supervisão</span> derivada dos próprios metadados</li>
         <li>Duas tarefas simultâneas: <span class="hl">tipo de imagem</span> (6 classes) e <span class="hl">presença de pessoas</span> (binário)</li>
         <li>Pergunta central: um modelo aprende essas categorias a partir <em>apenas</em> das representações visuais, sem acesso aos metadados?</li>
@@ -137,19 +141,19 @@
       <h3>Distribuição de Classes</h3>
       <table>
         <tr><th>Classe</th><th>N</th><th>%</th></tr>
-        <tr><td><span class="class-pill cp">camera_photo</span></td><td>4385</td><td>54.8%</td></tr>
-        <tr><td><span class="class-pill dw">desktop_wallpaper</span></td><td>1191</td><td>14.9%</td></tr>
-        <tr><td><span class="class-pill ai">ai_generated</span></td><td>1032</td><td>12.9%</td></tr>
-        <tr><td><span class="class-pill th">thumbnail</span></td><td>580</td><td>7.2%</td></tr>
-        <tr><td><span class="class-pill ms">mobile_screenshot</span></td><td>515</td><td>6.4%</td></tr>
-        <tr><td><span class="class-pill sd">screenshot_desktop</span></td><td>297</td><td>3.7%</td></tr>
+        <tr><td><span class="class-pill cp">camera_photo</span></td><td>12318</td><td>55.2%</td></tr>
+        <tr><td><span class="class-pill dw">desktop_wallpaper</span></td><td>3275</td><td>14.7%</td></tr>
+        <tr><td><span class="class-pill ai">ai_generated</span></td><td>2905</td><td>13.0%</td></tr>
+        <tr><td><span class="class-pill th">thumbnail</span></td><td>1554</td><td>7.0%</td></tr>
+        <tr><td><span class="class-pill ms">mobile_screenshot</span></td><td>1454</td><td>6.5%</td></tr>
+        <tr><td><span class="class-pill sd">screenshot_desktop</span></td><td>822</td><td>3.7%</td></tr>
       </table>
-      <p class="small" style="margin-top:0.4em;">has_people: <span class="hl">1.323 positivos</span> (16.5%) &mdash; derivado da pasta <code>people/</code></p>
+      <p class="small" style="margin-top:0.4em;">has_people: <span class="hl">3.663 positivos</span> (16.4%) &mdash; derivado da pasta <code>people/</code></p>
     </div>
   </div>
 </section>
 
-<!-- ==================== SLIDE 2: PIPELINE ==================== -->
+<!-- ==================== SLIDE 3: PIPELINE ==================== -->
 <section>
   <h2>Pipeline</h2>
   <div class="cols" style="margin-top:0.5em;">
@@ -197,12 +201,12 @@
   </div>
 </section>
 
-<!-- ==================== SLIDE 3: RESULTADOS ==================== -->
+<!-- ==================== SLIDE 4: RESULTADOS — TABELAS ==================== -->
 <section>
-  <h2>Resultados</h2>
+  <h2>Resultados &mdash; Test Set</h2>
   <div class="cols" style="margin-top:0.4em;">
     <div>
-      <h3>Comparativo — Test Set</h3>
+      <h3>Comparativo Geral</h3>
       <table>
         <tr><th>Métrica</th><th>Linear<br>(CLIP)</th><th>MLP<br>(CLIP)</th><th>MLP<br>(ConvNeXt)</th><th>FT<br>CLIP</th><th>FT<br>ConvNeXt</th></tr>
         <tr><td>type_acc</td><td>0.807</td><td class="best">0.869</td><td>0.852</td><td>0.837</td><td>0.811</td></tr>
@@ -212,75 +216,105 @@
         <tr><td>people_auc</td><td>0.966</td><td class="best">0.992</td><td>0.987</td><td>0.986</td><td>0.980</td></tr>
         <tr><td>params</td><td>3.6 K</td><td>165 K</td><td>231 K</td><td class="warn">151 M</td><td class="warn">28 M</td></tr>
       </table>
-
-      <h3 style="margin-top:0.7em;">F1 por Classe (MLP CLIP)</h3>
+    </div>
+    <div>
+      <h3>F1 por Classe (MLP CLIP)</h3>
       <table>
         <tr><th>Classe</th><th>P</th><th>R</th><th>F1</th><th>N</th></tr>
-        <tr><td><span class="class-pill cp">camera_photo</span></td><td>0.89</td><td>0.92</td><td class="best">0.90</td><td>658</td></tr>
-        <tr><td><span class="class-pill dw">desktop_wallpaper</span></td><td>0.86</td><td>0.87</td><td>0.86</td><td>179</td></tr>
-        <tr><td><span class="class-pill ai">ai_generated</span></td><td>0.86</td><td>0.85</td><td>0.85</td><td>155</td></tr>
-        <tr><td><span class="class-pill ms">mobile_screenshot</span></td><td>0.82</td><td>0.87</td><td>0.84</td><td>77</td></tr>
-        <tr><td><span class="class-pill th">thumbnail</span></td><td>0.84</td><td>0.80</td><td>0.82</td><td>87</td></tr>
-        <tr><td><span class="class-pill sd">screenshot_desktop</span></td><td>0.73</td><td>0.43</td><td class="warn">0.54</td><td>44</td></tr>
+        <tr><td><span class="class-pill cp">camera_photo</span></td><td>0.89</td><td>0.92</td><td class="best">0.90</td><td>1848</td></tr>
+        <tr><td><span class="class-pill dw">desktop_wallpaper</span></td><td>0.86</td><td>0.87</td><td>0.86</td><td>492</td></tr>
+        <tr><td><span class="class-pill ai">ai_generated</span></td><td>0.86</td><td>0.85</td><td>0.85</td><td>436</td></tr>
+        <tr><td><span class="class-pill ms">mobile_screenshot</span></td><td>0.82</td><td>0.87</td><td>0.84</td><td>218</td></tr>
+        <tr><td><span class="class-pill th">thumbnail</span></td><td>0.84</td><td>0.80</td><td>0.82</td><td>233</td></tr>
+        <tr><td><span class="class-pill sd">screenshot_desktop</span></td><td>0.73</td><td>0.43</td><td class="warn">0.54</td><td>123</td></tr>
       </table>
-    </div>
-    <div style="text-align:center;">
-      <img class="plot" src="comparison_bar.png" alt="Comparison bar chart" style="max-height:220px; margin-bottom:0.5em;">
-      <img class="plot" src="confusion_matrices.png" alt="Confusion matrices" style="max-height:220px;">
-      <p class="small" style="margin-top:0.25em;">Matrizes de confusão normalizadas (Linear / MLP CLIP / MLP ConvNeXt)</p>
+      <p class="small" style="margin-top:0.5em;"><span class="hl">MLP CLIP</span> domina em todas as métricas com apenas <strong>165K params</strong>.<br><span class="class-pill sd">screenshot_desktop</span> F1=0.54 &mdash; menor classe (123 amostras no test).</p>
     </div>
   </div>
 </section>
 
-<!-- ==================== SLIDE 3b: TRAINING CURVES (figura) ==================== -->
+<!-- ==================== SLIDE 5: FIGURE — Comparison Bar ==================== -->
 <section class="fig-slide">
-  <h3>Curvas de Treino — Loss &amp; Métricas de Validação</h3>
+  <h3>Comparativo de Métricas &mdash; Todos os Modelos</h3>
+  <img class="plot-full" src="comparison_bar.png" alt="Comparison bar chart">
+  <p class="caption">
+    MLP CLIP lidera em type_f1 (0.868) e people_auc (0.992). Fine-tuning não superou as probes com features frozen.
+  </p>
+</section>
+
+<!-- ==================== SLIDE 6: FIGURE — Confusion Matrices ==================== -->
+<section class="fig-slide">
+  <h3>Matrizes de Confusão &mdash; Linear / MLP CLIP / MLP ConvNeXt</h3>
+  <img class="plot-full" src="confusion_matrices.png" alt="Confusion matrices">
+  <p class="caption">
+    Matrizes normalizadas por classe. MLP CLIP apresenta a diagonal mais intensa. A confusão principal ocorre entre <em>screenshot_desktop</em> e <em>desktop_wallpaper</em>.
+  </p>
+</section>
+
+<!-- ==================== SLIDE 7: FIGURE — Training Curves ==================== -->
+<section class="fig-slide">
+  <h3>Curvas de Treino &mdash; Loss &amp; Métricas de Validação</h3>
   <img class="plot-full" src="training_curves.png" alt="Training curves">
   <p class="caption">
-    MLP CLIP mantém val_loss estável (~0.5–0.7). MLP ConvNeXt apresenta overfitting acentuado: val_loss sobe de 1.0 a 1.66 enquanto o treino continua caindo.<br>
+    MLP CLIP mantém val_loss estável (~0.5&ndash;0.7). MLP ConvNeXt apresenta overfitting acentuado: val_loss sobe de 1.0 a 1.66 enquanto o treino continua caindo.<br>
     Checkpoint salvo no melhor val type-F1 (early stop implícito).
   </p>
 </section>
 
-<!-- ==================== SLIDE 3c: FINE-TUNING ==================== -->
+<!-- ==================== SLIDE 8: FINE-TUNING — TEXTO ==================== -->
 <section>
   <h2>Fine-Tuning End-to-End</h2>
-  <div class="cols" style="margin-top:0.4em;">
+  <div class="cols" style="margin-top:0.5em;">
     <div>
       <h3>Setup</h3>
       <ul>
         <li>Encoder <span class="hl">descongelado</span>: backbone inteiro + cabeça dual-head treinados conjuntamente</li>
         <li>FT CLIP ViT-B/32: <span class="hl2">151M params</span> (vs 165K frozen)</li>
         <li>FT ConvNeXt-Tiny: <span class="hl2">28M params</span> (vs 231K frozen)</li>
-        <li>lr=1e&#8209;5 (10× menor), cosine annealing, 30 epochs</li>
-        <li>RTX 4090 — ~15 min/modelo (vs segundos no probe)</li>
+        <li>lr=1e&#8209;5 (100&times; menor), cosine annealing, 50 epochs (early stop, patience=15)</li>
+        <li>RTX 4090 &mdash; ~4 min/modelo (vs segundos no probe)</li>
       </ul>
-
-      <h3 style="margin-top:0.6em;">Resultado Surpreendente</h3>
+    </div>
+    <div>
+      <h3>Resultado Surpreendente</h3>
       <ul>
         <li>FT CLIP type_f1 = <span class="hl2">0.835</span> &lt; frozen MLP CLIP <span class="hl3">0.868</span></li>
         <li>FT ConvNeXt type_f1 = <span class="hl2">0.810</span> &lt; frozen MLP ConvNeXt <span class="hl3">0.849</span></li>
-        <li>Fine-tuning <span class="hl2">degradou</span> a performance de classificação — overfitting em 8K imagens com 151M params</li>
-        <li>people_f1 empata (~0.90): task mais simples é robusta ao overfit</li>
+        <li>Fine-tuning <span class="hl2">degradou</span> a performance de classificação &mdash; overfitting em 22K imagens com 151M params</li>
+        <li>people_f1: FT CLIP (0.896) empata com frozen (~0.90), mas FT ConvNeXt cai para 0.867</li>
         <li>Conclusão: <span class="hl">features pré-treinadas frozen + MLP leve</span> é a melhor estratégia para datasets pequenos</li>
       </ul>
-    </div>
-    <div style="text-align:center;">
-      <img class="plot" src="finetune_curves.png" alt="Fine-tune training curves" style="max-height:250px; margin-bottom:0.4em;">
-      <img class="plot" src="finetune_confusion.png" alt="Fine-tune confusion matrices" style="max-height:250px;">
-      <p class="small" style="margin-top:0.2em;">Fine-tuning curves e matrizes de confusão — FT CLIP vs FT ConvNeXt</p>
     </div>
   </div>
 </section>
 
-<!-- ==================== SLIDE 4: INTERPRETAÇÃO + CONEXÃO ==================== -->
+<!-- ==================== SLIDE 9: FIGURE — Fine-tune Curves ==================== -->
+<section class="fig-slide">
+  <h3>Fine-Tuning &mdash; Curvas de Treino</h3>
+  <img class="plot-full" src="finetune_curves.png" alt="Fine-tune training curves">
+  <p class="caption">
+    Ambos modelos apresentam gap crescente entre train e val loss, confirmando overfitting.<br>
+    FT ConvNeXt diverge mais cedo e com maior amplitude que FT CLIP.
+  </p>
+</section>
+
+<!-- ==================== SLIDE 10: FIGURE — Fine-tune Confusion ==================== -->
+<section class="fig-slide">
+  <h3>Fine-Tuning &mdash; Matrizes de Confusão</h3>
+  <img class="plot-full" src="finetune_confusion.png" alt="Fine-tune confusion matrices">
+  <p class="caption">
+    FT CLIP vs FT ConvNeXt. Comparar com as matrizes frozen: fine-tuning introduz mais confusão entre classes minoritárias.
+  </p>
+</section>
+
+<!-- ==================== SLIDE 11: INTERPRETACAO ==================== -->
 <section>
   <h2>Interpretação</h2>
   <div class="cols" style="margin-top:0.5em;">
     <div>
       <h3>Por que CLIP &gt; ConvNeXt?</h3>
       <ul>
-        <li><span class="hl">Pretraining contrastivo</span> em 400M pares imagem-texto força representações semânticas ortogonais por conceito — ideal para separar categorias visualmente heterogêneas</li>
+        <li><span class="hl">Pretraining contrastivo</span> em 400M pares imagem-texto força representações semânticas ortogonais por conceito &mdash; ideal para separar categorias visualmente heterogêneas</li>
         <li>ConvNeXt aprende features para 1.000 classes ImageNet; <span class="hl">screenshot_desktop ou ai_generated não existem lá</span></li>
         <li>Linear probe CLIP (3.591 params) &asymp; MLP ConvNeXt (230K params): as features CLIP já são quase <span class="hl">linearmente separáveis</span></li>
         <li>ConvNeXt overfita porque 768-dim features não generalizam para domínio pessoal</li>
@@ -288,33 +322,37 @@
 
       <h3 style="margin-top:0.6em;">Tarefas &amp; Transferência</h3>
       <ul>
-        <li><code>has_people</code> empata (CLIP ≈ ConvNeXt, F1 ~0.83): presença humana é <span class="hl">feature visual saliente</span> para qualquer CNN profunda</li>
-        <li><code>screenshot_desktop</code> F1=0.54 — baixo suporte (44 amostras) + alta variância visual; vai melhorar com dataset completo</li>
+        <li><code>has_people</code> empata (CLIP &asymp; ConvNeXt, F1 ~0.90): presença humana é <span class="hl">feature visual saliente</span> para qualquer CNN profunda</li>
+        <li><code>screenshot_desktop</code> F1=0.54 &mdash; menor classe (3.7%) + alta variância visual</li>
       </ul>
     </div>
 
     <div>
       <h3>Limitações</h3>
       <ul>
-        <li>Labels derivados de metadados — ruído em casos ambíguos</li>
-        <li><code>has_people</code> baseado apenas na pasta <em>people/</em> — falsos negativos em <em>camera_photo</em> e <em>thumbnail</em></li>
-        <li>Fine-tuning <span class="hl2">degradou</span> type_f1 (0.835 vs 0.868) — dataset pequeno demais para 151M params</li>
+        <li>Labels derivados de metadados &mdash; ruído em casos ambíguos</li>
+        <li><code>has_people</code> baseado apenas na pasta <em>people/</em> &mdash; falsos negativos em <em>camera_photo</em> e <em>thumbnail</em></li>
+        <li>Fine-tuning <span class="hl2">degradou</span> type_f1 (0.835 vs 0.868) &mdash; dataset pequeno demais para 151M params</li>
         <li>Classe <span class="class-pill sd">screenshot_desktop</span> subrepresentada (3.7%)</li>
-        <li>Amostra de 8.000 imagens &mdash; dataset completo (&gt;20 K) ainda pendente</li>
+        <li>Dataset de 22K imagens &mdash; labels ruidosos limitam o teto de performance</li>
       </ul>
 
       <h3 style="margin-top:0.6em;">Conexão com ViT Compression</h3>
       <ul>
-        <li>CLIP ViT-B/32 com <span class="hl">frozen weights</span> já entrega type_f1=0.869 — evidência de <span class="hl">redundância representacional</span></li>
+        <li>CLIP ViT-B/32 com <span class="hl">frozen weights</span> já entrega type_f1=0.868 &mdash; evidência de <span class="hl">redundância representacional</span></li>
         <li>Se quantização + poda (mestrado, Paper 3) comprime o encoder mantendo 85%+ das features, a degradação na probe deve ser mínima</li>
         <li>Este projeto fornece um <span class="hl">benchmark de preservação de features</span> para avaliar o impacto da compressão em tarefas downstream fora de ImageNet</li>
       </ul>
-
-      <div class="references">
-        <span class="ref-num">[1]</span> Radford et al. <em>Learning Transferable Visual Models From Natural Language Supervision.</em> ICML, 2021. arXiv:2103.00020<br>
-        <span class="ref-num">[2]</span> Liu et al. <em>A ConvNet for the 2020s.</em> CVPR, 2022. arXiv:2201.03545
-      </div>
     </div>
+  </div>
+</section>
+
+<!-- ==================== SLIDE 12: REFERENCIAS ==================== -->
+<section>
+  <h2>Referências</h2>
+  <div class="references" style="font-size: 0.6em; max-width: 85%; margin: 1.5em auto 0;">
+    <p><span class="ref-num">[1]</span> Radford et al. <em>Learning Transferable Visual Models From Natural Language Supervision.</em> ICML, 2021. arXiv:2103.00020</p>
+    <p><span class="ref-num">[2]</span> Liu et al. <em>A ConvNet for the 2020s.</em> CVPR, 2022. arXiv:2201.03545</p>
   </div>
 </section>
 
