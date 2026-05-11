@@ -1,4 +1,4 @@
-# Large binary files — embeddings, model weights, datasets
+﻿# Large binary files â€” embeddings, model weights, datasets
 *.npy
 *.bin
 *.pt
@@ -19,5 +19,9 @@ __pycache__/
 *.pyc
 
 # Resized images for training
-projeto-2/media_256/
-projeto-2/all_paths_256.txt
+media_256/
+all_paths_256.txt
+
+# Smoke-test outputs
+output/hierarchical_smoke/
+

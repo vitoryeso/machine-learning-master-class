@@ -1,383 +1,208 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Projeto 2 — Classificação Multi-Task de Imagens Pessoais</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --r-heading-font: Inter, sans-serif;
-    --r-main-font: Inter, sans-serif;
-    --r-main-font-size: 28px;
-    --r-heading-color: #1a1a2e;
-    --r-main-color: #333;
-    --accent: #2563eb;
-    --accent2: #dc2626;
-    --accent3: #16a34a;
-    --bg-subtle: #f8fafc;
-  }
-  .reveal { font-family: Inter, sans-serif; }
-  .reveal h1, .reveal h2, .reveal h3 { font-weight: 700; color: var(--r-heading-color); }
-  .reveal h1 { font-size: 2.0em; }
-  .reveal h2 { font-size: 1.4em; margin-bottom: 0.4em; border-bottom: 3px solid var(--accent); padding-bottom: 0.15em; display: inline-block; }
-  .reveal h3 { font-size: 1.05em; color: var(--accent); margin-bottom: 0.25em; }
-  .title-slide h1 { font-size: 1.5em; margin-bottom: 0.3em; line-height: 1.25; }
-  .title-slide .subtitle { font-size: 0.85em; color: #555; margin-bottom: 0.4em; line-height: 1.5; }
-  .title-slide .author { font-size: 0.75em; color: #888; margin-top: 1.2em; }
-  .eq-box {
-    background: var(--bg-subtle);
-    border-left: 4px solid var(--accent);
-    padding: 0.5em 1em;
-    margin: 0.4em auto;
-    border-radius: 0 8px 8px 0;
-    max-width: 92%;
-    text-align: center;
-  }
-  .eq-label { font-size: 0.52em; color: #888; text-align: right; margin-top: 0.15em; }
-  .reveal ul, .reveal ol { font-size: 0.73em; line-height: 1.45; }
-  .reveal li { margin-bottom: 0.2em; }
-  .reveal .small { font-size: 0.6em; color: #666; }
-  .reveal .tiny { font-size: 0.5em; color: #888; }
-  .reveal img.plot { max-height: 360px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-  .reveal img.plot-full {
-    max-height: 620px;
-    max-width: 96%;
-    border-radius: 8px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-  }
-  .reveal table { font-size: 0.58em; margin: 0.3em auto; border-collapse: collapse; }
-  .reveal table th { background: var(--accent); color: white; padding: 0.35em 0.65em; }
-  .reveal table td { padding: 0.28em 0.65em; border-bottom: 1px solid #e5e7eb; text-align: center; }
-  .reveal table tr:nth-child(even) { background: var(--bg-subtle); }
-  .reveal table .best { background: #dcfce7; font-weight: 700; }
-  .reveal table .warn { background: #fef9c3; }
-  .cols { display: flex; gap: 1.4em; align-items: flex-start; }
-  .cols > * { flex: 1; }
-  .references {
-    font-size: 0.44em; text-align: left; color: #666; line-height: 1.65;
-    max-width: 90%; margin: 0.5em auto 0; border-top: 1px solid #ddd; padding-top: 0.5em;
-  }
-  .references span.ref-num { color: var(--accent); font-weight: 600; }
-  .hl  { color: var(--accent);  font-weight: 600; }
-  .hl2 { color: var(--accent2); font-weight: 600; }
-  .hl3 { color: var(--accent3); font-weight: 600; }
-  .badge {
-    display: inline-block; padding: 0.15em 0.55em; border-radius: 4px;
-    font-size: 0.52em; font-weight: 600; font-family: 'JetBrains Mono', monospace;
-    vertical-align: middle; margin: 0 0.15em;
-  }
-  .badge-clip    { background: #dbeafe; color: #1e40af; }
-  .badge-convnext{ background: #fce7f3; color: #9d174d; }
-  .badge-multi   { background: #dcfce7; color: #166534; }
-  .badge-py      { background: #fef9c3; color: #854d0e; }
-  .fig-slide { text-align: center; }
-  .fig-slide h3  { font-size: 1.1em; margin-bottom: 0.25em; color: #555; font-weight: 400; }
-  .fig-slide p.caption { font-size: 0.55em; color: #888; margin-top: 0.35em; line-height: 1.5; }
-  /* pipeline diagram */
-  .pipe-box {
-    background: var(--bg-subtle);
-    border: 2px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 0.35em 0.7em;
-    font-size: 0.62em;
-    font-family: 'JetBrains Mono', monospace;
-    text-align: center;
-    margin: 0.18em auto;
-    max-width: 92%;
-    line-height: 1.45;
-  }
-  .pipe-box.accent  { border-color: var(--accent);  background: #eff6ff; }
-  .pipe-box.green   { border-color: var(--accent3); background: #f0fdf4; }
-  .pipe-box.red     { border-color: var(--accent2); background: #fff1f2; }
-  .pipe-arrow { text-align: center; font-size: 0.9em; color: #94a3b8; margin: 0.05em 0; }
-  .class-pill {
-    display: inline-block; padding: 0.1em 0.5em; border-radius: 12px;
-    font-size: 0.52em; font-weight: 600; font-family: 'JetBrains Mono', monospace;
-    margin: 0.1em 0.1em; border: 1px solid currentColor;
-  }
-  .cp  { color: #1d4ed8; background: #eff6ff; }
-  .dw  { color: #0369a1; background: #f0f9ff; }
-  .ms  { color: #7c3aed; background: #f5f3ff; }
-  .ai  { color: #9d174d; background: #fdf2f8; }
-  .sd  { color: #dc2626; background: #fff1f2; }
-  .th  { color: #d97706; background: #fffbeb; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto 2 — Clustering hierárquico e anotação visual</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; --green:#15803d; --orange:#b45309; }
+    .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
+    .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
+    .reveal h1 { font-size: 2.25em; }
+    .reveal h2 { font-size: 1.55em; }
+    .reveal p,.reveal li { font-size: .72em; line-height: 1.35; }
+    .muted { color: var(--muted); }
+    .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:start; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+    .card { border:2px solid #e2e8f0; border-radius:18px; padding:18px; background:#fff; box-shadow:0 8px 24px rgba(15,23,42,.08); }
+    .bad { border-color:#fecaca; background:#fff7f7; }
+    .good { border-color:#bbf7d0; background:#f0fdf4; }
+    .warn { border-color:#fed7aa; background:#fff7ed; }
+    .num { font-size:1.8em; font-weight:900; color:var(--blue); }
+    code { background:#f1f5f9; padding:.12em .35em; border-radius:7px; color:#0f172a; }
+    img.fit { max-height: 510px; max-width: 100%; border-radius: 12px; border:1px solid #e2e8f0; }
+    table { font-size:.55em; }
+    th { background:#f1f5f9; }
+    td, th { padding: .45em .6em !important; }
+    .flow { display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; margin-top:28px; }
+    .box { border:2px solid #cbd5e1; border-radius:16px; padding:15px 18px; font-size:.65em; font-weight:800; background:#f8fafc; }
+    .arrow { font-size:1.2em; color:var(--blue); font-weight:900; }
+  </style>
 </head>
 <body>
 <div class="reveal">
 <div class="slides">
 
-<!-- ==================== SLIDE 1: TITULO ==================== -->
-<section class="title-slide">
-  <h1>Classificação Multi-Task de<br>Imagens Pessoais com<br>Feature Extractors Pré-Treinados</h1>
-  <p class="subtitle">
-    <span class="badge badge-clip">CLIP ViT-B/32</span>
-    <span class="badge badge-convnext">ConvNeXt-Tiny</span>
-    <span class="badge badge-multi">Multi-Task MLP</span>
-    <span class="badge badge-py">Python · PyTorch</span>
-  </p>
-  <p class="author">Vitor Y. F. Freitas &#8212; Mini-Projeto 2 &#8212; Aprendizado de Máquina 2026.1</p>
-</section>
-
-<!-- ==================== SLIDE 2: PROBLEMA + DATASET ==================== -->
 <section>
-  <h2>Problema &amp; Dataset</h2>
-  <div class="cols" style="margin-top:0.6em;">
-    <div>
-      <h3>Motivação</h3>
-      <ul>
-        <li>Coleção pessoal expandida: <span class="hl">22.328 imagens</span> de <em>D:\media</em></li>
-        <li>Em vez de agrupar (unsupervised), agora <span class="hl">classificar com supervisão</span> derivada dos próprios metadados</li>
-        <li>Duas tarefas simultâneas: <span class="hl">tipo de imagem</span> (6 classes) e <span class="hl">presença de pessoas</span> (binário)</li>
-        <li>Pergunta central: um modelo aprende essas categorias a partir <em>apenas</em> das representações visuais, sem acesso aos metadados?</li>
-      </ul>
-    </div>
-    <div>
-      <h3>Distribuição de Classes</h3>
-      <table>
-        <tr><th>Classe</th><th>N</th><th>%</th></tr>
-        <tr><td><span class="class-pill cp">camera_photo</span></td><td>12318</td><td>55.2%</td></tr>
-        <tr><td><span class="class-pill dw">desktop_wallpaper</span></td><td>3275</td><td>14.7%</td></tr>
-        <tr><td><span class="class-pill ai">ai_generated</span></td><td>2905</td><td>13.0%</td></tr>
-        <tr><td><span class="class-pill th">thumbnail</span></td><td>1554</td><td>7.0%</td></tr>
-        <tr><td><span class="class-pill ms">mobile_screenshot</span></td><td>1454</td><td>6.5%</td></tr>
-        <tr><td><span class="class-pill sd">screenshot_desktop</span></td><td>822</td><td>3.7%</td></tr>
-      </table>
-      <p class="small" style="margin-top:0.4em;">has_people: <span class="hl">3.663 positivos</span> (16.4%) &mdash; derivado da pasta <code>people/</code></p>
-    </div>
+  <span class="tag">Projeto 2</span>
+  <h1>Classificação a partir de categorias descobertas</h1>
+  <p class="muted">Continuação do Projeto 1: CLIP embeddings + KMeans, agora em modo hierárquico e com anotação humana.</p>
+  <div class="grid3">
+    <div class="card"><div class="num">22.328</div><p>imagens no dataset completo</p></div>
+    <div class="card"><div class="num">512-D</div><p>embeddings CLIP ViT-B/32</p></div>
+    <div class="card"><div class="num">zero trust</div><p>sem usar labels determinísticos como verdade</p></div>
   </div>
 </section>
 
-<!-- ==================== SLIDE 3: PIPELINE ==================== -->
 <section>
-  <h2>Pipeline</h2>
-  <div class="cols" style="margin-top:0.5em;">
-
-    <div>
-      <h3>1 &mdash; Labeling Determinístico (3 Tiers)</h3>
+  <h2>Motivação: os labels automáticos falharam</h2>
+  <div class="grid2">
+    <div class="card bad">
+      <h3>Problema anterior</h3>
       <ul>
-        <li><strong>Tier 1</strong> &mdash; resolução exata (ex.: 3840&times;2160 &rarr; <span class="class-pill dw">desktop_wallpaper</span>)</li>
-        <li><strong>Tier 2</strong> &mdash; pasta + aspect ratio (ex.: pasta <em>iPhone</em>, portrait &rarr; <span class="class-pill cp">camera_photo</span>)</li>
-        <li><strong>Tier 3</strong> &mdash; fallback por aspect ratio genérico</li>
-        <li><code>has_people</code> = 1 se a imagem pertence a <em>people/</em></li>
-        <li>Split: <span class="hl">70/15/15</span>, estratificado por <code>image_type</code></li>
+        <li>Classes por resolução, pasta e aspect ratio.</li>
+        <li>Capturas, wallpapers e fotos pessoais se misturavam.</li>
+        <li><code>has_people</code> tinha falsos positivos/negativos visíveis.</li>
       </ul>
-
-      <h3 style="margin-top:0.7em;">2 &mdash; Feature Extraction (Frozen)</h3>
-      <table>
-        <tr><th></th><th>CLIP ViT-B/32 <sup>[1]</sup></th><th>ConvNeXt-Tiny <sup>[2]</sup></th></tr>
-        <tr><td>Objetivo</td><td>Contrastivo (InfoNCE)</td><td>Cross-entropy</td></tr>
-        <tr><td>Dataset</td><td>WIT, 400M pares</td><td>ImageNet-1K, 1.28M</td></tr>
-        <tr><td>Embedding</td><td>512-dim</td><td>768-dim</td></tr>
-        <tr><td>Extração</td><td>fastembed-rs (ONNX)</td><td>torchvision (frozen)</td></tr>
-      </table>
     </div>
-
-    <div>
-      <h3>3 &mdash; Arquitetura MLP Dual-Head</h3>
-      <div class="pipe-box accent">input &#8712; &#8477;<sup>D</sup> &nbsp;(D = 512 ou 768)</div>
-      <div class="pipe-arrow">&#8595;</div>
-      <div class="pipe-box">Linear(D, 256) &rarr; ReLU &rarr; Dropout(0.3)</div>
-      <div class="pipe-arrow">&#8595;</div>
-      <div class="pipe-box">Linear(256, 128) &rarr; ReLU &rarr; Dropout(0.3)</div>
-      <div class="pipe-arrow" style="display:flex; justify-content:center; gap:3.5em;">&#8601;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#8600;</div>
-      <div style="display:flex; gap:0.5em; margin-top:0.1em;">
-        <div class="pipe-box green" style="max-width:48%;">Linear(128, 1)<br><small>people logit</small></div>
-        <div class="pipe-box red"   style="max-width:48%;">Linear(128, 6)<br><small>type logits</small></div>
-      </div>
-      <div class="eq-box" style="margin-top:0.6em;">
-        <span class="katex-eq">\mathcal{L} = \text{BCE}(\hat{p},\,y_\text{people}) + \text{CE}(\hat{t},\,y_\text{type})</span>
-      </div>
-      <ul style="margin-top:0.4em;">
-        <li>Adam, lr=1e&#8209;3, weight_decay=1e&#8209;4</li>
-        <li>Cosine annealing, 200 epochs, best val type-F1</li>
+    <div class="card good">
+      <h3>Novo princípio</h3>
+      <ul>
+        <li>Primeiro descobrir grupos visuais.</li>
+        <li>Depois inspecionar exemplos reais.</li>
+        <li>Só então criar labels humanos para classificação.</li>
       </ul>
     </div>
   </div>
 </section>
 
-<!-- ==================== SLIDE 4: RESULTADOS — TABELAS ==================== -->
 <section>
-  <h2>Resultados &mdash; Test Set</h2>
-  <div class="cols" style="margin-top:0.4em;">
-    <div>
-      <h3>Comparativo Geral</h3>
-      <table>
-        <tr><th>Métrica</th><th>Linear<br>(CLIP)</th><th>MLP<br>(CLIP)</th><th>MLP<br>(ConvNeXt)</th><th>FT<br>CLIP</th><th>FT<br>ConvNeXt</th></tr>
-        <tr><td>type_acc</td><td>0.807</td><td class="best">0.869</td><td>0.852</td><td>0.837</td><td>0.811</td></tr>
-        <tr><td>type_f1 (w)</td><td>0.802</td><td class="best">0.868</td><td>0.849</td><td>0.835</td><td>0.810</td></tr>
-        <tr><td>people_acc</td><td>0.922</td><td class="best">0.966</td><td class="best">0.966</td><td>0.965</td><td>0.956</td></tr>
-        <tr><td>people_f1</td><td>0.758</td><td class="best">0.898</td><td>0.897</td><td>0.896</td><td>0.867</td></tr>
-        <tr><td>people_auc</td><td>0.966</td><td class="best">0.992</td><td>0.987</td><td>0.986</td><td>0.980</td></tr>
-        <tr><td>params</td><td>3.6 K</td><td>165 K</td><td>231 K</td><td class="warn">151 M</td><td class="warn">28 M</td></tr>
-      </table>
-    </div>
-    <div>
-      <h3>F1 por Classe (MLP CLIP)</h3>
-      <table>
-        <tr><th>Classe</th><th>P</th><th>R</th><th>F1</th><th>N</th></tr>
-        <tr><td><span class="class-pill cp">camera_photo</span></td><td>0.89</td><td>0.92</td><td class="best">0.90</td><td>1848</td></tr>
-        <tr><td><span class="class-pill dw">desktop_wallpaper</span></td><td>0.86</td><td>0.87</td><td>0.86</td><td>492</td></tr>
-        <tr><td><span class="class-pill ai">ai_generated</span></td><td>0.86</td><td>0.85</td><td>0.85</td><td>436</td></tr>
-        <tr><td><span class="class-pill ms">mobile_screenshot</span></td><td>0.82</td><td>0.87</td><td>0.84</td><td>218</td></tr>
-        <tr><td><span class="class-pill th">thumbnail</span></td><td>0.84</td><td>0.80</td><td>0.82</td><td>233</td></tr>
-        <tr><td><span class="class-pill sd">screenshot_desktop</span></td><td>0.73</td><td>0.43</td><td class="warn">0.54</td><td>123</td></tr>
-      </table>
-      <p class="small" style="margin-top:0.5em;"><span class="hl">MLP CLIP</span> domina em todas as métricas com apenas <strong>165K params</strong>.<br><span class="class-pill sd">screenshot_desktop</span> F1=0.54 &mdash; menor classe (123 amostras no test).</p>
-    </div>
+  <h2>Pipeline novo</h2>
+  <div class="flow">
+    <div class="box">Imagens</div><div class="arrow">→</div>
+    <div class="box">CLIP embeddings</div><div class="arrow">→</div>
+    <div class="box">scan K global</div><div class="arrow">→</div>
+    <div class="box">KMeans global</div><div class="arrow">→</div>
+    <div class="box">sub-K por cluster</div><div class="arrow">→</div>
+    <div class="box">anotação HTML</div><div class="arrow">→</div>
+    <div class="box">classificador</div>
   </div>
+  <p class="muted">O número de subclusters varia por macrocluster: <code>G00_S00</code>, <code>G00_S01</code>, <code>G01_S00</code>...</p>
 </section>
 
-<!-- ==================== SLIDE 5: FIGURE — Comparison Bar ==================== -->
-<section class="fig-slide">
-  <h3>Comparativo de Métricas &mdash; Todos os Modelos</h3>
-  <img class="plot-full" src="comparison_bar.png" alt="Comparison bar chart">
-  <p class="caption">
-    MLP CLIP lidera em type_f1 (0.868) e people_auc (0.992). Fine-tuning não superou as probes com features frozen.
-  </p>
-</section>
-
-<!-- ==================== SLIDE 6: FIGURE — Confusion Matrices ==================== -->
-<section class="fig-slide">
-  <h3>Matrizes de Confusão &mdash; Linear / MLP CLIP / MLP ConvNeXt</h3>
-  <img class="plot-full" src="confusion_matrices.png" alt="Confusion matrices">
-  <p class="caption">
-    Matrizes normalizadas por classe. MLP CLIP apresenta a diagonal mais intensa. A confusão principal ocorre entre <em>screenshot_desktop</em> e <em>desktop_wallpaper</em>.
-  </p>
-</section>
-
-<!-- ==================== SLIDE 7: FIGURE — Training Curves ==================== -->
-<section class="fig-slide">
-  <h3>Curvas de Treino &mdash; Loss &amp; Métricas de Validação</h3>
-  <img class="plot-full" src="training_curves.png" alt="Training curves">
-  <p class="caption">
-    MLP CLIP mantém val_loss estável (~0.5&ndash;0.7). MLP ConvNeXt apresenta overfitting acentuado: val_loss sobe de 1.0 a 1.66 enquanto o treino continua caindo.<br>
-    Checkpoint salvo no melhor val type-F1 (early stop implícito).
-  </p>
-</section>
-
-<!-- ==================== SLIDE 8: FINE-TUNING — TEXTO ==================== -->
 <section>
-  <h2>Fine-Tuning End-to-End</h2>
-  <div class="cols" style="margin-top:0.5em;">
-    <div>
-      <h3>Setup</h3>
+  <h2>Escolha de K por métricas</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>K global</h3>
       <ul>
-        <li>Encoder <span class="hl">descongelado</span>: backbone inteiro + cabeça dual-head treinados conjuntamente</li>
-        <li>FT CLIP ViT-B/32: <span class="hl2">151M params</span> (vs 165K frozen)</li>
-        <li>FT ConvNeXt-Tiny: <span class="hl2">28M params</span> (vs 231K frozen)</li>
-        <li>lr=1e&#8209;5 (100&times; menor), cosine annealing, 50 epochs (early stop, patience=15)</li>
-        <li>RTX 4090 &mdash; ~4 min/modelo (vs segundos no probe)</li>
+        <li>Busca em <code>K=2..80</code>.</li>
+        <li>Rejeita clusters pequenos demais.</li>
+        <li>Ranking por score composto.</li>
       </ul>
     </div>
-    <div>
-      <h3>Resultado Surpreendente</h3>
+    <div class="card">
+      <h3>Métricas</h3>
       <ul>
-        <li>FT CLIP type_f1 = <span class="hl2">0.835</span> &lt; frozen MLP CLIP <span class="hl3">0.868</span></li>
-        <li>FT ConvNeXt type_f1 = <span class="hl2">0.810</span> &lt; frozen MLP ConvNeXt <span class="hl3">0.849</span></li>
-        <li>Fine-tuning <span class="hl2">degradou</span> a performance de classificação &mdash; overfitting em 22K imagens com 151M params</li>
-        <li>people_f1: FT CLIP (0.896) empata com frozen (~0.90), mas FT ConvNeXt cai para 0.867</li>
-        <li>Conclusão: <span class="hl">features pré-treinadas frozen + MLP leve</span> é a melhor estratégia para datasets pequenos</li>
+        <li>Silhouette ↑</li>
+        <li>Davies-Bouldin ↓</li>
+        <li>Calinski-Harabasz ↑</li>
+        <li>Inertia / elbow</li>
+        <li>Balanceamento dos clusters</li>
       </ul>
     </div>
   </div>
 </section>
 
-<!-- ==================== SLIDE 9: FIGURE — Fine-tune Curves ==================== -->
-<section class="fig-slide">
-  <h3>Fine-Tuning &mdash; Curvas de Treino</h3>
-  <img class="plot-full" src="finetune_curves.png" alt="Fine-tune training curves">
-  <p class="caption">
-    Ambos modelos apresentam gap crescente entre train e val loss, confirmando overfitting.<br>
-    FT ConvNeXt diverge mais cedo e com maior amplitude que FT CLIP.
-  </p>
-</section>
-
-<!-- ==================== SLIDE 10: FIGURE — Fine-tune Confusion ==================== -->
-<section class="fig-slide">
-  <h3>Fine-Tuning &mdash; Matrizes de Confusão</h3>
-  <img class="plot-full" src="finetune_confusion.png" alt="Fine-tune confusion matrices">
-  <p class="caption">
-    FT CLIP vs FT ConvNeXt. Comparar com as matrizes frozen: fine-tuning introduz mais confusão entre classes minoritárias.
-  </p>
-</section>
-
-<!-- ==================== SLIDE 11: INTERPRETACAO ==================== -->
 <section>
-  <h2>Interpretação</h2>
-  <div class="cols" style="margin-top:0.5em;">
-    <div>
-      <h3>Por que CLIP &gt; ConvNeXt?</h3>
-      <ul>
-        <li><span class="hl">Pretraining contrastivo</span> em 400M pares imagem-texto força representações semânticas ortogonais por conceito &mdash; ideal para separar categorias visualmente heterogêneas</li>
-        <li>ConvNeXt aprende features para 1.000 classes ImageNet; <span class="hl">screenshot_desktop ou ai_generated não existem lá</span></li>
-        <li>Linear probe CLIP (3.591 params) &asymp; MLP ConvNeXt (230K params): as features CLIP já são quase <span class="hl">linearmente separáveis</span></li>
-        <li>ConvNeXt overfita porque 768-dim features não generalizam para domínio pessoal</li>
-      </ul>
+  <h2>Clustering hierárquico</h2>
+  <div class="card">
+    <p>Depois de escolher <code>K_global</code>, cada macrocluster recebe sua própria busca de <code>K_sub=2..16</code>.</p>
+    <pre><code>G00 → K_sub = 3
+G01 → K_sub = 11
+G02 → K_sub = 2
+G03 → K_sub = 7</code></pre>
+    <p class="muted">Isso evita forçar a mesma granularidade em grupos visuais naturalmente diferentes.</p>
+  </div>
+</section>
 
-      <h3 style="margin-top:0.6em;">Tarefas &amp; Transferência</h3>
-      <ul>
-        <li><code>has_people</code> empata (CLIP &asymp; ConvNeXt, F1 ~0.90): presença humana é <span class="hl">feature visual saliente</span> para qualquer CNN profunda</li>
-        <li><code>screenshot_desktop</code> F1=0.54 &mdash; menor classe (3.7%) + alta variância visual</li>
-      </ul>
+<section>
+  <h2>Como um cluster vira texto?</h2>
+  <div class="grid2">
+    <div class="card warn">
+      <h3>Não fazemos</h3>
+      <p>Não existe inversa confiável do embedding CLIP para texto.</p>
     </div>
-
-    <div>
-      <h3>Limitações</h3>
+    <div class="card good">
+      <h3>Fazemos</h3>
       <ul>
-        <li>Labels derivados de metadados &mdash; ruído em casos ambíguos</li>
-        <li><code>has_people</code> baseado apenas na pasta <em>people/</em> &mdash; falsos negativos em <em>camera_photo</em> e <em>thumbnail</em></li>
-        <li>Fine-tuning <span class="hl2">degradou</span> type_f1 (0.835 vs 0.868) &mdash; dataset pequeno demais para 151M params</li>
-        <li>Classe <span class="class-pill sd">screenshot_desktop</span> subrepresentada (3.7%)</li>
-        <li>Dataset de 22K imagens &mdash; labels ruidosos limitam o teto de performance</li>
-      </ul>
-
-      <h3 style="margin-top:0.6em;">Conexão com ViT Compression</h3>
-      <ul>
-        <li>CLIP ViT-B/32 com <span class="hl">frozen weights</span> já entrega type_f1=0.868 &mdash; evidência de <span class="hl">redundância representacional</span></li>
-        <li>Se quantização + poda (mestrado, Paper 3) comprime o encoder mantendo 85%+ das features, a degradação na probe deve ser mínima</li>
-        <li>Este projeto fornece um <span class="hl">benchmark de preservação de features</span> para avaliar o impacto da compressão em tarefas downstream fora de ImageNet</li>
+        <li>imagens próximas ao centroide;</li>
+        <li>contact sheets;</li>
+        <li>top pastas/metadados;</li>
+        <li>anotação humana.</li>
       </ul>
     </div>
   </div>
 </section>
 
-<!-- ==================== SLIDE 12: REFERENCIAS ==================== -->
 <section>
-  <h2>Referências</h2>
-  <div class="references" style="font-size: 0.6em; max-width: 85%; margin: 1.5em auto 0;">
-    <p><span class="ref-num">[1]</span> Radford et al. <em>Learning Transferable Visual Models From Natural Language Supervision.</em> ICML, 2021. arXiv:2103.00020</p>
-    <p><span class="ref-num">[2]</span> Liu et al. <em>A ConvNet for the 2020s.</em> CVPR, 2022. arXiv:2201.03545</p>
+  <h2>Interface de anotação</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Acessível</h3>
+      <ul>
+        <li>fontes grandes;</li>
+        <li>alto contraste;</li>
+        <li>botões grandes;</li>
+        <li>atalhos de teclado;</li>
+        <li>imagens grandes.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Sincronizada</h3>
+      <ul>
+        <li>autosave em tempo real;</li>
+        <li><code>cluster_annotations.json</code> incremental;</li>
+        <li>campos: label, usar/descartar/dividir, notas.</li>
+      </ul>
+    </div>
   </div>
+</section>
+
+<section>
+  <h2>Dataset supervisionado final</h2>
+  <div class="card">
+    <p>O classificador só usa subclusters aprovados manualmente:</p>
+    <pre><code>{
+  "G07_S02": {
+    "label_final": "desktop_screenshots",
+    "usable_for_classification": true,
+    "needs_split": false
+  }
+}</code></pre>
+    <p class="muted">Split estratificado 70/15/15 e baseline MLP sobre embeddings CLIP.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Entregáveis implementados</h2>
+  <table>
+    <thead><tr><th>Arquivo</th><th>Função</th></tr></thead>
+    <tbody>
+      <tr><td><code>hierarchical_kmeans.py</code></td><td>scan de K, KMeans global, subclustering e figuras</td></tr>
+      <tr><td><code>cluster_annotator.py</code></td><td>interface HTML acessível com autosave</td></tr>
+      <tr><td><code>build_cluster_dataset.py</code></td><td>dataset supervisionado + baseline MLP</td></tr>
+      <tr><td><code>output/hierarchical/</code></td><td>métricas, árvore de clusters, contact sheets</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Limitações e próximos passos</h2>
+  <ul>
+    <li>CLIP organiza similaridade visual, não semântica perfeita.</li>
+    <li>A qualidade final depende da anotação humana dos subclusters.</li>
+    <li>UMAP melhora visualização se instalado; PCA é fallback sempre disponível.</li>
+    <li>VAE fica como extensão futura, não requisito do pipeline inicial.</li>
+  </ul>
 </section>
 
 </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script>
-  Reveal.initialize({
-    hash: true,
-    slideNumber: 'c/t',
-    width: 1280,
-    height: 720,
-    margin: 0.04,
-    transition: 'fade',
-    transitionSpeed: 'fast',
-    overview: true,
-  });
-  document.querySelectorAll('.katex-eq').forEach(function(el) {
-    katex.render(el.textContent, el, {
-      throwOnError: false,
-      displayMode: true,
-    });
-  });
-</script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash: true, slideNumber: true, transition: 'fade' });</script>
 </body>
 </html>
