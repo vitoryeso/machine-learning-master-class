@@ -374,10 +374,17 @@ let annotations = {};
 let current = 0;
 let saveTimer = null;
 let dirty = false;
+let saving = false;
 
 const $ = (id) => document.getElementById(id);
 
+function editingTextField() {
+  return document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+}
+
 async function fetchState(keepPosition=true) {
+  // Não puxa estado remoto enquanto a pessoa está digitando; isso evita cortar observações no meio.
+  if (dirty || saving || editingTextField()) return;
   const res = await fetch('/api/state');
   const state = await res.json();
   const currentId = clusters[current]?.id;
@@ -493,7 +500,15 @@ async function saveNow() {
   const payload = collectAnnotation();
   if (!payload) return;
   dirty = true;
-  render();
+  saving = true;
+  // Atualização otimista local: não chama render() com anotação antiga enquanto o usuário digita.
+  annotations[payload.cluster_id] = {
+    label_final: payload.label_final,
+    usable_for_classification: payload.usable_for_classification,
+    needs_split: payload.needs_split,
+    discard: payload.discard,
+    notes: payload.notes
+  };
   const res = await fetch('/api/annotation', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -503,15 +518,17 @@ async function saveNow() {
   if (data.ok) {
     annotations[payload.cluster_id] = data.annotation;
     dirty = false;
-    render();
+    saving = false;
+    if (!editingTextField()) render(); else document.getElementById('status').textContent = `${Object.keys(annotations).length}/${clusters.length} anotados · autosave ok`;
   } else {
-    $('status').textContent = 'erro ao salvar: ' + data.error;
+    document.getElementById('status').textContent = 'erro ao salvar: ' + data.error;
+    saving = false;
   }
 }
 
 function scheduleSave() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveNow, 450);
+  saveTimer = setTimeout(saveNow, 1200);
 }
 
 function go(delta) {
