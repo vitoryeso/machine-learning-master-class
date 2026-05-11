@@ -25,3 +25,8 @@ all_paths_256.txt
 # Smoke-test outputs
 output/hierarchical_smoke/
 
+
+# Runtime logs
+*.log
+*.err.log
+

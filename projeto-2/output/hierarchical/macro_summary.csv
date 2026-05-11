@@ -1,0 +1,6 @@
+cluster_id,n,top_folders,aspect_buckets,extensions,median_fsize_kb
+G00,5612,"iphone 12 79%, people 10%, backup 7%","portrait 63%, wide 20%, landscape 8%",".png 68%, .jpg 31%, .jpeg 0%",8202.6
+G01,6444,"people 48%, iphone 12 34%, backup 13%","portrait 62%, landscape 14%, tall 9%",".png 74%, .jpg 26%, .jpeg 0%",5914.9
+G02,739,"iphone 12 63%, ai_images 27%, backup 7%","portrait 46%, square 32%, landscape 11%",".png 77%, .jpg 23%",1948.6
+G03,7726,"iphone 12 30%, wallpapers 26%, ai_images 23%","square 37%, wide 27%, landscape 12%",".png 56%, .jpg 41%, .jpeg 1%",392.3
+G04,1807,"iphone 12 61%, backup 31%, Capturas de tela 7%","supertall 35%, tall 19%, square 14%",".jpg 50%, .png 50%",177.0

@@ -1,0 +1,37 @@
+Hierarchical KMeans cluster tree
+N=22328 dim=512 K_global=5
+
+G00 n=5612 folders=[iphone 12 79%, people 10%, backup 7%]
+  G00_S00 n=2146 folders=[iphone 12 80%, backup 12%, people 6%]
+  G00_S01 n=942 folders=[iphone 12 90%, backup 7%, wallpapers 2%]
+  G00_S02 n=2524 folders=[iphone 12 73%, people 16%, ai_images 3%]
+
+G01 n=6444 folders=[people 48%, iphone 12 34%, backup 13%]
+  G01_S00 n=2226 folders=[backup 35%, iphone 12 35%, people 27%]
+  G01_S01 n=4218 folders=[people 59%, iphone 12 33%, ai_images 3%]
+
+G02 n=739 folders=[iphone 12 63%, ai_images 27%, backup 7%]
+  G02_S00 n=321 folders=[ai_images 59%, iphone 12 29%, backup 11%]
+  G02_S01 n=418 folders=[iphone 12 89%, backup 4%, people 4%]
+
+G03 n=7726 folders=[iphone 12 30%, wallpapers 26%, ai_images 23%]
+  G03_S00 n=480 folders=[wallpapers 94%, iphone 12 3%, ai_images 2%]
+  G03_S01 n=344 folders=[ai_images 56%, iphone 12 28%, concepts 6%]
+  G03_S02 n=795 folders=[wallpapers 31%, ai_images 26%, iphone 12 20%]
+  G03_S03 n=295 folders=[Capturas de tela 52%, iphone 12 31%, backup 8%]
+  G03_S04 n=759 folders=[wallpapers 32%, iphone 12 28%, ai_images 27%]
+  G03_S05 n=398 folders=[wallpapers 72%, iphone 12 10%, backup 7%]
+  G03_S06 n=505 folders=[ai_images 88%, iphone 12 9%, wallpapers 1%]
+  G03_S07 n=713 folders=[iphone 12 66%, backup 21%, Capturas de tela 9%]
+  G03_S08 n=304 folders=[wallpapers 49%, iphone 12 25%, ai_images 13%]
+  G03_S09 n=297 folders=[iphone 12 42%, backup 39%, wallpapers 9%]
+  G03_S10 n=341 folders=[iphone 12 60%, backup 26%, Capturas de tela 6%]
+  G03_S11 n=441 folders=[Capturas de tela 36%, iphone 12 34%, backup 18%]
+  G03_S12 n=843 folders=[iphone 12 55%, ai_images 26%, backup 11%]
+  G03_S13 n=583 folders=[wallpapers 95%, ai_images 3%, iphone 12 2%]
+  G03_S14 n=352 folders=[iphone 12 45%, ai_images 37%, backup 7%]
+  G03_S15 n=276 folders=[ai_images 94%, iphone 12 5%, backup 1%]
+
+G04 n=1807 folders=[iphone 12 61%, backup 31%, Capturas de tela 7%]
+  G04_S00 n=903 folders=[iphone 12 63%, backup 26%, Capturas de tela 10%]
+  G04_S01 n=904 folders=[iphone 12 58%, backup 36%, Capturas de tela 5%]
