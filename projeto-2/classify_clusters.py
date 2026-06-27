@@ -8,11 +8,13 @@ Pipeline conceitual (fecha o ciclo projeto-1 -> projeto-2):
      para atribuir imagens novas a taxonomia (split treino/teste).
 
 Teste metodologico (anti-circularidade):
-  - Classificar sobre os MESMOS embeddings CLIP que geraram os clusters tende a
-    acuracia quase perfeita (os clusters sao celulas de Voronoi nesse espaco) —
-    pouco informativo.
-  - Por isso o teste honesto classifica sobre features ConvNeXt (modelo
-    independente). Rodamos AMBOS para evidenciar a diferenca.
+  - Classificar sobre os MESMOS embeddings CLIP que geraram os clusters da
+    acuracia alta, porem nao perfeita: os clusters sao aproximadamente celulas
+    de Voronoi nesse espaco, mas o StandardScaler aqui recentraliza/reescala
+    por dimensao e nao preserva exatamente a geometria (esfera unitaria ~
+    cosseno) em que o k-means rodou — por isso o probe nao recupera 100%.
+  - Ainda assim e pouco informativo; o teste honesto classifica sobre features
+    ConvNeXt (modelo independente). Rodamos AMBOS para evidenciar a diferenca.
 """
 import os
 import json
@@ -103,13 +105,25 @@ def plot_confusion(cm, labels, title, path, normalize=True):
 def main():
     hierarchy = json.load(open(os.path.join(HERE, "output", "hierarchical", "hierarchy.json")))
     y_macro, y_leaf, leaf_names, leaf_to_macro = build_labels(hierarchy)
-    macro_names = [c["id"] for c in hierarchy["clusters"]]
+    # macro_names indexado por global_label (nao por posicao na lista), para que
+    # a matriz de confusao macro e a tabela de tamanhos casem com y_macro mesmo
+    # se os clusters vierem fora de ordem no hierarchy.json.
+    macro_names = [None] * len(hierarchy["clusters"])
+    for c in hierarchy["clusters"]:
+        macro_names[c["global_label"]] = c["id"]
+    assert all(nm is not None for nm in macro_names), "global_label nao cobre 0..k-1"
     n = len(y_leaf)
     print("N={}, macro classes={}, leaf classes={}".format(n, len(macro_names), len(leaf_names)))
 
     Xc = np.load(os.path.join(DATA, "X_convnext.npy"))
     Xe = np.load(os.path.join(DATA, "X_embeddings.npy"))
     print("ConvNeXt:", Xc.shape, "| CLIP:", Xe.shape)
+    # As linhas de X_*.npy precisam casar 1:1 com os image_indices do hierarchy.json.
+    # ATENCAO: estes mesmos nomes de arquivo sao usados pela Parte I (8000 imgs);
+    # se forem regenerados por ela, os indices (0..n-1) nao batem mais com as features.
+    assert Xc.shape[0] == n and Xe.shape[0] == n, (
+        "features desalinhadas com hierarchy.json: esperado {} linhas, "
+        "ConvNeXt={} CLIP={}".format(n, Xc.shape[0], Xe.shape[0]))
 
     # mesmo split para comparacao justa entre os dois espacos de features
     idx = np.arange(n)
@@ -177,9 +191,11 @@ def main():
                 "{} / {}".format(res["feature"], lvl),
                 m["accuracy"], m["precision"], m["recall"], m["f1"]))
     lines += ["-" * 64, "",
-              "Interpretacao: CLIP classifica seus proprios clusters quase",
-              "perfeitamente (circular). ConvNeXt, um espaco independente, mede a",
-              "real separabilidade da taxonomia descoberta.", "",
+              "Interpretacao: CLIP classifica seus proprios clusters com acuracia",
+              "alta, porem nao perfeita (circular; o gap ate 100% vem do mismatch",
+              "entre o StandardScaler e a geometria normalizada do k-means).",
+              "ConvNeXt, um espaco independente, mede a real separabilidade da",
+              "taxonomia descoberta.", "",
               "Tamanho das macro-classes:"]
     for nm, sz in zip(macro_names, macro_sizes):
         lines.append("  {}: {}".format(nm, sz))

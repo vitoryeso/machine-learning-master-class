@@ -162,8 +162,10 @@ subclasses-folha.
 ## Pergunta metodológica — circularidade
 
 Treinar o classificador sobre os **mesmos** embeddings CLIP que geraram os clusters
-infla a acurácia: os clusters são células de Voronoi naquele espaço, logo
-classificá-los de volta é quase tautológico. Para um teste honesto, classificamos
+infla a acurácia: os clusters são aproximadamente células de Voronoi naquele
+espaço, então classificá-los de volta tende a alta acurácia — porém não perfeita,
+pois a padronização das features não preserva a geometria (esfera unitária ≈
+cosseno) em que o k-means rodou. Para um teste honesto, classificamos
 sobre features **ConvNeXt** (modelo independente). Se a taxonomia for "real", um
 espaço de features diferente também deve recuperá-la. Rodamos os dois e comparamos
 (`classify_clusters.py`).
@@ -190,5 +192,5 @@ Plots em `output/classification/`: `accuracy_comparison.png`, `confusion_macro_c
 
 - **O nível macro é real:** o ConvNeXt (independente) recupera os 5 grupos com 82.7% — a estrutura grossa não é artefato do CLIP.
 - **O nível fino é CLIP-específico:** as 25 subclasses caem para 66% no ConvNeXt — distinções sutis que vivem sobretudo na semântica do CLIP.
-- **A circularidade é mensurável:** o gap CLIP→ConvNeXt (95.0%→82.7% macro; 89.3%→66.0% folha) quantifica quanto da acurácia seria auto-confirmação.
-- **Limitações:** rótulos vêm de clustering não-supervisionado (sem verdade externa); linear probe é linear; classes desbalanceadas (folhas de 295 a 4.218 imagens) — por isso reportamos F1 macro-averaged.
+- **A circularidade é mensurável (descontando o baseline):** o gap CLIP→ConvNeXt (95.0%→82.7% macro; 89.3%→66.0% folha) mistura dois efeitos. Parte dele é apenas o ConvNeXt ser um extrator pior para esta distribuição — na Parte I, com rótulos **externos e determinísticos** (sem circularidade alguma), o ConvNeXt já fica ~4 F1-pts atrás do CLIP (type_f1 0.826 vs 0.869). Só o **excesso** sobre esse baseline (12 pts macro, 23 pts folha) é atribuível à auto-confirmação — e ainda assim excede o baseline com folga.
+- **Limitações:** rótulos vêm de clustering não-supervisionado (sem verdade externa); a rotulagem é **transdutiva** — a partição-alvo foi ajustada pelo K-means global sobre as 22.328 imagens (incl. as de teste), logo os rótulos do teste não são independentes dele (um protocolo plenamente honesto clusterizaria só no treino e atribuiria o teste por centróide mais próximo); linear probe é linear; classes desbalanceadas (folhas de 276 a 4.218 imagens) — por isso reportamos F1 macro-averaged.
