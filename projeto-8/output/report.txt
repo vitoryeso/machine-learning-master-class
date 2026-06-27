@@ -1,0 +1,18 @@
+============================================================
+PROJETO 8 — SVM KERNEL RBF
+============================================================
+
+Problema real: classificação binária (imagens pessoais, CLIP full-dim).
+SVC(kernel='rbf'); treino subamostrado a 6000 (SVM escala O(N^2)).
+
+[1] Desempenho por tarefa (C=10, gamma=scale):
+  has_people           acc=0.9655 prec=0.8971 rec=0.8922 f1=0.8947 (base 0.8359) SVs=1684/6000
+  screenshot_vs_photo  acc=0.9315 prec=0.8312 rec=0.7033 f1=0.7619 (base 0.8441) SVs=2652/6000
+  macro_vs_rest        acc=0.9662 prec=0.9451 rec=0.9579 f1=0.9515 (base 0.6541) SVs=1515/6000
+
+[2] Varredura C × gamma (macro_vs_rest), F1:
+       gamma=scale  0.001  0.01  0.1
+  C=0.1   0.9356  0.9349  0.0026  0.0000
+  C=1     0.9525  0.9501  0.5677  0.0867
+  C=10    0.9515  0.9498  0.6126  0.0902
+  C=100   0.9520  0.9478  0.6126  0.0902

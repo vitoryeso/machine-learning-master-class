@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto 7 — Redes RBF</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; }
+    .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
+    .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
+    .reveal h1 { font-size: 1.9em; } .reveal h2 { font-size: 1.4em; }
+    .reveal p,.reveal li { font-size: .66em; line-height: 1.3; }
+    .muted { color: var(--muted); }
+    .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .num { font-size:1.4em; font-weight:900; color:var(--blue); }
+    code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; }
+    img.fit { max-height: 430px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
+    table { font-size:.5em; } th { background:#f1f5f9; } td, th { padding:.38em .5em !important; }
+    .reveal pre code { font-size:.82em; line-height:1.3; }
+    .terms li { font-size:.62em; }
+  </style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section>
+  <span class="tag">Projeto 7</span>
+  <h1>Redes RBF</h1>
+  <p class="muted">Rede de funções de base radial construída <strong>do zero</strong> (numpy) para um problema <strong>real</strong>: classificação binária da coleção pessoal de imagens (features CLIP), 3 tarefas. Foco do enunciado: como a <strong>escolha dos centros</strong> afeta a classificação.</p>
+  <div class="grid3">
+    <div class="card"><div class="num">gaussianas</div><p>camada oculta de funções radiais</p></div>
+    <div class="card"><div class="num">3 estratégias</div><p>centros: aleatório · K-means · subset</p></div>
+    <div class="card"><div class="num">least-squares</div><p>saída resolvida em forma fechada</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Método: a rede RBF</h2>
+  <div class="grid2">
+    <div class="card">
+      <pre><code>φⱼ(x) = exp( −‖x − cⱼ‖² / 2σ² )
+ŷ = Σⱼ wⱼ·φⱼ(x) + b</code></pre>
+    </div>
+    <div class="card terms">
+      <ul>
+        <li><strong>x</strong> — entrada: vetor de features CLIP da imagem (512-d).</li>
+        <li><strong>cⱼ</strong> — os <em>centros</em> (protótipos); aqui escolhidos por K-means/aleatório/subset.</li>
+        <li><strong>σ</strong> — largura da gaussiana (calibrada pela mediana das distâncias ponto→centro).</li>
+        <li><strong>φⱼ(x)</strong> — ativação: ~1 se x perto de cⱼ, →0 se longe.</li>
+        <li><strong>wⱼ, b</strong> — pesos do readout linear (mínimos quadrados).</li>
+        <li><strong>ŷ</strong> — saída; classe 1 se ŷ ≥ 0.5.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Resultados</h2>
+  <div class="grid2">
+    <div>
+      <table>
+        <tr><th>Tarefa (full-dim)</th><th>Acc</th><th>F1</th><th>base</th></tr>
+        <tr><td>macro_vs_rest</td><td>0.948</td><td>0.926</td><td>0.654</td></tr>
+        <tr><td>has_people</td><td>0.898</td><td>0.673</td><td>0.836</td></tr>
+        <tr><td>screenshot×foto</td><td>0.918</td><td>0.701</td><td>0.844</td></tr>
+      </table>
+      <p class="muted">k=30 centros (K-means). As tarefas desbalanceadas são mais difíceis para poucas gaussianas.</p>
+    </div>
+    <div><img class="fit" src="output/centers_ablation.png" alt="Ablação de centros"></div>
+  </div>
+</section>
+
+<section>
+  <h2>Como os centros particionam o plano</h2>
+  <div class="grid2">
+    <div><img class="fit" src="output/boundary_centers.png" alt="Fronteira RBF com centros"></div>
+    <div>
+      <ul>
+        <li>Cada <strong>estrela</strong> é um centro cⱼ; em volta dele a gaussiana "acende", e a soma ponderada desenha a fronteira.</li>
+        <li><strong>A escolha dos centros importa:</strong> K-means vence em todo k (F1 0.913→0.931), aleatório fica perto (0.829→0.920), subset é o pior (0.723→0.914).</li>
+        <li><strong>Mais centros → melhor</strong>, mas com retorno decrescente — cobrem melhor o espaço.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash:true, slideNumber:'c/t', transition:'slide' });</script>
+</body>
+</html>

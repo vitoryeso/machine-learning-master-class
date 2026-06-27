@@ -1,0 +1,16 @@
+============================================================
+PROJETO 7 — REDE RBF MANUAL
+============================================================
+
+Problema real: classificação binária (imagens pessoais, CLIP full-dim).
+RBF: gaussianas + saída least-squares; sigma = d_max/sqrt(2k).
+
+[1] Desempenho por tarefa (k=30, K-means):
+  has_people           acc=0.8979 prec=0.7089 rec=0.6412 f1=0.6734 (base 0.8359)
+  screenshot_vs_photo  acc=0.9181 prec=0.8140 rec=0.6154 f1=0.7009 (base 0.8441)
+  macro_vs_rest        acc=0.9483 prec=0.9169 rec=0.9353 f1=0.9260 (base 0.6541)
+
+[2] Ablação de centros (macro_vs_rest), F1 por k=[10, 30, 60]:
+  random   ['0.8289', '0.8973', '0.9200']
+  subset   ['0.7229', '0.8707', '0.9145']
+  kmeans   ['0.9131', '0.9260', '0.9313']

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto 8 — SVM com kernel RBF</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; }
+    .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
+    .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
+    .reveal h1 { font-size: 1.9em; } .reveal h2 { font-size: 1.4em; }
+    .reveal p,.reveal li { font-size: .66em; line-height: 1.3; }
+    .muted { color: var(--muted); }
+    .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .num { font-size:1.4em; font-weight:900; color:var(--blue); }
+    code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; }
+    img.fit { max-height: 430px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
+    table { font-size:.5em; } th { background:#f1f5f9; } td, th { padding:.38em .5em !important; }
+    .reveal pre code { font-size:.82em; line-height:1.3; }
+    .terms li { font-size:.62em; }
+  </style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section>
+  <span class="tag">Projeto 8</span>
+  <h1>SVM com kernel RBF</h1>
+  <p class="muted">SVM com kernel gaussiano para classificação binária da coleção pessoal de imagens (CLIP), 3 tarefas. Foco do enunciado: os <strong>vetores de suporte</strong> como "centros" efetivos e o efeito de <strong>C</strong> e <strong>γ</strong>.</p>
+  <div class="grid3">
+    <div class="card"><div class="num">margem máx.</div><p>fronteira de maior separação</p></div>
+    <div class="card"><div class="num">vetores de suporte</div><p>só os pontos críticos definem a fronteira</p></div>
+    <div class="card"><div class="num">C × γ</div><p>hiperparâmetros varridos</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Método: SVM-RBF</h2>
+  <div class="grid2">
+    <div class="card">
+      <pre><code>K(x, xᵢ) = exp( −γ·‖x − xᵢ‖² )
+f(x) = Σᵢ αᵢ·yᵢ·K(x, xᵢ) + b
+ŷ = sinal( f(x) )</code></pre>
+    </div>
+    <div class="card terms">
+      <ul>
+        <li><strong>x</strong> — entrada (features CLIP da imagem).</li>
+        <li><strong>xᵢ</strong> — os <em>vetores de suporte</em>: pontos de treino que tocam a margem.</li>
+        <li><strong>K</strong> — kernel RBF: similaridade gaussiana entre x e xᵢ.</li>
+        <li><strong>γ</strong> — largura do kernel: alto = influência local; baixo = suave.</li>
+        <li><strong>αᵢ, yᵢ</strong> — peso e rótulo (±1) de cada vetor de suporte.</li>
+        <li><strong>C</strong> — regularização: troca margem larga × erros no treino.</li>
+        <li><strong>ŷ</strong> — classe pelo sinal de f(x).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Resultados</h2>
+  <div class="grid2">
+    <div>
+      <table>
+        <tr><th>Tarefa (full-dim)</th><th>Acc</th><th>F1</th><th>SVs</th></tr>
+        <tr><td>macro_vs_rest</td><td>0.966</td><td>0.951</td><td>1515</td></tr>
+        <tr><td>has_people</td><td>0.966</td><td>0.895</td><td>1684</td></tr>
+        <tr><td>screenshot×foto</td><td>0.931</td><td>0.762</td><td>2652</td></tr>
+      </table>
+      <p class="muted">C=10, γ=scale, treino subamostrado a 6000 (SVM escala O(N²)).</p>
+    </div>
+    <div><img class="fit" src="output/c_gamma_sweep.png" alt="Varredura C x gamma"></div>
+  </div>
+</section>
+
+<section>
+  <h2>Vetores de suporte e γ</h2>
+  <div class="grid2">
+    <div><img class="fit" src="output/boundary_svs.png" alt="Fronteira SVM e vetores de suporte"></div>
+    <div>
+      <ul>
+        <li>Os <strong>círculos</strong> são os vetores de suporte — só eles definem a fronteira; o resto dos pontos é irrelevante.</li>
+        <li>No plano 2D comprimido as classes se sobrepõem, então quase um quarto dos pontos vira vetor de suporte (faixa larga de incerteza).</li>
+        <li><strong>γ é crítico:</strong> γ alto (0.1) faz o kernel só "ver" o ponto vizinho → colapsa para F1 0.09; γ baixo/scale generaliza (0.95). C importa bem menos aqui.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash:true, slideNumber:'c/t', transition:'slide' });</script>
+</body>
+</html>
