@@ -1,0 +1,16 @@
+[package]
+name = "projeto-3"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+plotters = { version = "0.3", default-features = false, features = [
+    "bitmap_backend",
+    "bitmap_encoder",
+    "all_series",
+    "all_elements",
+    "full_palette",
+    "ab_glyph",
+] }
+rand = { version = "0.9", features = ["std_rng"] }
+rand_distr = "0.5"

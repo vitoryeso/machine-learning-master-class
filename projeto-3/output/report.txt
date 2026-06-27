@@ -1,0 +1,33 @@
+================================================================
+  MINI-PROJETO 3 -- Regressao Linear: GD vs LMS
+================================================================
+
+Dataset
+  Amostras   : 300
+  Features   : 2
+  Pesos reais: [3.0, -2.0]
+  Bias real  : 1
+  Ruido std  : 0.5
+
+Configuracao
+  GD  learning rate : 0.01
+  LMS learning rate : 0.001
+  Epocas            : 200
+
+Resultados
+  Metrica                                  GD          LMS Ref/Min.Teorico
+  ----------------------------------------------------------------------
+  MSE final                          0.479627     0.235422   0.250000 (*)
+  w[0] (true=3.0)                    2.636558     2.966010     3.000000
+  w[1] (true=-2.0)                  -1.668652    -2.007297    -2.000000
+  bias (true=1.0)                    0.825018     0.985971     1.000000
+  MSE inicial                       14.303548    14.303548
+  Reducao MSE (%)                      96.65%       98.35%
+
+Plots gerados
+  /home/vyeso/world/machine-learning-master-class/projeto-3/output/convergence.png
+  /home/vyeso/world/machine-learning-master-class/projeto-3/output/scatter.png
+  /home/vyeso/world/machine-learning-master-class/projeto-3/output/pred_vs_actual.png
+
+(*) sigma^2 = limite inferior teorico do MSE (ruido irredutivel), nao um valor de parametro verdadeiro
+================================================================
