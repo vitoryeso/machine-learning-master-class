@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto 5 — Árvore de Decisão: Gini vs Entropia (manual)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; --green:#15803d; --orange:#b45309; }
+    .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
+    .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
+    .reveal h1 { font-size: 2.0em; }
+    .reveal h2 { font-size: 1.45em; }
+    .reveal p,.reveal li { font-size: .68em; line-height: 1.3; }
+    .muted { color: var(--muted); }
+    .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .good { border-color:#bbf7d0; background:#f0fdf4; }
+    .warn { border-color:#fed7aa; background:#fff7ed; }
+    .num { font-size:1.5em; font-weight:900; color:var(--blue); }
+    code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; color:#0f172a; }
+    img.fit { max-height: 440px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
+    table { font-size:.52em; }
+    th { background:#f1f5f9; }
+    td, th { padding: .4em .55em !important; }
+    .reveal pre code { font-size:.82em; line-height:1.25; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- SLIDE 1 — Problema + números -->
+<section>
+  <span class="tag">Projeto 5</span>
+  <h1>Árvore de Decisão: Gini vs Entropia</h1>
+  <p class="muted">Árvore CART <strong>construída manualmente</strong> (sem <code>sklearn.tree</code>): impureza, busca de split, recursão e predição do zero. Os dois critérios comparados no mesmo dataset 2D (500 amostras, split 80/20).</p>
+  <div class="grid3">
+    <div class="card"><div class="num">96% vs 94%</div><p>acurácia de teste (Gini vs Entropy)</p></div>
+    <div class="card"><div class="num">9 vs 13</div><p>profundidade da árvore</p></div>
+    <div class="card"><div class="num">100%</div><p>acurácia de treino → overfitting nos dois</p></div>
+  </div>
+</section>
+
+<!-- SLIDE 2 — Critérios -->
+<section>
+  <h2>Os dois critérios de impureza</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Gini</h3>
+      <pre><code>G(t) = 1 − Σ p_k²</code></pre>
+      <p class="muted">Máx. 0.5 (binário). Puro → 0.</p>
+    </div>
+    <div class="card">
+      <h3>Entropia (Information Gain)</h3>
+      <pre><code>H(t) = − Σ p_k·log2(p_k)
+IG = H(pai) − Σ (|filho|/|pai|)·H(filho)</code></pre>
+      <p class="muted">Máx. 1.0. Maior curvatura em p≈0.5.</p>
+    </div>
+  </div>
+  <p class="muted">A cada nó, busca gulosa: escolhe (feature, limiar) que <strong>maximiza a redução de impureza</strong>. Cresce até folhas puras.</p>
+</section>
+
+<!-- SLIDE 3 — Fronteiras + métricas -->
+<section>
+  <h2>Fronteiras e desempenho</h2>
+  <div class="grid2">
+    <div><img class="fit" src="output/boundary_comparison.png" alt="Fronteiras Gini vs Entropy"></div>
+    <div>
+      <table>
+        <tr><th>Métrica</th><th>Gini</th><th>Entropy</th></tr>
+        <tr><td>Test Acc</td><td><strong>0.960</strong></td><td>0.940</td></tr>
+        <tr><td>Precision</td><td>0.942</td><td>0.923</td></tr>
+        <tr><td>Recall</td><td>0.980</td><td>0.960</td></tr>
+        <tr><td>F1</td><td>0.961</td><td>0.941</td></tr>
+        <tr><td>Profundidade</td><td>9</td><td>13</td></tr>
+        <tr><td>Folhas</td><td>26</td><td>27</td></tr>
+      </table>
+      <p class="muted">Geometrias de partição distintas. As predições divergem em <strong>4 das 100</strong> amostras de teste.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4 — Conclusão -->
+<section>
+  <h2>Conclusão</h2>
+  <ul>
+    <li><strong>O critério teve efeito pequeno, mas real:</strong> Gini ficou 2 p.p. acima (96% vs 94%) e gerou uma árvore <strong>mais rasa</strong> (9 vs 13) — a maior curvatura da entropia reordena os splits gulosos e abre mais níveis.</li>
+    <li><strong>Overfitting confirmado:</strong> 100% no treino vs 94-96% no teste; ~8-10 folhas com 1 só amostra (memorização).</li>
+    <li>O sweep <code>depth_vs_accuracy</code> mostra que profundidades menores já atingem o platô — os níveis extras são supérfluos.</li>
+    <li>Em produção: <code>max_depth</code>, <code>min_samples_split</code>, poda e validação cruzada k-fold.</li>
+  </ul>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash:true, slideNumber:'c/t', transition:'slide' });</script>
+</body>
+</html>

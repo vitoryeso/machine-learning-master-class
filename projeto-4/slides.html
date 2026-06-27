@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto 4 — Regressão Logística do Zero</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; --green:#15803d; --orange:#b45309; }
+    .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
+    .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
+    .reveal h1 { font-size: 2.0em; }
+    .reveal h2 { font-size: 1.45em; }
+    .reveal p,.reveal li { font-size: .68em; line-height: 1.3; }
+    .muted { color: var(--muted); }
+    .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .good { border-color:#bbf7d0; background:#f0fdf4; }
+    .warn { border-color:#fed7aa; background:#fff7ed; }
+    .num { font-size:1.5em; font-weight:900; color:var(--blue); }
+    code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; color:#0f172a; }
+    img.fit { max-height: 440px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
+    table { font-size:.52em; }
+    th { background:#f1f5f9; }
+    td, th { padding: .4em .55em !important; }
+    .reveal pre code { font-size:.82em; line-height:1.25; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- SLIDE 1 — Problema + números -->
+<section>
+  <span class="tag">Projeto 4</span>
+  <h1>Regressão Logística do Zero</h1>
+  <p class="muted">Classificação binária em 2D: sigmoid, Binary Cross-Entropy e gradiente analítico, implementados à mão em Rust. Dataset sintético: 2 gaussianas, 300 pontos, split 80/20.</p>
+  <div class="grid3">
+    <div class="card"><div class="num">96.7%</div><p>acurácia no teste</p></div>
+    <div class="card"><div class="num">(p − y)</div><p>o gradiente após o cancelamento</p></div>
+    <div class="card"><div class="num">3.57%</div><p>erro de Bayes — o teto do problema</p></div>
+  </div>
+</section>
+
+<!-- SLIDE 2 — Formulação matemática -->
+<section>
+  <h2>Formulação e gradiente</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Modelo + custo</h3>
+      <pre><code>p = sigmoid(wᵀx + b) = 1/(1+e^−z)
+BCE: L = −(1/n)Σ[y·ln p + (1−y)·ln(1−p)]</code></pre>
+      <p class="muted">Sigmoid em 2 ramos (z≥0 / z&lt;0) p/ evitar overflow.</p>
+    </div>
+    <div class="card good">
+      <h3>Gradiente (a beleza)</h3>
+      <pre><code>∂L/∂w = (1/n)·Σ (p − y)·x
+∂L/∂b = (1/n)·Σ (p − y)</code></pre>
+      <p class="muted">A chain-rule BCE∘sigmoid <strong>cancela</strong> → sobra <code>(p−y)</code>. Treino: lr=0.1, 1000 épocas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3 — Fronteira de decisão + métricas -->
+<section>
+  <h2>Fronteira de decisão e desempenho</h2>
+  <div class="grid2">
+    <div><img class="fit" src="output/decision_boundary.png" alt="Fronteira de decisão"></div>
+    <div>
+      <table>
+        <tr><th>Métrica</th><th>Treino</th><th>Teste</th></tr>
+        <tr><td>Acurácia</td><td>95.4%</td><td><strong>96.7%</strong></td></tr>
+        <tr><td>Precisão</td><td>0.952</td><td>0.962</td></tr>
+        <tr><td>Recall</td><td>0.960</td><td>0.962</td></tr>
+        <tr><td>F1</td><td>0.956</td><td>0.962</td></tr>
+        <tr><td>BCE</td><td>0.106</td><td>0.065</td></tr>
+      </table>
+      <p class="muted">Heatmap de probabilidade + reta p=0.5. Modelo linear → fronteira reta. Gap treino/teste pequeno → boa generalização.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4 — Conclusão -->
+<section>
+  <h2>Conclusão</h2>
+  <ul>
+    <li>Implementação do zero <strong>correta</strong>: 96.7% de teste confirma o gradiente analítico.</li>
+    <li>Erro de teste 3.33% ≈ <strong>limite de Bayes 3.57%</strong> (Φ(−√13/2)) → o gargalo é o ruído do problema, não o modelo.</li>
+    <li>Modelo linear → fronteira é reta; dados não-lineares exigiriam features polinomiais.</li>
+    <li><strong>Melhorias:</strong> regularização L2 (<code>+λ‖w‖²</code>), critério formal de parada, mini-batch para escala.</li>
+  </ul>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash:true, slideNumber:'c/t', transition:'slide' });</script>
+</body>
+</html>

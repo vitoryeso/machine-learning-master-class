@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto 3 — Regressão Linear: GD vs LMS</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; --green:#15803d; --orange:#b45309; }
+    .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
+    .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
+    .reveal h1 { font-size: 2.0em; }
+    .reveal h2 { font-size: 1.45em; }
+    .reveal p,.reveal li { font-size: .68em; line-height: 1.3; }
+    .muted { color: var(--muted); }
+    .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .good { border-color:#bbf7d0; background:#f0fdf4; }
+    .warn { border-color:#fed7aa; background:#fff7ed; }
+    .num { font-size:1.5em; font-weight:900; color:var(--blue); }
+    code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; color:#0f172a; }
+    img.fit { max-height: 420px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
+    table { font-size:.52em; }
+    th { background:#f1f5f9; }
+    td, th { padding: .4em .55em !important; }
+    .reveal pre code { font-size:.82em; line-height:1.25; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- SLIDE 1 — Problema + números -->
+<section>
+  <span class="tag">Projeto 3</span>
+  <h1>Regressão Linear: GD vs LMS</h1>
+  <p class="muted">Dois otimizadores para o <strong>mesmo</strong> modelo e a mesma loss (MSE), num problema 2D. Batch Gradient Descent (gradiente sobre todos os N, 1 passo/época) vs LMS / Widrow-Hoff (atualiza por exemplo, N passos/época). Rust puro, sem libs de ML.</p>
+  <div class="grid3">
+    <div class="card"><div class="num">300</div><p>amostras sintéticas, <code>y=3x1−2x2+1+ruído</code></p></div>
+    <div class="card"><div class="num">200 vs 60k</div><p>passos de gradiente (GD vs LMS)</p></div>
+    <div class="card"><div class="num">0.25</div><p>MSE mínimo teórico (σ² do ruído)</p></div>
+  </div>
+</section>
+
+<!-- SLIDE 2 — Método + derivação do gradiente -->
+<section>
+  <h2>Método e derivação do gradiente</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Derivação (MSE)</h3>
+      <pre><code>L = (1/N)·Σ(ŷ−y)²,  ŷ = wᵀx + b
+∂L/∂w = (2/N)·Σ(ŷ−y)·x
+∂L/∂b = (2/N)·Σ(ŷ−y)</code></pre>
+      <p class="muted">O fator 2 é absorvido no learning rate.</p>
+    </div>
+    <div class="card">
+      <h3>As duas regras</h3>
+      <pre><code>GD : w ← w − α·(1/N)·Σ(ŷ−y)·x   (α=0.01)
+LMS: w ← w + η·(y−ŷ)·x          (η=0.001)
+     ↑ por exemplo, online</code></pre>
+      <p class="muted">200 épocas: GD dá 200 passos; LMS dá 200×300 = <strong>60.000</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3 — Resultado -->
+<section>
+  <h2>Resultado: comportamento dos algoritmos</h2>
+  <div class="grid2">
+    <div><img class="fit" src="output/convergence.png" alt="Convergência GD vs LMS"></div>
+    <div>
+      <table>
+        <tr><th></th><th>GD</th><th>LMS</th><th>Verd./Mín.</th></tr>
+        <tr><td>MSE final</td><td>0.480 *</td><td><strong>0.235</strong></td><td>0.250</td></tr>
+        <tr><td>w[0]</td><td>2.637</td><td>2.966</td><td>3.000</td></tr>
+        <tr><td>w[1]</td><td>−1.669</td><td>−2.007</td><td>−2.000</td></tr>
+        <tr><td>bias</td><td>0.825</td><td>0.986</td><td>1.000</td></tr>
+      </table>
+      <p class="muted">* GD <strong>não converge de propósito</strong>: α=0.01 escolhido p/ evidenciar a sensibilidade ao hiperparâmetro. LMS encosta no ótimo (erro &lt; 0.04 nos pesos).</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4 — Conclusão -->
+<section>
+  <h2>Conclusão — o trade-off</h2>
+  <div class="grid2">
+    <div class="card good">
+      <h3>LMS venceu aqui</h3>
+      <ul>
+        <li>60k passos &gt; 200 → convergiu perto do ótimo.</li>
+        <li>Ideal p/ dados grandes / streaming.</li>
+      </ul>
+    </div>
+    <div class="card warn">
+      <h3>Não é grátis</h3>
+      <ul>
+        <li>GD é mais estável (sem oscilação).</li>
+        <li>LMS com lr grande <strong>diverge</strong>.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="muted"><strong>O eixo central:</strong> gradiente exato com poucos passos (GD) vs muitos passos ruidosos (LMS) — mesmo custo O(Nd) por época, estratégias opostas. A escolha do learning rate é crítica e independente para cada um.</p>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash:true, slideNumber:'c/t', transition:'slide' });</script>
+</body>
+</html>
