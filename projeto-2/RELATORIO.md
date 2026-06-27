@@ -145,3 +145,50 @@ projeto-2/
     comparison_bar.png  — barras comparativas de métricas
     all_metrics.json    — métricas de todos os experimentos
 ```
+
+---
+
+# Parte II — Classificação da taxonomia descoberta por clustering (2 níveis)
+
+## Motivação
+
+A Parte I classifica rótulos **determinísticos** (resolução/pasta). Aqui seguimos a
+direção complementar e que fecha o ciclo com o Projeto 1: em vez de rótulos
+fabricados por regras, usamos a **taxonomia descoberta pelo K-means hierárquico**
+(`hierarchy.json`) como alvo de classificação. O clustering rodou sobre as 22.328
+imagens (CLIP 512-d) e produziu **2 níveis**: 5 macro-grupos (G00–G04) e 25
+subclasses-folha.
+
+## Pergunta metodológica — circularidade
+
+Treinar o classificador sobre os **mesmos** embeddings CLIP que geraram os clusters
+infla a acurácia: os clusters são células de Voronoi naquele espaço, logo
+classificá-los de volta é quase tautológico. Para um teste honesto, classificamos
+sobre features **ConvNeXt** (modelo independente). Se a taxonomia for "real", um
+espaço de features diferente também deve recuperá-la. Rodamos os dois e comparamos
+(`classify_clusters.py`).
+
+## Método
+
+- Alvo: `y_macro` (0–4) e `y_leaf` (0–24) reconstruídos dos `image_indices` do `hierarchy.json`.
+- Features: ConvNeXt 768-d (teste honesto) e CLIP 512-d (controle circular), padronizadas.
+- Classificador: linear probe (LogisticRegression multinomial), split 80/20 estratificado por folha (seed=42, treino 17.862 / teste 4.466).
+- Leitura de 2 níveis: o probe prevê a folha; o macro é derivado pelo mapa folha→macro.
+
+## Resultados
+
+| Features / nível        | Acurácia | Precisão | Recall | F1 (macro) |
+|-------------------------|----------|----------|--------|------------|
+| CLIP / macro (circular) | 0.9503   | 0.9501   | 0.9486 | 0.9493     |
+| CLIP / folha (circular) | 0.8930   | 0.8842   | 0.8834 | 0.8833     |
+| **ConvNeXt / macro**    | **0.8269** | 0.8190 | 0.8143 | 0.8164     |
+| **ConvNeXt / folha**    | **0.6597** | 0.6260 | 0.6267 | 0.6245     |
+
+Plots em `output/classification/`: `accuracy_comparison.png`, `confusion_macro_convnext.png`, `confusion_leaf_convnext.png`; números completos em `report_classification.txt`.
+
+## Conclusão
+
+- **O nível macro é real:** o ConvNeXt (independente) recupera os 5 grupos com 82.7% — a estrutura grossa não é artefato do CLIP.
+- **O nível fino é CLIP-específico:** as 25 subclasses caem para 66% no ConvNeXt — distinções sutis que vivem sobretudo na semântica do CLIP.
+- **A circularidade é mensurável:** o gap CLIP→ConvNeXt (95.0%→82.7% macro; 89.3%→66.0% folha) quantifica quanto da acurácia seria auto-confirmação.
+- **Limitações:** rótulos vêm de clustering não-supervisionado (sem verdade externa); linear probe é linear; classes desbalanceadas (folhas de 295 a 4.218 imagens) — por isso reportamos F1 macro-averaged.

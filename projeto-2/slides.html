@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto 2 — Classificação da taxonomia descoberta</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; --green:#15803d; --orange:#b45309; }
+    .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
+    .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
+    .reveal h1 { font-size: 1.9em; }
+    .reveal h2 { font-size: 1.4em; }
+    .reveal p,.reveal li { font-size: .66em; line-height: 1.3; }
+    .muted { color: var(--muted); }
+    .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .good { border-color:#bbf7d0; background:#f0fdf4; }
+    .warn { border-color:#fed7aa; background:#fff7ed; }
+    .num { font-size:1.4em; font-weight:900; color:var(--blue); }
+    code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; color:#0f172a; }
+    img.fit { max-height: 430px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
+    table { font-size:.5em; }
+    th { background:#f1f5f9; }
+    td, th { padding: .38em .5em !important; }
+    .flow { display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:18px; }
+    .box { border:2px solid #cbd5e1; border-radius:14px; padding:10px 14px; font-size:.6em; font-weight:800; background:#f8fafc; }
+    .arrow { font-size:1.1em; color:var(--blue); font-weight:900; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- SLIDE 1 — Problema -->
+<section>
+  <span class="tag">Projeto 2</span>
+  <h1>Classificar a taxonomia que descobri</h1>
+  <p class="muted">Sem rótulos prontos para uma coleção pessoal de imagens, o Projeto 1 clusterizou. Aqui eu uso esses clusters como <strong>classes</strong> e treino um classificador para atribuí-las — fechando o ciclo descoberta → classificação.</p>
+  <div class="grid3">
+    <div class="card"><div class="num">22.328</div><p>imagens rotuladas pelo clustering</p></div>
+    <div class="card"><div class="num">5 + 25</div><p>2 níveis: macro-grupos e subclasses-folha</p></div>
+    <div class="card"><div class="num">linear probe</div><p>classificador sobre features pré-extraídas</p></div>
+  </div>
+</section>
+
+<!-- SLIDE 2 — Pipeline + anti-circularidade -->
+<section>
+  <h2>Pipeline e o teste honesto</h2>
+  <div class="flow">
+    <div class="box">CLIP embeddings</div><div class="arrow">→</div>
+    <div class="box">K-means hierárquico</div><div class="arrow">→</div>
+    <div class="box">2 níveis de classes<br>(5 macro · 25 folha)</div><div class="arrow">→</div>
+    <div class="box">linear probe</div><div class="arrow">→</div>
+    <div class="box">classificação</div>
+  </div>
+  <div class="grid2" style="margin-top:22px">
+    <div class="card warn">
+      <h3>O risco: circularidade</h3>
+      <p>Classificar sobre os <strong>mesmos</strong> embeddings CLIP que geraram os clusters infla a acurácia — os clusters são células de Voronoi nesse espaço.</p>
+    </div>
+    <div class="card good">
+      <h3>A solução</h3>
+      <p>Classificar sobre features <strong>ConvNeXt</strong> (modelo independente). Se a taxonomia for "real", outro espaço deve recuperá-la. Rodo os dois e comparo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3 — Resultados -->
+<section>
+  <h2>Resultados: CLIP vs ConvNeXt</h2>
+  <div class="grid2">
+    <div><img class="fit" src="output/classification/accuracy_comparison.png" alt="Comparação de acurácia CLIP vs ConvNeXt"></div>
+    <div>
+      <table>
+        <tr><th>Features / nível</th><th>Acc</th><th>F1</th></tr>
+        <tr><td>CLIP / macro</td><td>0.950</td><td>0.949</td></tr>
+        <tr><td>CLIP / folha</td><td>0.893</td><td>0.883</td></tr>
+        <tr><td><strong>ConvNeXt / macro</strong></td><td><strong>0.827</strong></td><td>0.816</td></tr>
+        <tr><td><strong>ConvNeXt / folha</strong></td><td><strong>0.660</strong></td><td>0.625</td></tr>
+      </table>
+      <p class="muted">Teste 4.466 imgs (split 80/20 estratificado). Métricas P/R/F1 macro-averaged. O CLIP classifica os próprios clusters bem acima do ConvNeXt — a circularidade aparece nos números.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4 — Conclusão -->
+<section>
+  <h2>Interpretação</h2>
+  <ul>
+    <li><strong>O nível macro é "real":</strong> um espaço independente (ConvNeXt) recupera os 5 grupos com 83% — a taxonomia grossa não é um artefato do CLIP.</li>
+    <li><strong>O nível fino é CLIP-específico:</strong> as 25 subclasses caem para 66% no ConvNeXt — distinções sutis que vivem sobretudo na semântica do CLIP.</li>
+    <li><strong>A circularidade é mensurável:</strong> o gap CLIP→ConvNeXt (95%→83% macro, 89%→66% folha) quantifica quanto da "acurácia" seria auto-confirmação.</li>
+    <li><strong>Limitações:</strong> rótulos vêm de clustering não-supervisionado (sem verdade externa); linear probe não captura fronteiras não-lineares; classes desbalanceadas (folhas de 295 a 4.218).</li>
+  </ul>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash:true, slideNumber:'c/t', transition:'slide' });</script>
+</body>
+</html>

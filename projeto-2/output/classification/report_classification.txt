@@ -1,0 +1,55 @@
+================================================================
+PROJETO 2 -- CLASSIFICACAO DA TAXONOMIA DESCOBERTA (2 niveis)
+================================================================
+
+Dataset: 22328 imagens | macro classes: 5 | leaf classes: 25
+Split: treino 17862 / teste 4466 (estratificado por folha, seed=42)
+Alvo: rotulos do K-means hierarquico sobre CLIP (hierarchy.json).
+Classificador: linear probe (LogisticRegression, features padronizadas).
+
+RESULTADOS (acuracia / precisao / recall / F1 macro-avg):
+                              acc       prec        rec         f1
+----------------------------------------------------------------
+CLIP (circular) / macro     0.9503     0.9501     0.9486     0.9493
+CLIP (circular) / leaf     0.8930     0.8842     0.8834     0.8833
+ConvNeXt (honesto) / macro     0.8269     0.8190     0.8143     0.8164
+ConvNeXt (honesto) / leaf     0.6597     0.6260     0.6267     0.6245
+----------------------------------------------------------------
+
+Interpretacao: CLIP classifica seus proprios clusters quase
+perfeitamente (circular). ConvNeXt, um espaco independente, mede a
+real separabilidade da taxonomia descoberta.
+
+Tamanho das macro-classes:
+  G00: 5612
+  G01: 6444
+  G02: 739
+  G03: 7726
+  G04: 1807
+
+Tamanho das leaf-classes:
+  G00_S00: 2146
+  G00_S01: 942
+  G00_S02: 2524
+  G01_S00: 2226
+  G01_S01: 4218
+  G02_S00: 321
+  G02_S01: 418
+  G03_S00: 480
+  G03_S01: 344
+  G03_S02: 795
+  G03_S03: 295
+  G03_S04: 759
+  G03_S05: 398
+  G03_S06: 505
+  G03_S07: 713
+  G03_S08: 304
+  G03_S09: 297
+  G03_S10: 341
+  G03_S11: 441
+  G03_S12: 843
+  G03_S13: 583
+  G03_S14: 352
+  G03_S15: 276
+  G04_S00: 903
+  G04_S01: 904
