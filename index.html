@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini-Projetos — Aprendizado de Máquina 2026.1 · Vitor Yeso</title>
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#64748b; --bg:#f8fafc; --line:#e2e8f0; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, -apple-system, Segoe UI, Arial, sans-serif;
+           color:var(--ink); background:var(--bg); -webkit-font-smoothing:antialiased; }
+    header { max-width:980px; margin:0 auto; padding:56px 24px 16px; }
+    h1 { font-size:2.1rem; letter-spacing:-0.04em; margin:0 0 6px; }
+    .sub { color:var(--muted); font-size:1.02rem; margin:0; }
+    main { max-width:980px; margin:0 auto; padding:24px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+    .card { display:block; text-decoration:none; color:inherit; background:#fff;
+            border:1px solid var(--line); border-radius:16px; padding:20px;
+            box-shadow:0 4px 14px rgba(15,23,42,.05); transition:transform .12s, box-shadow .12s, border-color .12s; }
+    a.card:hover { transform:translateY(-3px); box-shadow:0 12px 28px rgba(15,23,42,.10); border-color:#c7d2fe; }
+    .num { font-size:.72rem; font-weight:800; color:var(--blue); letter-spacing:.06em; text-transform:uppercase; }
+    .title { font-size:1.18rem; font-weight:700; margin:6px 0 4px; letter-spacing:-0.02em; }
+    .desc { color:var(--muted); font-size:.9rem; line-height:1.4; margin:0; }
+    .tagline { display:inline-block; margin-top:12px; font-size:.78rem; font-weight:700; }
+    .ready .tagline { color:#15803d; }
+    .soon { opacity:.6; cursor:not-allowed; }
+    .soon .tagline { color:#b45309; }
+    footer { max-width:980px; margin:0 auto; padding:28px 24px 60px; color:var(--muted); font-size:.82rem; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Mini-Projetos — Aprendizado de Máquina</h1>
+  <p class="sub">PPgEEC / UFRN · 2026.1 · Vitor Yeso. Selecione um projeto para ver os slides.</p>
+</header>
+<main>
+  <div class="grid">
+
+    <a class="card ready" href="docs/index.html">
+      <div class="num">Projeto 1</div>
+      <div class="title">K-Means em embeddings de imagens</div>
+      <p class="desc">Análise exploratória da coleção pessoal: elbow, silhouette, PCA 2D.</p>
+      <span class="tagline">▶ Ver slides</span>
+    </a>
+
+    <a class="card ready" href="projeto-2/slides.html">
+      <div class="num">Projeto 2</div>
+      <div class="title">Classificação da taxonomia descoberta</div>
+      <p class="desc">Classificar os clusters como classes; CLIP vs ConvNeXt (anti-circularidade).</p>
+      <span class="tagline">▶ Ver slides</span>
+    </a>
+
+    <a class="card ready" href="projeto-3/slides.html">
+      <div class="num">Projeto 3</div>
+      <div class="title">Regressão Linear: GD vs LMS</div>
+      <p class="desc">Batch Gradient Descent contra LMS/Widrow-Hoff. Derivação + convergência.</p>
+      <span class="tagline">▶ Ver slides</span>
+    </a>
+
+    <a class="card ready" href="projeto-4/slides.html">
+      <div class="num">Projeto 4</div>
+      <div class="title">Regressão Logística do zero</div>
+      <p class="desc">Sigmoid, BCE, gradiente analítico em Rust. Fronteira de decisão + limite de Bayes.</p>
+      <span class="tagline">▶ Ver slides</span>
+    </a>
+
+    <a class="card ready" href="projeto-5/slides.html">
+      <div class="num">Projeto 5</div>
+      <div class="title">Árvore de Decisão: Gini vs Entropia</div>
+      <p class="desc">Árvore CART construída manualmente. Critérios, estrutura e overfitting.</p>
+      <span class="tagline">▶ Ver slides</span>
+    </a>
+
+    <span class="card soon">
+      <div class="num">Projeto 7</div>
+      <div class="title">Redes RBF</div>
+      <p class="desc">Funções de base radial; escolha de centros (aleatório / K-means / subset).</p>
+      <span class="tagline">⏳ Em breve</span>
+    </span>
+
+    <span class="card soon">
+      <div class="num">Projeto 8</div>
+      <div class="title">SVM com kernel RBF</div>
+      <p class="desc">Vetores de suporte como centros; varredura de C e γ; margem máxima.</p>
+      <span class="tagline">⏳ Em breve</span>
+    </span>
+
+    <a class="card ready" href="projeto-9/slides.html">
+      <div class="num">Projeto 9</div>
+      <div class="title">ANN/MLP: fronteiras não-lineares</div>
+      <p class="desc">MLP do zero (numpy). MSE vs cross-entropy; partições dos neurônios.</p>
+      <span class="tagline">▶ Ver slides</span>
+    </a>
+
+    <span class="card soon">
+      <div class="num">Projeto 10</div>
+      <div class="title">CNN para dados 1D e 2D</div>
+      <p class="desc">Convoluções 1D/2D, canais, pooling; visualização de feature maps.</p>
+      <span class="tagline">⏳ Em breve</span>
+    </span>
+
+  </div>
+</main>
+<footer>
+  Slides em Reveal.js · navegue com as setas, <code>F</code> para tela cheia ·
+  <a href="https://github.com/vitoryeso/machine-learning-master-class">código no GitHub</a>
+</footer>
+</body>
+</html>
