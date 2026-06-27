@@ -1,0 +1,9 @@
+[package]
+name = "projeto-4"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+plotters = "0.3"
+rand = { version = "0.9", features = ["std_rng"] }
+rand_distr = "0.5"

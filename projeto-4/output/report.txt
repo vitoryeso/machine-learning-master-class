@@ -1,0 +1,58 @@
+Mini-Projeto 4 - Logistic Regression Results
+=============================================
+Dataset           : 300 amostras (gaussianas 2D sinteticas, seed=42)
+Split             : 80% treino / 20% teste
+Treino (neg/pos)  : 116 / 124
+Teste  (neg/pos)  : 34 / 26
+
+Hiperparametros
+---------------
+Learning Rate     : 0.1
+Epocas            : 1000
+Inicializacao     : zeros
+
+Parametros Aprendidos
+---------------------
+w0                : 2.460226
+w1                : 1.613707
+bias              : 0.121817
+
+Desempenho (Treino)
+-------------------
+Loss Inicial(BCE) : 0.693147
+Loss Final (BCE)  : 0.106093
+Reducao de Loss   : 84.69%
+Acuracia          : 95.42%
+Precisao          : 0.9520
+Recall            : 0.9597
+F1-Score          : 0.9558
+Conf. Matrix:
+TN=110  FP=6
+FN=5  TP=119
+Primeira epoca acc>=95.00% (threshold 0.95): epoca 2
+
+Desempenho (Teste)
+------------------
+Loss Final (BCE)  : 0.064900
+Acuracia          : 96.67%
+Precisao          : 0.9615
+Recall            : 0.9615
+F1-Score          : 0.9615
+Conf. Matrix:
+TN=33  FP=1
+FN=1  TP=25
+
+Fronteira de Decisao (x2 = m*x1 + c)
+--------------------------------------
+inclinacao m      : -1.524580
+intercepto c      : -0.075489
+
+Arquivos de Saida
+-----------------
+output/decision_boundary.png  (treino: solido, teste: circulo oco)
+output/loss_curve.png
+output/accuracy_curve.png
+output/confusion_matrix_train.png
+output/confusion_matrix_test.png
+output/training_log.csv
+output/report.txt
