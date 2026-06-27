@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto 9 — ANN/MLP: Fronteiras Não-Lineares</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; }
+    .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
+    .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
+    .reveal h1 { font-size: 1.9em; }
+    .reveal h2 { font-size: 1.4em; }
+    .reveal p,.reveal li { font-size: .66em; line-height: 1.3; }
+    .muted { color: var(--muted); }
+    .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .good { border-color:#bbf7d0; background:#f0fdf4; }
+    .warn { border-color:#fed7aa; background:#fff7ed; }
+    .num { font-size:1.4em; font-weight:900; color:var(--blue); }
+    code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; color:#0f172a; }
+    img.fit { max-height: 430px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
+    table { font-size:.5em; }
+    th { background:#f1f5f9; }
+    td, th { padding: .38em .5em !important; }
+    .reveal pre code { font-size:.8em; line-height:1.25; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- SLIDE 1 -->
+<section>
+  <span class="tag">Projeto 9</span>
+  <h1>ANN/MLP: Fronteiras Não-Lineares</h1>
+  <p class="muted">MLP construído <strong>do zero</strong> (numpy, backprop manual) para um problema <strong>real</strong>: classificação binária da coleção pessoal de imagens (features CLIP), em 3 tarefas. Desempenho medido em full-dim; o plano 2D (PCA) ilustra como os neurônios particionam o espaço.</p>
+  <div class="grid3">
+    <div class="card"><div class="num">numpy</div><p>forward + backprop na mão, sem framework</p></div>
+    <div class="card"><div class="num">3 tarefas</div><p>pessoa, screenshot×foto, macro-grupo</p></div>
+    <div class="card"><div class="num">MSE vs CE</div><p>duas perdas comparadas</p></div>
+  </div>
+</section>
+
+<!-- SLIDE 2 -->
+<section>
+  <h2>Método: MLP do zero</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Arquitetura</h3>
+      <pre><code>z = aᵀW + b
+oculta: relu/tanh
+saída:  sigmoid → p</code></pre>
+      <p class="muted">Backprop manual: <code>δ_saída = (p−y)</code> (CE) ou <code>2(p−y)·p(1−p)</code> (MSE); propaga com <code>act'</code>.</p>
+    </div>
+    <div class="card">
+      <h3>O que ablar</h3>
+      <ul>
+        <li><strong>Perda:</strong> MSE vs cross-entropy.</li>
+        <li><strong>Arquitetura:</strong> 0 → 128 neurônios ocultos.</li>
+        <li><strong>Viz 2D:</strong> cada neurônio = uma reta; a combinação = a fronteira não-linear.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3 -->
+<section>
+  <h2>Resultados</h2>
+  <div class="grid2">
+    <div>
+      <table>
+        <tr><th>Tarefa (full-dim)</th><th>Acc</th><th>F1</th><th>base</th></tr>
+        <tr><td>macro_vs_rest</td><td>0.976</td><td>0.965</td><td>0.654</td></tr>
+        <tr><td>has_people</td><td>0.963</td><td>0.885</td><td>0.836</td></tr>
+        <tr><td>screenshot×foto</td><td>0.924</td><td>0.751</td><td>0.844</td></tr>
+      </table>
+      <p class="muted">Full-dim torna as 3 tarefas aprendíveis (no 2D PCA, screenshot tinha F1 0.29 — quase morta).</p>
+    </div>
+    <div><img class="fit" src="output/mse_vs_ce_and_arch.png" alt="MSE vs CE e ablação de arquitetura"></div>
+  </div>
+</section>
+
+<!-- SLIDE 4 -->
+<section>
+  <h2>Como os neurônios particionam o plano</h2>
+  <div class="grid2">
+    <div><img class="fit" src="output/boundary_neurons.png" alt="Partições dos neurônios ocultos"></div>
+    <div>
+      <ul>
+        <li>Cada um dos 4 neurônios ocultos é uma <strong>reta</strong> (tracejada); a saída combina-as numa <strong>região não-linear</strong> que isola o grupo.</li>
+        <li><strong>MSE ≈ CE</strong> aqui (F1 0.962 vs 0.965) — a CE converge um pouco mais rápido.</li>
+        <li><strong>0 camadas ocultas (=logística) já dá F1 0.956:</strong> as features CLIP são quase linearmente separáveis, então a não-linearidade do MLP agrega pouco em full-dim. A não-linearidade importa mais no plano 2D comprimido.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash:true, slideNumber:'c/t', transition:'slide' });</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+============================================================
+PROJETO 9 — MLP MANUAL (numpy)
+============================================================
+
+Problema real: classificação binária sobre imagens pessoais (CLIP full-dim).
+Desempenho reportado em full-dim; 2D PCA só ilustra partições.
+
+[1] Desempenho por tarefa (MLP[D-64-1], relu, CE):
+  has_people           acc=0.9626 prec=0.8920 rec=0.8786 f1=0.8852 (baseline 0.8359)
+  screenshot_vs_photo  acc=0.9243 prec=0.7708 rec=0.7319 f1=0.7508 (baseline 0.8441)
+  macro_vs_rest        acc=0.9760 prec=0.9639 rec=0.9670 f1=0.9654 (baseline 0.6541)
+
+[2] MSE vs CE em macro_vs_rest:
+  CE  acc=0.9760 f1=0.9654 loss_final=0.0024
+  MSE acc=0.9738 f1=0.9623 loss_final=0.0027
+
+[3] Ablação de arquitetura (macro_vs_rest):
+  hidden=0(log)   f1=0.9557
+  hidden=2        f1=0.9675
+  hidden=8        f1=0.9676
+  hidden=32       f1=0.9620
+  hidden=128      f1=0.9673
