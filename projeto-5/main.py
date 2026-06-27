@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+"""Projeto 5 — Arvore de Decisao construida MANUALMENTE (sem sklearn.tree).
+
+O enunciado pede: "Construa manualmente uma arvore de decisao ... calculando e
+comparando explicitamente os criterios de divisao Gini e Entropia."
+
+Por isso a arvore (criterio de impureza, busca de split, recursao, predicao,
+importancia de feature) e implementada do zero abaixo. O sklearn e usado apenas
+para gerar o dataset sintetico (make_classification) e o split treino/teste —
+utilitarios de dados, nao o modelo.
+"""
 import os
 import numpy as np
 import matplotlib
@@ -8,466 +18,503 @@ import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 import matplotlib.colors as mcolors
 from sklearn.datasets import make_classification
-from sklearn.tree import DecisionTreeClassifier, export_text
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import (
-    accuracy_score, precision_recall_fscore_support, confusion_matrix,
-    ConfusionMatrixDisplay,
-)
-from sklearn.inspection import DecisionBoundaryDisplay
 
 SEED = 42
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-def find_redundant_splits(clf):
-    """Return list of (parent_node_id, child_node_id, feature_idx, threshold, side)
-    where a parent and one of its children (left OR right) split on the same
-    feature with the same threshold. side is 'left' or 'right'.
-    A 1e-10 tolerance catches true floating-point representation ties (e.g., the same
-    threshold stored with rounding noise). It does NOT catch the visually ambiguous
-    f0<=0.13 pair in this tree, where the two thresholds genuinely differ by 0.006
-    (0.13318 vs 0.12690) and only appear identical because export_text rounds to 2 decimal places.
-    Note: only checks direct parent->child pairs (depth+1). Grandchild or deeper
-    redundant splits are not detected; absence of matches here does not rule out
-    logically unreachable splits at deeper levels.
+# =============================================================================
+# Criterios de impureza  —  o coracao do projeto (Gini vs Entropia)
+# =============================================================================
+def _class_probs(y):
+    """Proporcao p_k de cada classe presente no vetor de rotulos y.
+
+    Retorna um np.array com as proporcoes (somam 1). Helper para as funcoes de
+    impureza abaixo. Ex.: y=[0,0,1] -> array([0.667, 0.333]).
     """
-    tree = clf.tree_
+    if len(y) == 0:
+        return np.array([])
+    _, counts = np.unique(y, return_counts=True)
+    return counts / counts.sum()
+
+
+def gini(y):
+    """Impureza de Gini do no:  G = 1 - sum(p_k^2).
+
+    Use _class_probs(y). No puro -> 0.0 ; binario uniforme (p=[0.5,0.5]) -> 0.5.
+    """
+    p = _class_probs(y)
+    return float(1.0 - np.sum(p ** 2))
+
+
+def entropy(y):
+    """Entropia de Shannon do no:  H = -sum(p_k * log2(p_k)).
+
+    Use _class_probs(y). Cuidado com p_k=0 (convencao 0*log2(0)=0). _class_probs
+    so retorna classes presentes, entao nao havera p_k=0 — mas e bom saber.
+    No puro -> 0.0 ; binario uniforme -> 1.0.
+    """
+    p = _class_probs(y)
+    return float(-np.sum(p * np.log2(p)))
+
+
+def impurity(y, criterion):
+    return gini(y) if criterion == "gini" else entropy(y)
+
+
+# =============================================================================
+# Arvore de decisao (CART binario) — construida manualmente
+# =============================================================================
+class Node:
+    __slots__ = ("feature", "threshold", "left", "right", "value",
+                 "n_samples", "impurity", "is_leaf")
+
+    def __init__(self):
+        self.feature = None       # indice da feature usada no split
+        self.threshold = None     # limiar do split (x[feature] <= threshold -> esquerda)
+        self.left = None
+        self.right = None
+        self.value = None         # classe majoritaria (predicao da folha)
+        self.n_samples = 0
+        self.impurity = 0.0
+        self.is_leaf = False
+
+
+class DecisionTree:
+    def __init__(self, criterion="gini", max_depth=None, min_samples_split=2):
+        self.criterion = criterion
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+
+    def fit(self, X, y):
+        X = np.asarray(X, dtype=float)
+        y = np.asarray(y)
+        self.n_features_ = X.shape[1]
+        self.n_total_ = len(y)
+        self.importances_ = np.zeros(self.n_features_)
+        self.root = self._build(X, y, depth=0)
+        total = self.importances_.sum()
+        if total > 0:
+            self.importances_ = self.importances_ / total
+        return self
+
+    def _build(self, X, y, depth):
+        node = Node()
+        node.n_samples = len(y)
+        node.impurity = impurity(y, self.criterion)
+        # classe majoritaria (desempate pela menor label)
+        classes, counts = np.unique(y, return_counts=True)
+        node.value = int(classes[np.argmax(counts)])
+
+        # condicoes de parada: no puro, profundidade maxima, poucas amostras
+        if (node.impurity == 0.0
+                or (self.max_depth is not None and depth >= self.max_depth)
+                or len(y) < self.min_samples_split):
+            node.is_leaf = True
+            return node
+
+        best = self._best_split(X, y, node.impurity)
+        if best is None:
+            node.is_leaf = True
+            return node
+
+        feat, thr, gain, left_mask = best
+        # importancia = fracao de amostras no no * reducao de impureza
+        self.importances_[feat] += (len(y) / self.n_total_) * gain
+        node.feature, node.threshold = feat, thr
+        node.left = self._build(X[left_mask], y[left_mask], depth + 1)
+        node.right = self._build(X[~left_mask], y[~left_mask], depth + 1)
+        return node
+
+    def _best_split(self, X, y, parent_impurity):
+        """Busca gulosa: a cada no, escolhe (feature, threshold) que maximiza a
+        reducao de impureza. Thresholds candidatos = pontos medios entre valores
+        consecutivos distintos da feature."""
+        n = len(y)
+        best_gain = 0.0
+        best = None
+        for feat in range(self.n_features_):
+            values = np.unique(X[:, feat])
+            if len(values) < 2:
+                continue
+            thresholds = (values[:-1] + values[1:]) / 2.0
+            for thr in thresholds:
+                left_mask = X[:, feat] <= thr
+                n_left = int(left_mask.sum())
+                n_right = n - n_left
+                if n_left == 0 or n_right == 0:
+                    continue
+                imp_left = impurity(y[left_mask], self.criterion)
+                imp_right = impurity(y[~left_mask], self.criterion)
+                child_impurity = (n_left / n) * imp_left + (n_right / n) * imp_right
+                gain = parent_impurity - child_impurity
+                if gain > best_gain:
+                    best_gain = gain
+                    best = (feat, float(thr), gain, left_mask)
+        return best
+
+    # -- predicao -------------------------------------------------------------
+    def _predict_one(self, x):
+        node = self.root
+        while not node.is_leaf:
+            node = node.left if x[node.feature] <= node.threshold else node.right
+        return node.value
+
+    def predict(self, X):
+        X = np.asarray(X, dtype=float)
+        return np.array([self._predict_one(x) for x in X])
+
+    def score(self, X, y):
+        return float(np.mean(self.predict(X) == np.asarray(y)))
+
+    # -- introspeccao da estrutura -------------------------------------------
+    def get_depth(self):
+        def d(node):
+            return 0 if node.is_leaf else 1 + max(d(node.left), d(node.right))
+        return d(self.root)
+
+    def get_n_leaves(self):
+        def c(node):
+            return 1 if node.is_leaf else c(node.left) + c(node.right)
+        return c(self.root)
+
+    def get_n_nodes(self):
+        def c(node):
+            return 1 if node.is_leaf else 1 + c(node.left) + c(node.right)
+        return c(self.root)
+
+    def export_text(self, feature_names=None):
+        names = feature_names or ["f{}".format(i) for i in range(self.n_features_)]
+        lines = []
+
+        def walk(node, depth):
+            pad = "|   " * depth + "|--- "
+            if node.is_leaf:
+                lines.append("{}class: {}".format(pad, node.value))
+                return
+            lines.append("{}{} <= {:.5f}".format(pad, names[node.feature], node.threshold))
+            walk(node.left, depth + 1)
+            lines.append("{}{} >  {:.5f}".format(pad, names[node.feature], node.threshold))
+            walk(node.right, depth + 1)
+
+        walk(self.root, 0)
+        return "\n".join(lines)
+
+
+# =============================================================================
+# Analises de estrutura da arvore (adaptadas a estrutura de Node manual)
+# =============================================================================
+def find_redundant_splits(tree, tol=1e-9):
+    """Pares pai->filho que dividem na MESMA feature com threshold ~igual.
+
+    Um filho que re-divide na mesma feature/threshold do pai e logicamente
+    inalcancavel (a restricao do pai ja determina o lado). Retorna lista de
+    (feature, threshold, lado). So checa pares diretos pai-filho.
+    """
     redundant = []
-    for node_id in range(tree.node_count):
-        if tree.children_left[node_id] == -1:
-            continue  # leaf
-        # Check left child
-        left = tree.children_left[node_id]
-        if tree.children_left[left] != -1:  # left child is not a leaf
-            if (tree.feature[node_id] == tree.feature[left] and
-                    abs(tree.threshold[node_id] - tree.threshold[left]) < 1e-10):
-                redundant.append((node_id, left, tree.feature[node_id], tree.threshold[node_id], 'left'))
-        # Check right child
-        right = tree.children_right[node_id]
-        if tree.children_left[right] != -1:  # right child is not a leaf
-            if (tree.feature[node_id] == tree.feature[right] and
-                    abs(tree.threshold[node_id] - tree.threshold[right]) < 1e-10):
-                redundant.append((node_id, right, tree.feature[node_id], tree.threshold[node_id], 'right'))
+
+    def walk(node):
+        if node.is_leaf:
+            return
+        for side, child in (("left", node.left), ("right", node.right)):
+            if (not child.is_leaf
+                    and child.feature == node.feature
+                    and abs(child.threshold - node.threshold) < tol):
+                redundant.append((node.feature, node.threshold, side))
+            walk(child)
+
+    walk(tree.root)
     return redundant
 
 
-def get_leaf_sample_counts(clf):
-    """Return sorted array of n_node_samples values for leaf nodes only."""
-    tree = clf.tree_
-    leaf_mask = tree.children_left == -1
-    return np.sort(tree.n_node_samples[leaf_mask])
+def leaf_sample_counts(tree):
+    """Array ordenado de n_samples por folha (verifica memorizacao/overfitting)."""
+    counts = []
+
+    def walk(node):
+        if node.is_leaf:
+            counts.append(node.n_samples)
+        else:
+            walk(node.left)
+            walk(node.right)
+
+    walk(tree.root)
+    return np.sort(counts)
+
+
+# =============================================================================
+# Metricas (calculadas a mao a partir da matriz de confusao)
+# =============================================================================
+def confusion(y_true, y_pred):
+    tn = int(np.sum((y_true == 0) & (y_pred == 0)))
+    fp = int(np.sum((y_true == 0) & (y_pred == 1)))
+    fn = int(np.sum((y_true == 1) & (y_pred == 0)))
+    tp = int(np.sum((y_true == 1) & (y_pred == 1)))
+    return np.array([[tn, fp], [fn, tp]])
+
+
+def prf1(cm):
+    tn, fp, fn, tp = cm[0, 0], cm[0, 1], cm[1, 0], cm[1, 1]
+    prec = tp / (tp + fp) if (tp + fp) else 0.0
+    rec = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = 2 * prec * rec / (prec + rec) if (prec + rec) else 0.0
+    return prec, rec, f1
 
 
 def main():
-    # -- 1. Dataset ----------------------------------------------------------------
+    # -- 1. Dataset ------------------------------------------------------------
     X, y = make_classification(
-        n_samples=500,
-        n_features=2,
-        n_informative=2,
-        n_redundant=0,
-        n_clusters_per_class=1,
-        class_sep=0.9,
-        random_state=SEED,
+        n_samples=500, n_features=2, n_informative=2, n_redundant=0,
+        n_clusters_per_class=1, class_sep=0.9, random_state=SEED,
     )
-
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=SEED, stratify=y
     )
-
     print("Dataset: {} samples, {} features, 2 classes".format(X.shape[0], X.shape[1]))
     print("Train: {}  Test: {}".format(X_train.shape[0], X_test.shape[0]))
     print()
 
-    # -- 2. Train trees ------------------------------------------------------------
+    # -- 2. Treina as duas arvores (manuais) ----------------------------------
     criteria = ["gini", "entropy"]
-    trees = {}
-    metrics = {}
-
+    trees, metrics = {}, {}
     for crit in criteria:
-        clf = DecisionTreeClassifier(criterion=crit, random_state=SEED)
-        clf.fit(X_train, y_train)
-        train_acc = clf.score(X_train, y_train)
+        clf = DecisionTree(criterion=crit).fit(X_train, y_train)
         y_pred = clf.predict(X_test)
-        acc = accuracy_score(y_test, y_pred)
-        prec, rec, f1, _ = precision_recall_fscore_support(
-            y_test, y_pred, average="binary", zero_division=0
-        )
-        cm = confusion_matrix(y_test, y_pred)
+        cm = confusion(y_test, y_pred)
+        prec, rec, f1 = prf1(cm)
         trees[crit] = clf
         metrics[crit] = {
-            "train_accuracy": train_acc,
-            "accuracy": acc,
-            "precision": prec,
-            "recall": rec,
-            "f1": f1,
-            "depth": clf.get_depth(),
-            "n_leaves": clf.get_n_leaves(),
-            "n_nodes": clf.tree_.node_count,
-            "feature_importances": clf.feature_importances_.tolist(),
+            "train_accuracy": clf.score(X_train, y_train),
+            "accuracy": clf.score(X_test, y_test),
+            "precision": prec, "recall": rec, "f1": f1,
+            "depth": clf.get_depth(), "n_leaves": clf.get_n_leaves(),
+            "n_nodes": clf.get_n_nodes(),
+            "feature_importances": clf.importances_.tolist(),
             "confusion_matrix": cm.tolist(),
         }
 
-    # -- 3. Print metrics table ----------------------------------------------------
+    # -- 3. Tabela de metricas ------------------------------------------------
     header = "{:<22} {:>10} {:>10}".format("Metric", "Gini", "Entropy")
     sep = "-" * len(header)
-    print(sep)
-    print(header)
-    print(sep)
-    for key in ["train_accuracy", "accuracy", "precision", "recall", "f1", "depth", "n_leaves", "n_nodes"]:
-        g = metrics["gini"][key]
-        e = metrics["entropy"][key]
+    print(sep); print(header); print(sep)
+    for key in ["train_accuracy", "accuracy", "precision", "recall", "f1",
+                "depth", "n_leaves", "n_nodes"]:
+        g, e = metrics["gini"][key], metrics["entropy"][key]
         if isinstance(g, float):
             print("{:<22} {:>10.4f} {:>10.4f}".format(key, g, e))
         else:
             print("{:<22} {:>10} {:>10}".format(key, g, e))
-    print(sep)
-    print()
+    print(sep); print()
 
     for crit in criteria:
         fi = metrics[crit]["feature_importances"]
         print("Feature importance ({}): f0={:.4f}, f1={:.4f}".format(crit, fi[0], fi[1]))
     print()
-
-    # -- 3b. Confusion matrices ----------------------------------------------------
     for crit in criteria:
         cm = metrics[crit]["confusion_matrix"]
-        tn, fp, fn, tp = cm[0][0], cm[0][1], cm[1][0], cm[1][1]
-        print("Confusion matrix ({}): TN={} FP={} FN={} TP={}".format(crit, tn, fp, fn, tp))
+        print("Confusion matrix ({}): TN={} FP={} FN={} TP={}".format(
+            crit, cm[0][0], cm[0][1], cm[1][0], cm[1][1]))
     print()
 
-    # -- 3c. Predictions comparison ------------------------------------------------
     y_pred_gini = trees["gini"].predict(X_test)
     y_pred_entropy = trees["entropy"].predict(X_test)
-    preds_identical = bool(np.array_equal(y_pred_gini, y_pred_entropy))
     n_preds_differ = int(np.sum(y_pred_gini != y_pred_entropy))
-    print("Predictions identical (gini vs entropy):", preds_identical)
+    print("Predictions identical (gini vs entropy):", n_preds_differ == 0)
     print("Samples where predictions differ:", n_preds_differ)
     print()
 
-    # -- 3d. Redundant split detection ---------------------------------------------
+    # -- 3b. Analises de estrutura (splits redundantes + folhas) --------------
+    redundant_lines = []
     for crit in criteria:
         redundant = find_redundant_splits(trees[crit])
         if redundant:
-            print("WARNING: Redundant splits in {} tree:".format(crit))
-            for parent_id, child_id, feat_idx, thr, side in redundant:
-                print("  Parent node {} and {}-child node {} both split on f{} <= {:.6f}".format(
-                    parent_id, side, child_id, feat_idx, thr))
-            print("  (Parent constraint makes child split on same feature/threshold unreachable.)")
+            redundant_lines.append("Redundant splits ({}):".format(crit))
+            for feat, thr, side in redundant:
+                redundant_lines.append(
+                    "  no e seu filho-{} ambos dividem em f{} <= {:.5f} (inalcancavel)".format(
+                        side, feat, thr))
         else:
-            print("No redundant splits found in {} tree (direct parent-child pairs only; deeper levels not checked).".format(crit))
-    # Diagnostic (SEED=42 only): print actual thresholds for display-ambiguous pairs
-    # in both trees across all features — pairs where two distinct thresholds round to
-    # the same 2-decimal string in export_text, making them look identical in the text output.
-    # Generalized over all features and both criteria so it works for any seed/dataset.
-    if SEED == 42:
-        ambiguous_pairs = {}  # {(crit, feat_idx): [(a, b), ...]}
-        feature_names = ["f{}".format(i) for i in range(X.shape[1])]
-        for crit in criteria:
-            clf_tree = trees[crit].tree_
-            for feat_idx in range(X.shape[1]):
-                internal_nodes = [
-                    n for n in range(clf_tree.node_count)
-                    if clf_tree.children_left[n] != -1 and clf_tree.feature[n] == feat_idx
-                ]
-                thresholds = sorted([clf_tree.threshold[n] for n in internal_nodes])
-                pairs = []
-                for i in range(len(thresholds) - 1):
-                    a, b = thresholds[i], thresholds[i + 1]
-                    if "{:.2f}".format(a) == "{:.2f}".format(b):
-                        pairs.append((a, b))
-                if pairs:
-                    ambiguous_pairs[(crit, feat_idx)] = pairs
-        if ambiguous_pairs:
-            for (crit, feat_idx), pairs in sorted(ambiguous_pairs.items()):
-                fname = feature_names[feat_idx]
-                print("{} tree {} display-ambiguous threshold pairs (both show same 2-decimal value in export_text):".format(crit, fname))
-                for a, b in pairs:
-                    print("  {} thresholds: {:.5f} and {:.5f}  (both display as {} <= {:.2f})  diff={:.5f}".format(
-                        fname, a, b, fname, round(a, 2), b - a))
-        # collect ambiguous_pairs for gini/f0 for legacy use in report.txt
-        ambiguous_pairs_gini_f0 = ambiguous_pairs.get(("gini", 0), [])
-    else:
-        ambiguous_pairs_gini_f0 = []
+            redundant_lines.append(
+                "{}: nenhum split redundante (pares pai-filho diretos)".format(crit))
+    for line in redundant_lines:
+        print(line)
     print()
 
-    # -- 3e. Leaf sample counts (verifies overfitting / memorization claims) -------
-    leaf_sample_lines = []
+    leaf_lines = []
     for crit in criteria:
-        leaf_counts = get_leaf_sample_counts(trees[crit])
-        n_single = int(np.sum(leaf_counts == 1))
-        leaf_min = int(leaf_counts.min())
-        leaf_max = int(leaf_counts.max())
-        leaf_mean = float(leaf_counts.mean())
-        line = (
+        lc = leaf_sample_counts(trees[crit])
+        leaf_lines.append(
             "Leaf sample counts ({}): n_leaves={}, min={}, max={}, mean={:.1f}, "
             "leaves_with_1_sample={}".format(
-                crit, len(leaf_counts), leaf_min, leaf_max, leaf_mean, n_single
-            )
-        )
+                crit, len(lc), int(lc.min()), int(lc.max()), float(lc.mean()),
+                int(np.sum(lc == 1))))
+    for line in leaf_lines:
         print(line)
-        leaf_sample_lines.append(line)
     print()
 
-    # -- 4. Decision boundary plot -------------------------------------------------
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    # -- 4. Fronteiras de decisao (predicao manual sobre um meshgrid) ---------
     colors = ["#4e79a7", "#f28e2b"]
     cmap = mcolors.ListedColormap(colors)
+    x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
+    y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 300),
+                         np.linspace(y_min, y_max, 300))
+    grid = np.c_[xx.ravel(), yy.ravel()]
 
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
     for ax, crit in zip(axes, criteria):
-        clf = trees[crit]
-        DecisionBoundaryDisplay.from_estimator(
-            clf, X, response_method="predict",
-            alpha=0.3, ax=ax, cmap=cmap,
-        )
-        ax.scatter(
-            X_train[:, 0], X_train[:, 1], c=y_train,
-            cmap=cmap, marker="x", s=40, alpha=0.6, linewidths=1.0,
-        )
-        ax.scatter(
-            X_test[:, 0], X_test[:, 1], c=y_test,
-            cmap=cmap, edgecolors="k", s=40, linewidths=0.6,
-        )
-        acc = metrics[crit]["accuracy"]
-        depth = metrics[crit]["depth"]
-        leaves = metrics[crit]["n_leaves"]
-        ax.set_title(
-            "criterion={}\nAcc={:.4f}  depth={}  leaves={}".format(
-                repr(crit), acc, depth, leaves
-            ),
-            fontsize=11,
-        )
-        ax.set_xlabel("Feature 0")
-        ax.set_ylabel("Feature 1")
-
-    class_patches = [
-        mpatches.Patch(color=c, label="Class {}".format(i))
-        for i, c in enumerate(colors)
-    ]
-    train_handle = mlines.Line2D(
-        [], [], marker="x", color="gray", linestyle="None",
-        markersize=7, label="train",
-    )
-    test_handle = mlines.Line2D(
-        [], [], marker="o", color="gray", linestyle="None",
-        markersize=7, markeredgecolor="k", label="test",
-    )
-    fig.legend(
-        handles=class_patches + [train_handle, test_handle],
-        loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.02),
-    )
-    fig.suptitle(
-        "Decision Tree: Gini vs Entropy -- 2D Decision Boundaries",
-        fontsize=13,
-    )
+        zz = trees[crit].predict(grid).reshape(xx.shape)
+        ax.contourf(xx, yy, zz, alpha=0.3, cmap=cmap, levels=[-0.5, 0.5, 1.5])
+        ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cmap,
+                   marker="x", s=40, alpha=0.6, linewidths=1.0)
+        ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=cmap,
+                   edgecolors="k", s=40, linewidths=0.6)
+        m = metrics[crit]
+        ax.set_title("criterion='{}'\nAcc={:.4f}  depth={}  leaves={}".format(
+            crit, m["accuracy"], m["depth"], m["n_leaves"]), fontsize=11)
+        ax.set_xlabel("Feature 0"); ax.set_ylabel("Feature 1")
+    class_patches = [mpatches.Patch(color=c, label="Class {}".format(i))
+                     for i, c in enumerate(colors)]
+    train_handle = mlines.Line2D([], [], marker="x", color="gray", linestyle="None",
+                                 markersize=7, label="train")
+    test_handle = mlines.Line2D([], [], marker="o", color="gray", linestyle="None",
+                                markersize=7, markeredgecolor="k", label="test")
+    fig.legend(handles=class_patches + [train_handle, test_handle],
+               loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.02))
+    fig.suptitle("Arvore de Decisao MANUAL: Gini vs Entropy -- Fronteiras 2D", fontsize=13)
     plt.tight_layout(rect=[0, 0.08, 1, 0.96])
     boundary_path = os.path.join(OUTPUT_DIR, "boundary_comparison.png")
-    plt.savefig(boundary_path, dpi=120, bbox_inches="tight")
-    plt.close()
-    print("Saved: {}".format(boundary_path))
+    plt.savefig(boundary_path, dpi=120, bbox_inches="tight"); plt.close()
+    print("Saved:", boundary_path)
 
-    # -- 5. Feature importance comparison -----------------------------------------
+    # -- 5. Importancia das features ------------------------------------------
     fig, ax = plt.subplots(figsize=(6, 4))
-    x = np.arange(2)
-    width = 0.35
-    bars_g = ax.bar(
-        x - width / 2, metrics["gini"]["feature_importances"], width,
-        label="Gini", color="#4e79a7", edgecolor="k", linewidth=0.7,
-    )
-    bars_e = ax.bar(
-        x + width / 2, metrics["entropy"]["feature_importances"], width,
-        label="Entropy", color="#f28e2b", edgecolor="k", linewidth=0.7,
-    )
-    ax.set_xticks(x)
-    ax.set_xticklabels(["Feature 0", "Feature 1"])
-    ax.set_xlabel("Feature")
-    ax.set_ylabel("Importance")
-    g_acc = metrics["gini"]["accuracy"]
-    g_depth = metrics["gini"]["depth"]
-    e_depth = metrics["entropy"]["depth"]
-    e_acc = metrics["entropy"]["accuracy"]
-    ax.set_title(
-        "Feature Importance: Gini vs Entropy\n(Acc Gini={:.1f}% / Entropy={:.1f}%, depth Gini={} / Entropy={})".format(
-            g_acc * 100, e_acc * 100, g_depth, e_depth
-        )
-    )
+    xpos = np.arange(2); width = 0.35
+    bars_g = ax.bar(xpos - width / 2, metrics["gini"]["feature_importances"], width,
+                    label="Gini", color="#4e79a7", edgecolor="k", linewidth=0.7)
+    bars_e = ax.bar(xpos + width / 2, metrics["entropy"]["feature_importances"], width,
+                    label="Entropy", color="#f28e2b", edgecolor="k", linewidth=0.7)
+    ax.set_xticks(xpos); ax.set_xticklabels(["Feature 0", "Feature 1"])
+    ax.set_xlabel("Feature"); ax.set_ylabel("Importance")
+    ax.set_title("Importancia das Features: Gini vs Entropy")
     ax.legend()
-    max_importance = max(
-        max(metrics["gini"]["feature_importances"]),
-        max(metrics["entropy"]["feature_importances"]),
-    )
-    ax.set_ylim(0, max_importance * 1.15)
     for bar in list(bars_g) + list(bars_e):
         h = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2, h + 0.01,
-            "{:.3f}".format(h),
-            ha="center", va="bottom", fontsize=9,
-        )
+        ax.text(bar.get_x() + bar.get_width() / 2, h + 0.01, "{:.3f}".format(h),
+                ha="center", va="bottom", fontsize=9)
     plt.tight_layout()
     importance_path = os.path.join(OUTPUT_DIR, "importance.png")
-    plt.savefig(importance_path, dpi=120, bbox_inches="tight")
-    plt.close()
-    print("Saved: {}".format(importance_path))
+    plt.savefig(importance_path, dpi=120, bbox_inches="tight"); plt.close()
+    print("Saved:", importance_path)
 
-    # -- 5b. Depth-vs-accuracy sweep ------------------------------------------
-    # Extend range 3 levels beyond the deeper tree so the plateau is visible;
-    # this also shows well beyond the shallower tree (e.g., 8 levels beyond Gini=9
-    # when Entropy=14 is the deeper one).
-    max_natural_depth = max(metrics["gini"]["depth"], metrics["entropy"]["depth"])
-    depth_range = list(range(1, max_natural_depth + 4))
-    sweep_acc = {"gini": [], "entropy": []}
-    sweep_train_acc = {"gini": [], "entropy": []}
-    for max_d in depth_range:
+    # -- 6. Sweep profundidade vs acuracia ------------------------------------
+    max_natural = max(metrics["gini"]["depth"], metrics["entropy"]["depth"])
+    depth_range = list(range(1, max_natural + 4))
+    sweep_test = {"gini": [], "entropy": []}
+    sweep_train = {"gini": [], "entropy": []}
+    for d in depth_range:
         for crit in criteria:
-            clf_d = DecisionTreeClassifier(criterion=crit, max_depth=max_d, random_state=SEED)
-            clf_d.fit(X_train, y_train)
-            sweep_acc[crit].append(clf_d.score(X_test, y_test))
-            sweep_train_acc[crit].append(clf_d.score(X_train, y_train))
+            clf_d = DecisionTree(criterion=crit, max_depth=d).fit(X_train, y_train)
+            sweep_test[crit].append(clf_d.score(X_test, y_test))
+            sweep_train[crit].append(clf_d.score(X_train, y_train))
 
-    # Print sweep table so per-depth accuracy claims are verifiable from text output
-    sweep_header = "{:>10} {:>15} {:>16} {:>16} {:>18}".format("max_depth", "gini_test_acc", "gini_train_acc", "entropy_test_acc", "entropy_train_acc")
+    sweep_header = "{:>10} {:>15} {:>16} {:>16} {:>18}".format(
+        "max_depth", "gini_test_acc", "gini_train_acc", "entropy_test_acc", "entropy_train_acc")
     sweep_sep = "-" * len(sweep_header)
-    print(sweep_sep)
-    print("Depth-vs-accuracy sweep:")
-    print(sweep_header)
-    print(sweep_sep)
-    for i, max_d in enumerate(depth_range):
+    print(sweep_sep); print("Depth-vs-accuracy sweep:"); print(sweep_header); print(sweep_sep)
+    for i, d in enumerate(depth_range):
         print("{:>10} {:>15.4f} {:>16.4f} {:>16.4f} {:>18.4f}".format(
-            max_d, sweep_acc["gini"][i], sweep_train_acc["gini"][i],
-            sweep_acc["entropy"][i], sweep_train_acc["entropy"][i]
-        ))
-    print(sweep_sep)
-    print()
+            d, sweep_test["gini"][i], sweep_train["gini"][i],
+            sweep_test["entropy"][i], sweep_train["entropy"][i]))
+    print(sweep_sep); print()
 
     fig2, ax2 = plt.subplots(figsize=(9, 4))
-    ax2.plot(depth_range, [v * 100 for v in sweep_acc["gini"]], "o-",
-             color="#4e79a7", label="Gini test")
-    ax2.plot(depth_range, [v * 100 for v in sweep_train_acc["gini"]], "o:",
-             color="#4e79a7", alpha=0.5, label="Gini train")
-    ax2.plot(depth_range, [v * 100 for v in sweep_acc["entropy"]], "s--",
-             color="#f28e2b", label="Entropy test")
-    ax2.plot(depth_range, [v * 100 for v in sweep_train_acc["entropy"]], "s:",
-             color="#f28e2b", alpha=0.5, label="Entropy train")
-    ax2.axvline(x=metrics["gini"]["depth"], color="#4e79a7", linestyle=":",
-                alpha=0.7, label="Gini unrestricted depth ({})".format(metrics["gini"]["depth"]))
-    ax2.axvline(x=metrics["entropy"]["depth"], color="#f28e2b", linestyle=":",
-                alpha=0.7, label="Entropy unrestricted depth ({})".format(metrics["entropy"]["depth"]))
-    ax2.set_xlabel("max_depth")
-    ax2.set_ylabel("Accuracy (%)")
-    ax2.set_title("Depth vs Accuracy: Train vs Test (Gini vs Entropy)")
-    ax2.legend(fontsize=8)
-    ax2.set_xticks(depth_range)
-    ax2.grid(True, alpha=0.3)
+    ax2.plot(depth_range, [v * 100 for v in sweep_test["gini"]], "o-", color="#4e79a7", label="Gini test")
+    ax2.plot(depth_range, [v * 100 for v in sweep_train["gini"]], "o:", color="#4e79a7", alpha=0.5, label="Gini train")
+    ax2.plot(depth_range, [v * 100 for v in sweep_test["entropy"]], "s--", color="#f28e2b", label="Entropy test")
+    ax2.plot(depth_range, [v * 100 for v in sweep_train["entropy"]], "s:", color="#f28e2b", alpha=0.5, label="Entropy train")
+    ax2.axvline(x=metrics["gini"]["depth"], color="#4e79a7", linestyle=":", alpha=0.7,
+                label="Gini depth ({})".format(metrics["gini"]["depth"]))
+    ax2.axvline(x=metrics["entropy"]["depth"], color="#f28e2b", linestyle=":", alpha=0.7,
+                label="Entropy depth ({})".format(metrics["entropy"]["depth"]))
+    ax2.set_xlabel("max_depth"); ax2.set_ylabel("Accuracy (%)")
+    ax2.set_title("Profundidade vs Acuracia (Gini vs Entropy)")
+    ax2.legend(fontsize=8); ax2.set_xticks(depth_range); ax2.grid(True, alpha=0.3)
     plt.tight_layout()
-    depth_sweep_path = os.path.join(OUTPUT_DIR, "depth_vs_accuracy.png")
-    plt.savefig(depth_sweep_path, dpi=120, bbox_inches="tight")
-    plt.close()
-    print("Saved: {}".format(depth_sweep_path))
+    depth_path = os.path.join(OUTPUT_DIR, "depth_vs_accuracy.png")
+    plt.savefig(depth_path, dpi=120, bbox_inches="tight"); plt.close()
+    print("Saved:", depth_path)
 
-    # -- 5c. Confusion matrix heatmap -----------------------------------------
+    # -- 7. Matriz de confusao (heatmap manual) -------------------------------
     fig_cm, axes_cm = plt.subplots(1, 2, figsize=(8, 3.5))
     for ax_cm, crit in zip(axes_cm, criteria):
-        cm_arr = np.array(metrics[crit]["confusion_matrix"])
-        disp = ConfusionMatrixDisplay(confusion_matrix=cm_arr, display_labels=["Class 0", "Class 1"])
-        disp.plot(ax=ax_cm, colorbar=False, cmap="Blues")
-        disp.ax_.set_title("criterion={}".format(repr(crit)), fontsize=11)
-    fig_cm.suptitle("Confusion Matrix: Gini vs Entropy (test set, n=100)", fontsize=12)
+        cm = np.array(metrics[crit]["confusion_matrix"])
+        ax_cm.imshow(cm, cmap="Blues")
+        for (i, j), v in np.ndenumerate(cm):
+            ax_cm.text(j, i, str(v), ha="center", va="center",
+                       color="white" if v > cm.max() / 2 else "black", fontsize=12)
+        ax_cm.set_xticks([0, 1]); ax_cm.set_yticks([0, 1])
+        ax_cm.set_xticklabels(["Pred 0", "Pred 1"]); ax_cm.set_yticklabels(["Real 0", "Real 1"])
+        ax_cm.set_title("criterion='{}'".format(crit), fontsize=11)
+    fig_cm.suptitle("Matriz de Confusao: Gini vs Entropy (teste, n=100)", fontsize=12)
     plt.tight_layout()
     cm_path = os.path.join(OUTPUT_DIR, "confusion_matrix.png")
-    plt.savefig(cm_path, dpi=120, bbox_inches="tight")
-    plt.close()
-    print("Saved: {}".format(cm_path))
+    plt.savefig(cm_path, dpi=120, bbox_inches="tight"); plt.close()
+    print("Saved:", cm_path)
 
-    # -- 6. Tree structure text ----------------------------------------------------
-    tree_texts = {}
-    for crit in criteria:
-        # max_depth=clf.get_depth() ensures the full tree is printed;
-        # the default max_depth=10 would silently truncate trees deeper than 10 levels.
-        tree_texts[crit] = export_text(trees[crit], feature_names=["f0", "f1"], max_depth=trees[crit].get_depth())
-        print("Tree structure ({}): ".format(crit))
-        print(tree_texts[crit])
+    # -- 8. Estrutura das arvores em texto ------------------------------------
+    tree_texts = {c: trees[c].export_text(["f0", "f1"]) for c in criteria}
 
-    # -- 7. Save report.txt -------------------------------------------------------
-    report_lines = [
+    # -- 9. report.txt --------------------------------------------------------
+    report = [
         "=" * 60,
-        "PROJETO 5 -- ARVORE DE DECISAO: Gini vs Entropia",
-        "=" * 60,
-        "",
-        "Dataset: make_classification, n_samples=500, n_features=2, n_classes=2, random_state=42",
+        "PROJETO 5 -- ARVORE DE DECISAO MANUAL: Gini vs Entropia",
+        "=" * 60, "",
+        "Dataset: make_classification, n_samples=500, n_features=2, random_state=42",
         "Train: {}  |  Test: {}".format(X_train.shape[0], X_test.shape[0]),
-        "",
-        "Metrics Comparison:",
-        header,
-        sep,
+        "Implementacao: arvore CART construida do zero (ver main.py).", "",
+        "Metrics Comparison:", header, sep,
     ]
-    for key in ["train_accuracy", "accuracy", "precision", "recall", "f1", "depth", "n_leaves", "n_nodes"]:
-        g = metrics["gini"][key]
-        e = metrics["entropy"][key]
+    for key in ["train_accuracy", "accuracy", "precision", "recall", "f1",
+                "depth", "n_leaves", "n_nodes"]:
+        g, e = metrics["gini"][key], metrics["entropy"][key]
         if isinstance(g, float):
-            report_lines.append("{:<22} {:>10.4f} {:>10.4f}".format(key, g, e))
+            report.append("{:<22} {:>10.4f} {:>10.4f}".format(key, g, e))
         else:
-            report_lines.append("{:<22} {:>10} {:>10}".format(key, g, e))
-    report_lines.append(sep)
-    report_lines.append("")
+            report.append("{:<22} {:>10} {:>10}".format(key, g, e))
+    report += [sep, ""]
     for crit in criteria:
         fi = metrics[crit]["feature_importances"]
-        report_lines.append(
-            "Feature importance ({}): f0={:.4f}, f1={:.4f}".format(crit, fi[0], fi[1])
-        )
-    report_lines.append("")
-    report_lines.append("Confusion Matrices:")
+        report.append("Feature importance ({}): f0={:.4f}, f1={:.4f}".format(crit, fi[0], fi[1]))
+    report.append("")
+    report.append("Confusion Matrices:")
     for crit in criteria:
         cm = metrics[crit]["confusion_matrix"]
-        tn, fp, fn, tp = cm[0][0], cm[0][1], cm[1][0], cm[1][1]
-        report_lines.append("  {} : TN={} FP={} FN={} TP={}".format(crit, tn, fp, fn, tp))
-    report_lines.append("")
-    report_lines.append("Predictions identical (gini vs entropy): {}".format(preds_identical))
-    report_lines.append("Samples where predictions differ: {}".format(n_preds_differ))
-    report_lines.append("")
-    report_lines.append("Redundant split analysis:")
-    for crit in criteria:
-        redundant = find_redundant_splits(trees[crit])
-        if redundant:
-            for parent_id, child_id, feat_idx, thr, side in redundant:
-                report_lines.append(
-                    "  WARNING ({}): node {} and {}-child {} both split on f{} <= {:.6f}".format(
-                        crit, parent_id, side, child_id, feat_idx, thr
-                    )
-                )
-        else:
-            report_lines.append("  {} : no redundant splits (direct parent-child pairs only; deeper levels not checked)".format(crit))
-    if ambiguous_pairs_gini_f0:
-        report_lines.append("  Gini f0 display-ambiguous pairs (distinct thresholds shown as same 2-decimal value by export_text):")
-        for a, b in ambiguous_pairs_gini_f0:
-            report_lines.append("    {:.5f} and {:.5f} (both display as f0 <= {:.2f})  diff={:.5f}".format(
-                a, b, round(a, 2), b - a))
-    report_lines.append("")
-    report_lines.append("Leaf sample counts (verifies overfitting claims):")
-    for line in leaf_sample_lines:
-        report_lines.append("  " + line)
-    report_lines.append("")
-    report_lines.append("Depth-vs-accuracy sweep:")
-    report_lines.append(sweep_header)
-    report_lines.append(sweep_sep)
-    for i, max_d in enumerate(depth_range):
-        report_lines.append("{:>10} {:>15.4f} {:>16.4f} {:>16.4f} {:>18.4f}".format(
-            max_d, sweep_acc["gini"][i], sweep_train_acc["gini"][i],
-            sweep_acc["entropy"][i], sweep_train_acc["entropy"][i]))
-    report_lines.append(sweep_sep)
-    report_lines.append("")
-    report_lines.append("Tree structure (Gini):")
-    report_lines.append(tree_texts["gini"])
-    report_lines.append("Tree structure (Entropy):")
-    report_lines.append(tree_texts["entropy"])
-
+        report.append("  {} : TN={} FP={} FN={} TP={}".format(
+            crit, cm[0][0], cm[0][1], cm[1][0], cm[1][1]))
+    report += ["", "Samples where predictions differ (gini vs entropy): {}".format(n_preds_differ), ""]
+    report.append("Redundant split analysis (pares pai-filho diretos):")
+    report += ["  " + l for l in redundant_lines]
+    report.append("")
+    report.append("Leaf sample counts (verifica overfitting/memorizacao):")
+    report += ["  " + l for l in leaf_lines]
+    report.append("  Nota: export_text usa 5 casas decimais — sem o artefato de arredondamento")
+    report.append("  de threshold que afeta o export_text do sklearn (que arredonda p/ 2 casas).")
+    report.append("")
+    report.append("Depth-vs-accuracy sweep:"); report.append(sweep_header); report.append(sweep_sep)
+    for i, d in enumerate(depth_range):
+        report.append("{:>10} {:>15.4f} {:>16.4f} {:>16.4f} {:>18.4f}".format(
+            d, sweep_test["gini"][i], sweep_train["gini"][i],
+            sweep_test["entropy"][i], sweep_train["entropy"][i]))
+    report += [sweep_sep, "", "Tree structure (Gini):", tree_texts["gini"],
+               "", "Tree structure (Entropy):", tree_texts["entropy"]]
     report_path = os.path.join(OUTPUT_DIR, "report.txt")
     with open(report_path, "w") as f:
-        f.write("\n".join(report_lines))
-    print("Saved: {}".format(report_path))
-    print()
-    print("Done.")
+        f.write("\n".join(report))
+    print("Saved:", report_path)
+    print("\nDone.")
 
 
 if __name__ == "__main__":
