@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto 10 — CNN para dados 1D e 2D</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; }
+    .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
+    .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
+    .reveal h1 { font-size: 1.85em; } .reveal h2 { font-size: 1.35em; }
+    .reveal p,.reveal li { font-size: .64em; line-height: 1.3; }
+    .muted { color: var(--muted); }
+    .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .num { font-size:1.35em; font-weight:900; color:var(--blue); }
+    code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; }
+    img.fit { max-height: 380px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
+    img.wide { max-height: 300px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
+    table { font-size:.5em; } th { background:#f1f5f9; } td, th { padding:.36em .5em !important; }
+    .reveal pre code { font-size:.78em; line-height:1.3; }
+    .terms li { font-size:.6em; }
+  </style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section>
+  <span class="tag">Projeto 10</span>
+  <h1>CNN para dados 1D e 2D</h1>
+  <p class="muted">CNNs (PyTorch) para classificação binária <strong>real</strong>: foto vs screenshot, com 450 imagens da coleção pessoal (Google Drive). Comparando 2D vs 1D, RGB vs grayscale, e visualizando os feature maps. Treino no RTX 3060.</p>
+  <div class="grid3">
+    <div class="card"><div class="num">2D vs 1D</div><p>imagem inteira vs perfil de linha</p></div>
+    <div class="card"><div class="num">RGB vs cinza</div><p>efeito dos canais</p></div>
+    <div class="card"><div class="num">feature maps</div><p>o que cada filtro enxerga</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Método: a convolução</h2>
+  <div class="grid2">
+    <div class="card">
+      <pre><code>S(i,j) = Σₘ Σₙ I(i+m, j+n)·K(m,n) + b
+A = ReLU(S)   →   MaxPool → ... → fc</code></pre>
+      <p class="muted">1D: mesma ideia com kernel 1D deslizando sobre o sinal.</p>
+    </div>
+    <div class="card terms">
+      <ul>
+        <li><strong>I</strong> — entrada: a imagem (H×W×canais); RGB = 3 canais, cinza = 1.</li>
+        <li><strong>K</strong> — o filtro/kernel (K×K), pesos <em>aprendidos</em> que detectam um padrão local.</li>
+        <li><strong>b</strong> — viés do filtro.</li>
+        <li><strong>S</strong> — o feature map: resposta do filtro em cada posição (i,j).</li>
+        <li><strong>ReLU + MaxPool</strong> — não-linearidade e redução de resolução (resume a região).</li>
+        <li><strong>1D</strong> — o sinal é o perfil de intensidade por linha (vetor de tamanho H).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Resultados</h2>
+  <div class="grid2">
+    <div>
+      <table>
+        <tr><th>Modalidade</th><th>Acc</th><th>F1</th></tr>
+        <tr><td><strong>2D RGB</strong></td><td>0.911</td><td><strong>0.917</strong></td></tr>
+        <tr><td>2D grayscale</td><td>0.889</td><td>0.891</td></tr>
+        <tr><td>1D (perfil de linha)</td><td>0.867</td><td>0.872</td></tr>
+      </table>
+      <p class="muted">2D &gt; 1D (estrutura espacial importa); RGB &gt; cinza (o canal de cor agrega). Ablação: nf=16 e k=3 são o melhor; k=7 cai p/ 0.79 — kernel grande demais p/ 64×64.</p>
+    </div>
+    <div><img class="fit" src="output/modalities_ablation.png" alt="Modalidades e ablação"></div>
+  </div>
+</section>
+
+<section>
+  <h2>O que os filtros enxergam</h2>
+  <img class="wide" src="output/feature_maps.png" alt="Feature maps do conv1">
+  <ul>
+    <li><strong>Screenshot:</strong> os filtros acendem nas <strong>bordas retangulares</strong> da caixa de UI — detectores de aresta/linha.</li>
+    <li><strong>Foto:</strong> os mesmos filtros respondem às <strong>texturas e gradientes</strong> da cena natural — ativações difusas, não bordas nítidas.</li>
+    <li>É essa diferença de resposta que a rede usa pra separar as classes — e por isso o 2D, que preserva a estrutura espacial, supera o 1D.</li>
+  </ul>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash:true, slideNumber:'c/t', transition:'slide' });</script>
+</body>
+</html>
