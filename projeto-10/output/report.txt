@@ -2,7 +2,7 @@
 PROJETO 10 — CNN 1D/2D
 ============================================================
 
-Tarefa: screenshot vs foto (imagens raw D:/media, 64x64).
+Tarefa: screenshot vs foto (imagens em data/, 64x64).
 Device: cuda | imagens: 450 (treino 360 / teste 90)
 
 Modalidades (F1 teste):

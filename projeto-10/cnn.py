@@ -7,7 +7,7 @@ efeito de filtros/pooling; e visualizar os feature maps das camadas convoluciona
 
 Problema REAL (fecha o ciclo 1/2): classificação binária das imagens pessoais —
 'screenshot vs foto de câmera' (tarefa visualmente saliente → feature maps
-interpretáveis). Imagens raw de D:/media; treino no RTX 3060 do xmain.
+interpretáveis). Imagens em data/ (pasta = rótulo), baixadas do Google Drive; treino no RTX 3060 do xmain.
 
   - 2D: CNN sobre a imagem (RGB = 3 canais vs grayscale = 1 canal)
   - 1D: CNN sobre o perfil de intensidade por linha (sinal de comprimento H)
@@ -31,7 +31,6 @@ OUT = os.path.join(HERE, "output")
 os.makedirs(OUT, exist_ok=True)
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
 SIZE = 64
-N_PER = 1500   # imagens por classe (subset p/ demo tratável)
 
 
 # =============================================================================
@@ -219,7 +218,7 @@ def main():
 
     # -- report -------------------------------------------------------------
     lines = ["=" * 60, "PROJETO 10 — CNN 1D/2D", "=" * 60, "",
-             "Tarefa: screenshot vs foto (imagens raw D:/media, {}x{}).".format(SIZE, SIZE),
+             "Tarefa: screenshot vs foto (imagens em data/, {}x{}).".format(SIZE, SIZE),
              "Device: {} | imagens: {} (treino {} / teste {})".format(DEV, len(y), len(ytr), len(yte)), "",
              "Modalidades (F1 teste):"]
     for m in mods:

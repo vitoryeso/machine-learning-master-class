@@ -129,7 +129,7 @@ def main():
 
     lines = ["=" * 60, "PROJETO 7 — REDE RBF MANUAL", "=" * 60, "",
              "Problema real: classificação binária (imagens pessoais, CLIP full-dim).",
-             "RBF: gaussianas + saída least-squares; sigma = d_max/sqrt(2k).", "",
+             "RBF: gaussianas + saída least-squares; sigma = mediana das distâncias ponto→centro.", "",
              "[1] Desempenho por tarefa (k=30, K-means):"]
     for task, m, base in rows:
         lines.append("  {:<20} acc={:.4f} prec={:.4f} rec={:.4f} f1={:.4f} (base {:.4f})".format(

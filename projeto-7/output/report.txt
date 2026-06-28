@@ -3,7 +3,7 @@ PROJETO 7 — REDE RBF MANUAL
 ============================================================
 
 Problema real: classificação binária (imagens pessoais, CLIP full-dim).
-RBF: gaussianas + saída least-squares; sigma = d_max/sqrt(2k).
+RBF: gaussianas + saída least-squares; sigma = mediana das distâncias ponto→centro.
 
 [1] Desempenho por tarefa (k=30, K-means):
   has_people           acc=0.8979 prec=0.7089 rec=0.6412 f1=0.6734 (base 0.8359)

@@ -44,13 +44,13 @@
   <h2>Método: a convolução</h2>
   <div class="grid2">
     <div class="card">
-      <pre><code>S(i,j) = Σₘ Σₙ I(i+m, j+n)·K(m,n) + b
+      <pre><code>S(i,j) = Σ_c Σₘ Σₙ I(i+m, j+n, c)·K(m,n,c) + b
 A = ReLU(S)   →   MaxPool → ... → fc</code></pre>
       <p class="muted">1D: mesma ideia com kernel 1D deslizando sobre o sinal.</p>
     </div>
     <div class="card terms">
       <ul>
-        <li><strong>I</strong> — entrada: a imagem (H×W×canais); RGB = 3 canais, cinza = 1.</li>
+        <li><strong>I</strong> — entrada: a imagem (H×W×canais); RGB = 3 canais, cinza = 1. A soma percorre também os canais c (por isso RGB agrega informação).</li>
         <li><strong>K</strong> — o filtro/kernel (K×K), pesos <em>aprendidos</em> que detectam um padrão local.</li>
         <li><strong>b</strong> — viés do filtro.</li>
         <li><strong>S</strong> — o feature map: resposta do filtro em cada posição (i,j).</li>

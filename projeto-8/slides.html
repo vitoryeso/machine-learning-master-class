@@ -50,9 +50,9 @@ f(x) = Σᵢ αᵢ·yᵢ·K(x, xᵢ) + b
     <div class="card terms">
       <ul>
         <li><strong>x</strong> — entrada (features CLIP da imagem).</li>
-        <li><strong>xᵢ</strong> — os <em>vetores de suporte</em>: pontos de treino que tocam a margem.</li>
+        <li><strong>xᵢ</strong> — os <em>vetores de suporte</em>: pontos de treino sobre ou dentro da margem (incl. mal classificados).</li>
         <li><strong>K</strong> — kernel RBF: similaridade gaussiana entre x e xᵢ.</li>
-        <li><strong>γ</strong> — largura do kernel: alto = influência local; baixo = suave.</li>
+        <li><strong>γ</strong> — inverso da largura do kernel: alto = kernel estreito, influência local; baixo = kernel largo, suave.</li>
         <li><strong>αᵢ, yᵢ</strong> — peso e rótulo (±1) de cada vetor de suporte.</li>
         <li><strong>C</strong> — regularização: troca margem larga × erros no treino.</li>
         <li><strong>ŷ</strong> — classe pelo sinal de f(x).</li>

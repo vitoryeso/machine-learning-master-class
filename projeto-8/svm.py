@@ -7,7 +7,7 @@ vetores de suporte. (NÃO pede "manual" → sklearn.SVC é legítimo.)
 
 Problema REAL (compartilhado com 7/9): classificação binária sobre as imagens
 pessoais (CLIP). Full-dim para métricas; 2D PCA para ilustrar. SVM escala mal com
-N (O(N^2)), então o treino full-dim usa um subconjunto estratificado.
+N (O(N^2)), então o treino full-dim usa um subconjunto amostrado aleatoriamente.
 """
 import os
 import sys
