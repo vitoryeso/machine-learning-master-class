@@ -31,7 +31,7 @@ Aluno: **Vitor Y. F. Freitas** · `vitoryeso@outlook.com`
 Antes dos métodos, os conceitos que reaparecem em todos.
 
 ### O que é "aprender"?
-Temos exemplos `(x, y)`: **x** é a *entrada* (um vetor de números que descreve algo — chamado **features**), e **y** é o *alvo* (o que queremos prever). Aprender = achar uma função `f` tal que `f(x) ≈ y` em exemplos **que o modelo nunca viu, de outra distribuição** — formalmente, minimizando uma **função de perda** `L(f(x), y)` que mede o erro entre o previsto e o real. Se `y` é categoria → **classificação**; se `y` é número contínuo → **regressão**; se não há `y` → **não-supervisionado** (ex.: clustering).
+Temos exemplos `(x, y)`: **x** é a *entrada* (um vetor de números que descreve algo — chamado **features**), e **y** é o *alvo* (o que queremos prever). Aprender = achar uma função `f` tal que `f(x) ≈ y` em exemplos **que o modelo nunca viu, de outra distribuição** — formalmente, minimizando a **função de perda** (o erro médio nos exemplos): `L = (1/N) Σᵢ ℓ(f(xᵢ), yᵢ)`, onde `ℓ` mede o erro de um exemplo (previsto vs real). Se `y` é categoria → **classificação**; se `y` é número contínuo → **regressão**; se não há `y` → **não-supervisionado** (ex.: clustering).
 
 ### Treino, validação e teste
 Dividimos os dados:
@@ -54,7 +54,7 @@ F1        = 2·(Precisão·Recall)/(Prec+Rec)  → média harmônica de precisã
 > **Por que não só acurácia?** Com classes **desbalanceadas** (ex.: 84% de uma classe), prever sempre a maioria já dá 84% de acurácia — parece bom, mas o modelo é inútil. F1 (ou F1 macro-averaged) expõe isso porque exige acertar a classe rara. Sempre compare contra o **baseline da classe majoritária**.
 
 ### Gradiente descendente (GD)
-A receita universal pra "ajustar parâmetros". Definimos uma **função de perda** `L(θ)` (o quão errado o modelo está, em função dos parâmetros `θ`). O **gradiente** `∇L` aponta na direção de maior *aumento* da perda; então andamos no sentido oposto:
+A receita universal pra "ajustar parâmetros". Definimos a **função de perda** explícita `L(θ) = (1/N) Σᵢ ℓ(f(xᵢ), yᵢ)` (o erro médio do modelo, em função dos parâmetros `θ`). O **gradiente** `∇L` aponta na direção de maior *aumento* da perda; então andamos no sentido oposto:
 
 ```
 θ ← θ − α · ∇L(θ)
