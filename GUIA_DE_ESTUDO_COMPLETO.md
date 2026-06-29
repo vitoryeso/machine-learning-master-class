@@ -31,7 +31,7 @@ Aluno: **Vitor Y. F. Freitas** · `vitoryeso@outlook.com`
 Antes dos métodos, os conceitos que reaparecem em todos.
 
 ### O que é "aprender"?
-Temos exemplos `(x, y)`: **x** é a *entrada* (um vetor de números que descreve algo — chamado **features**), e **y** é o *alvo* (o que queremos prever). Aprender = achar uma função `f` tal que `f(x) ≈ y` em exemplos **que o modelo nunca viu**. Se `y` é categoria → **classificação**; se `y` é número contínuo → **regressão**; se não há `y` → **não-supervisionado** (ex.: clustering).
+Temos exemplos `(x, y)`: **x** é a *entrada* (um vetor de números que descreve algo — chamado **features**), e **y** é o *alvo* (o que queremos prever). Aprender = achar uma função `f` tal que `f(x) ≈ y` em exemplos **que o modelo nunca viu, de outra distribuição**. Se `y` é categoria → **classificação**; se `y` é número contínuo → **regressão**; se não há `y` → **não-supervisionado** (ex.: clustering).
 
 ### Treino, validação e teste
 Dividimos os dados:
