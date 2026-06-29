@@ -31,36 +31,7 @@ Aluno: **Vitor Y. F. Freitas** · `vitoryeso@outlook.com`
 Antes dos métodos, os conceitos que reaparecem em todos.
 
 ### O que é "aprender"?
-
-**Intuição.** Temos exemplos `(x, y)`: **x** é a *entrada* (um vetor de números — as **features**) e **y** é o *alvo*. Aprender = achar uma função `f` tal que `f(x) ≈ y` em exemplos **nunca vistos**. (y categoria → **classificação**; y contínuo → **regressão**; sem y → **não-supervisionado**, ex.: clustering.)
-
-**Formalizando.** Assume-se um *processo gerador de dados* — uma distribuição de probabilidade conjunta `P(X, Y)` de onde os pares saem:
-
-```
-x  ~ P(X)         a entrada vem de uma distribuição  (ex.: "as imagens que eu coleciono")
-y  ~ P(Y | X)     o alvo vem de uma condicional      (a "regra verdadeira", possivelmente ruidosa)
-```
-
-- **P(X)** — distribuição das entradas: que tipos de `x` aparecem e com que frequência.
-- **P(Y | X)** — distribuição do alvo *dado* `x`: a relação verdadeira entre entrada e saída (ruidosa — o mesmo `x` pode gerar `y` diferente).
-
-O que *queremos* minimizar é o **risco esperado** — o erro médio sobre *toda* a distribuição:
-
-```
-R(f) = E_{(x,y) ~ P} [ L( f(x), y ) ]
-```
-
-- **L** — a função de perda (ver Gradiente Descendente); **E[·]** — a esperança (média ponderada pela probabilidade).
-
-Mas só temos uma **amostra** finita, então minimizamos o **risco empírico** (a média da perda na amostra). Isso só aproxima o risco verdadeiro sob a hipótese **i.i.d.**: treino e teste vêm da *mesma* `P`, e os exemplos são independentes.
-
-**Onde a hipótese quebra (restrições temporais e causais).** No deploy, as previsões `ŷ` são feitas sobre uma distribuição **atualizada no tempo** `P_t(X, Y)`, que pode ter mudado em relação à do treino — *distribution shift*. E há restrições **causais/temporais**: só se pode usar o passado para prever o futuro (não vazar informação futura), e a própria relação `X → Y` pode driftar. Três sabores:
-
-- **covariate shift** — muda `P(X)` (entradas novas/diferentes), mas `P(Y|X)` continua a mesma.
-- **label/prior shift** — muda `P(Y)` (a proporção das classes muda).
-- **concept drift** — muda `P(Y|X)`: a *regra verdadeira* muda no tempo — o caso mais difícil.
-
-> Por isso o teste num *split* aleatório é só um piso: ele assume i.i.d. No mundo real, monitora-se o shift e re-treina-se. Em dados **temporais**, o split tem de respeitar o tempo (treinar no passado, validar no futuro) — **nunca** embaralhar, sob pena de vazar o futuro no treino.
+Temos exemplos `(x, y)`: **x** é a *entrada* (um vetor de números que descreve algo — chamado **features**), e **y** é o *alvo* (o que queremos prever). Aprender = achar uma função `f` tal que `f(x) ≈ y` em exemplos **que o modelo nunca viu**. Se `y` é categoria → **classificação**; se `y` é número contínuo → **regressão**; se não há `y` → **não-supervisionado** (ex.: clustering).
 
 ### Treino, validação e teste
 Dividimos os dados:
