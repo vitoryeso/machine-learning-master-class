@@ -165,7 +165,13 @@ Leitura: o nível **macro é "real"** (um espaço independente recupera 83%), ma
 Ajustar uma reta (ou hiperplano) que melhor prevê um número. A questão do projeto não é *o modelo*, e sim **como otimizá-lo**: olhar todos os dados antes de cada passo (Batch GD) ou corrigir a cada exemplo (LMS/online)?
 
 ### Matemática
-Modelo: `ŷ = wᵀx + b`. Perda (erro quadrático médio):
+Modelo (regressão linear):
+
+```
+ŷ = wᵀx + b
+```
+
+Perda (erro quadrático médio):
 
 ```
 L(w,b) = (1/N) Σ_i (ŷ_i − y_i)²
@@ -224,13 +230,13 @@ p = sigmoid(z) = 1 / (1 + e^(−z))     → probabilidade da classe 1
 
 Perda: **Binary Cross-Entropy (BCE)** — penaliza confiança errada:
 ```
-L = −(1/n) Σ_i [ y_i·log(p_i) + (1−y_i)·log(1−p_i) ]
+L = −(1/N) Σ_i [ y_i·log(p_i) + (1−y_i)·log(1−p_i) ]
 ```
 - Se `y=1`, o termo `log(p)` empurra `p` pra cima; se `y=0`, `log(1−p)` empurra pra baixo.
 
 **A beleza:** a derivada da BCE composta com a sigmoid se simplifica elegantemente:
 ```
-∂L/∂w = (1/n) Σ_i (p_i − y_i)·x_i
+∂L/∂w = (1/N) Σ_i (p_i − y_i)·x_i
 ```
 O gradiente é só **(previsto − real) × entrada** — o mesmo formato da regressão linear! (Não é coincidência: ambas são *modelos lineares generalizados*.)
 
@@ -356,7 +362,7 @@ f(x) = Σ_i α_i · y_i · K(x, xᵢ) + b
 - **x** — entrada; **xᵢ** — os **vetores de suporte** (pontos críticos, na margem); **y_i** — rótulo deles (±1).
 - **K** — kernel: quão parecido x é de cada vetor de suporte.
 - **γ** (gamma) — largura do kernel: **alto** = influência muito local; **baixo** = suave/global.
-- **α_i** — peso de cada vetor de suporte; **C** — regularização: troca margem larga ↔ erros no treino.
+- **α_i** — peso de cada vetor de suporte; **b** — o viés (desloca a fronteira); **C** — regularização: troca margem larga ↔ erros no treino.
 
 ### No seu projeto (Projeto 8)
 SVM-RBF (sklearn) sobre CLIP, com varredura **C × γ**. F1 macro 0.95 — o **melhor** entre os modelos baseados em similaridade. Lição da varredura: **γ é o hiperparâmetro crítico** — γ alto (0.1) faz o kernel só "ver" o vizinho imediato → o modelo decora e o F1 **colapsa pra 0.09**; γ baixo/`scale` generaliza. O C, numa faixa ampla, mudou pouco. Os vetores de suporte se concentram na **zona de sobreposição** (a fronteira incerta).
