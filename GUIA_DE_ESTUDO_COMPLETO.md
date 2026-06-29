@@ -37,7 +37,7 @@ Temos exemplos `(x, y)`: **x** é a *entrada* (um vetor de números que descreve
 L = (1/N) Σᵢ ℓ(f(xᵢ), yᵢ)
 ```
 
-onde `ℓ` mede o erro de um exemplo (previsto vs real). Se `y` é categoria → **classificação**; se `y` é número contínuo → **regressão**; se não há `y` → **não-supervisionado** (ex.: clustering).
+onde `ℓ` mede o erro de um exemplo (previsto vs real), `N` é o número de exemplos e `i` indexa cada um. Se `y` é categoria → **classificação**; se `y` é número contínuo → **regressão**; se não há `y` → **não-supervisionado** (ex.: clustering).
 
 ### Treino, validação e teste
 Dividimos os dados:
