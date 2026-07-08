@@ -87,6 +87,27 @@ Tres graficos sao gerados para avaliar os resultados sob angulos complementares:
 
 ## Resultados
 
+### Resultado oficial — multi-seed (10 seeds, n=10000, mean±std)
+
+Execucao com 10 seeds independentes sobre um dataset maior (N=10.000 amostras, ddof=1 no calculo do desvio padrao). Este e o resultado **oficial** do experimento — mais robusto que uma unica seed, pois reduz o erro amostral e permite quantificar a variabilidade de cada algoritmo.
+
+| Metrica           | GD              | LMS             | Ref/Min.Teorico |
+|-------------------|-----------------|-----------------|-----------------|
+| MSE final          | 0.5018 ± 0.0118 | 0.2517 ± 0.0039 | 0.250000 (*)    |
+| w[0] (true=3.0)    | 2.60 ± 0.013    | 2.996 ± 0.011   | 3.000000        |
+| w[1] (true=-2.0)   | -1.73 ± 0.012   | -2.001 ± 0.006  | -2.000000       |
+| bias (true=1.0)    | 0.86 ± 0.014    | 0.991 ± 0.016   | 1.000000        |
+
+Notas:
+- GD segue **sub-convergido de proposito** (lr baixo, ver Nota de design em Metodologia) — o gap entre GD e o piso teorico e um resultado esperado, nao uma falha.
+- LMS converge essencialmente ao piso de ruido (sigma^2 = 0.25): a diferenca de 0.0017 esta dentro de 1 std.
+- O std encolheu ~4x em relacao a primeira rodada (N=300, seed unica): com N=10.000 o erro amostral do MSE e dos pesos diminui, o que e esperado para um modelo estavel como a regressao linear — nao decorre de um algoritmo "melhor", apenas de mais dados por rodada.
+- O gap GD vs LMS no MSE final (~0.25) e ≈20x maior que o std de qualquer um dos dois (0.0118 e 0.0039) — as barras de erro (mean ± std) nao se tocam, entao a diferenca e estatisticamente robusta, nao ruido de uma seed sortuda.
+
+### Resultado single-seed (seed=42, ilustracao)
+
+Tabela abaixo mantida como ilustracao do comportamento com uma unica seed (a mesma usada nos plots `output/*.png`, N=300). Os numeros oficiais para reportar sao os da tabela multi-seed acima.
+
 | Metrica           | GD         | LMS        | Ref/Min.Teorico |
 |-------------------|------------|------------|-----------------|
 | MSE final         | 0.479627 (**) | 0.235422   | 0.250000 (*)    |
@@ -109,7 +130,7 @@ Tres graficos sao gerados para avaliar os resultados sob angulos complementares:
 
 O MSE reportado e o MSE de treinamento (sem split treino/teste). Para regressao linear com ruido gaussiano e N >> d, o otimismo do MSE de treinamento e da ordem de (d/N)*sigma^2 = (2/300)*0.25 ≈ 0.0017, negligivel. A comparacao com sigma^2 e valida.
 
-O LMS convergiu para pesos muito proximos dos verdadeiros (erro < 0.04 em todos os parametros) e atingiu MSE = 0.235, ligeiramente abaixo do limite teorico de ruido (0.25) — variacao estatistica normal com 300 amostras. O GD com lr=0.01 e 200 epocas ainda nao convergiu completamente: pesos com erro de ate 0.363 em w[0] e MSE = 0.48, quase o dobro do minimo.
+O LMS convergiu para pesos muito proximos dos verdadeiros (erro < 0.04 em todos os parametros, seed=42) e atingiu MSE = 0.235, ligeiramente abaixo do limite teorico de ruido (0.25) — variacao estatistica normal com 300 amostras. O GD com lr=0.01 e 200 epocas ainda nao convergiu completamente: pesos com erro de ate 0.363 em w[0] e MSE = 0.48, quase o dobro do minimo. O resultado multi-seed (secao acima) confirma o mesmo padrao com variabilidade quantificada: LMS ≈ piso (0.2517±0.0039), GD sub-convergido de proposito (0.5018±0.0118).
 
 ## Conclusao
 
@@ -119,3 +140,4 @@ O LMS convergiu para pesos muito proximos dos verdadeiros (erro < 0.04 em todos 
 - **Limitacao**: o LMS com lr muito grande diverge. O GD com lr muito grande oscila. A escolha de hiperparametros e critica e independente para cada algoritmo.
 - Para datasets grandes, o LMS (SGD) e o preferido pois permite N passos de gradiente por epoca ao custo total de O(Nd), identico ao GD, mas com cada passo custando O(d) — possibilitando atualizacoes incrementais uteis quando N e muito grande ou quando o dataset chega em streaming.
 - O diagrama predito vs real (`pred_vs_actual.png`) confirma visualmente: os pontos do LMS estao mais concentrados em torno da diagonal ideal (y=x), enquanto os do GD mostram dispersao maior, consistente com o MSE quase dobrado.
+- **Robustez (multi-seed):** o resultado acima (seed=42) nao e um acaso de uma seed sortuda. Com 10 seeds (N=10.000), o gap GD vs LMS no MSE final (~0.25) e ≈20x maior que o std de cada algoritmo (0.0118 e 0.0039) — as barras de erro (mean ± std) nao se sobrepoem. O claim "LMS converge ao piso de ruido, GD nao (por design didatico)" e portanto robusto, nao um artefato de amostragem.
