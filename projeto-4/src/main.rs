@@ -139,6 +139,7 @@ fn train(
     epochs: usize,
     lr: f64,
     acc_threshold: f64,
+    verbose: bool,
 ) -> ([f64; 2], f64, Vec<f64>, Option<usize>, Vec<(usize, f64, f64)>) {
     let mut w = [0.0_f64; 2];
     let mut b = 0.0_f64;
@@ -157,7 +158,7 @@ fn train(
         if first_thresh.is_none() && acc >= acc_threshold {
             first_thresh = Some(epoch + 1);
         }
-        if (epoch + 1) % 100 == 0 || epoch == 0 {
+        if verbose && ((epoch + 1) % 100 == 0 || epoch == 0) {
             println!("Epoch {:>4} | Loss: {:.6} | Accuracy: {:.4}", epoch + 1, loss, acc);
         }
     }
@@ -389,8 +390,322 @@ fn plot_confusion_matrix(
     Ok(())
 }
 
+// =============================================================================
+// Multi-seed — robustez estatistica (media +/- desvio amostral sobre N seeds)
+// =============================================================================
+
+/// Media e desvio-padrao AMOSTRAL (ddof=1, divide por N-1). Com 1 amostra o
+/// desvio cai para 0.0 (nao ha variabilidade a estimar).
+fn mean_std(v: &[f64]) -> (f64, f64) {
+    let n = v.len();
+    if n == 0 {
+        return (0.0, 0.0);
+    }
+    let mean = v.iter().sum::<f64>() / n as f64;
+    let std = if n > 1 {
+        (v.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / (n as f64 - 1.0)).sqrt()
+    } else {
+        0.0
+    };
+    (mean, std)
+}
+
+/// Metricas de TESTE de uma unica realizacao (uma seed).
+struct SeedMetrics {
+    seed: u64,
+    accuracy: f64,
+    precision: f64,
+    recall: f64,
+    f1: f64,
+    bce: f64,
+}
+
+/// Roda o pipeline completo (gera gaussianas com a seed, split, treina, avalia
+/// no teste) para UMA seed. A seed varia as gaussianas sinteticas (via
+/// generate_dataset) E o embaralhamento do split. Treino silencioso (verbose=false).
+fn evaluate_seed(
+    seed: u64,
+    n_samples: usize,
+    epochs: usize,
+    lr: f64,
+    train_ratio: f64,
+    acc_threshold: f64,
+) -> SeedMetrics {
+    let (x, y) = generate_dataset(n_samples, seed);
+    let split_idx = (n_samples as f64 * train_ratio).round() as usize;
+    let (x_train, y_train, x_test, y_test) = train_test_split(&x, &y, split_idx);
+    let (w, b, _, _, _) = train(x_train, y_train, epochs, lr, acc_threshold, false);
+
+    let p_test = predict_proba(x_test, &w, b);
+    let bce = binary_cross_entropy(y_test, &p_test);
+    let acc = accuracy(y_test, &p_test);
+    let (tp, fp, _tn, fn_) = confusion_matrix(y_test, &p_test);
+    let (prec, rec, f1) = precision_recall_f1(tp, fp, fn_);
+    SeedMetrics { seed, accuracy: acc, precision: prec, recall: rec, f1, bce }
+}
+
+/// Barra vertical com "cap" (barra de erro tipo I) desenhada a mao em coords de dados.
+fn draw_error_bar<DB: DrawingBackend>(
+    chart: &mut ChartContext<DB, plotters::coord::cartesian::Cartesian2d<
+        plotters::coord::types::RangedCoordf64,
+        plotters::coord::types::RangedCoordf64,
+    >>,
+    x: f64,
+    lo: f64,
+    hi: f64,
+    cap: f64,
+) -> Result<(), Box<dyn std::error::Error>>
+where
+    DB::ErrorType: 'static,
+{
+    chart.draw_series(std::iter::once(PathElement::new(
+        vec![(x, lo), (x, hi)],
+        BLACK.stroke_width(2),
+    )))?;
+    chart.draw_series(std::iter::once(PathElement::new(
+        vec![(x - cap, hi), (x + cap, hi)],
+        BLACK.stroke_width(2),
+    )))?;
+    chart.draw_series(std::iter::once(PathElement::new(
+        vec![(x - cap, lo), (x + cap, lo)],
+        BLACK.stroke_width(2),
+    )))?;
+    Ok(())
+}
+
+/// Grafico de barras das metricas de teste (acuracia/precisao/recall/F1) com
+/// barras de erro = desvio amostral. Piso do eixo Y ADAPTATIVO (nao fixo em 0):
+/// olha o menor (media-desvio) e abre uma folga, para as barras de erro nao
+/// ficarem espremidas no topo. BCE fica de fora do grafico (escala diferente).
+fn plot_metrics_multiseed(
+    labels: &[&str],
+    means: &[f64],
+    stds: &[f64],
+    n_seeds: usize,
+    path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let root = BitMapBackend::new(path, (820, 520)).into_drawing_area();
+    root.fill(&WHITE)?;
+
+    let k = labels.len();
+    let lo = means.iter().zip(stds.iter())
+        .map(|(m, s)| m - s).fold(f64::INFINITY, f64::min);
+    let hi = means.iter().zip(stds.iter())
+        .map(|(m, s)| m + s).fold(f64::NEG_INFINITY, f64::max);
+    // Piso adaptativo: 3% abaixo do menor limite inferior das barras de erro,
+    // sem descer de 0. Teto: 3% acima do maior limite superior, sem passar de 1.
+    let y_min = (lo - 0.03).max(0.0);
+    let y_max = (hi + 0.03).min(1.0).max(y_min + 0.02);
+
+    let mut chart = ChartBuilder::on(&root)
+        .caption(
+            format!("Metricas de Teste - media +/- desvio amostral ({n_seeds} seeds)"),
+            ("sans-serif", 18),
+        )
+        .margin(20)
+        .x_label_area_size(40)
+        .y_label_area_size(60)
+        .build_cartesian_2d(-0.5f64..(k as f64 - 0.5), y_min..y_max)?;
+
+    let lbls = labels.to_vec();
+    chart
+        .configure_mesh()
+        .disable_x_mesh()
+        .x_labels(k)
+        .x_label_formatter(&move |x: &f64| {
+            let i = x.round();
+            if i >= 0.0 && (i as usize) < lbls.len() {
+                lbls[i as usize].to_string()
+            } else {
+                String::new()
+            }
+        })
+        .y_desc("Score (teste)")
+        .draw()?;
+
+    let half_w = 0.35_f64;
+    for i in 0..k {
+        let xc = i as f64;
+        let m = means[i];
+        let s = stds[i];
+        // barra
+        chart.draw_series(std::iter::once(Rectangle::new(
+            [(xc - half_w, y_min), (xc + half_w, m)],
+            RGBColor(78, 121, 167).mix(0.85).filled(),
+        )))?;
+        chart.draw_series(std::iter::once(Rectangle::new(
+            [(xc - half_w, y_min), (xc + half_w, m)],
+            BLACK.stroke_width(1),
+        )))?;
+        // barra de erro
+        draw_error_bar(&mut chart, xc, m - s, m + s, 0.12)?;
+        // rotulo media+/-desvio acima da barra de erro
+        chart.draw_series(std::iter::once(Text::new(
+            format!("{:.3}\n+/-{:.3}", m, s),
+            (xc, (m + s + (y_max - y_min) * 0.02).min(y_max)),
+            ("sans-serif", 13).into_font().color(&BLACK),
+        )))?;
+    }
+
+    root.present()?;
+    println!("Saved: {path}");
+    Ok(())
+}
+
+/// Executa a analise multi-seed: roda evaluate_seed sobre `seeds`, agrega
+/// media +/- desvio amostral, imprime a tabela, grava report_multiseed.txt e
+/// plota metrics_multiseed.png. RESULTADO OFICIAL do projeto.
+fn run_multiseed(
+    seeds: &[u64],
+    n_samples: usize,
+    epochs: usize,
+    lr: f64,
+    train_ratio: f64,
+    acc_threshold: f64,
+    output_dir: &std::path::Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let per_seed: Vec<SeedMetrics> = seeds
+        .iter()
+        .map(|&s| evaluate_seed(s, n_samples, epochs, lr, train_ratio, acc_threshold))
+        .collect();
+
+    let acc: Vec<f64> = per_seed.iter().map(|m| m.accuracy).collect();
+    let prec: Vec<f64> = per_seed.iter().map(|m| m.precision).collect();
+    let rec: Vec<f64> = per_seed.iter().map(|m| m.recall).collect();
+    let f1: Vec<f64> = per_seed.iter().map(|m| m.f1).collect();
+    let bce: Vec<f64> = per_seed.iter().map(|m| m.bce).collect();
+
+    let (acc_m, acc_s) = mean_std(&acc);
+    let (prec_m, prec_s) = mean_std(&prec);
+    let (rec_m, rec_s) = mean_std(&rec);
+    let (f1_m, f1_s) = mean_std(&f1);
+    let (bce_m, bce_s) = mean_std(&bce);
+
+    let n = seeds.len();
+    let mut lines: Vec<String> = Vec::new();
+    lines.push(format!(
+        "Multi-seed: media +/- desvio amostral (ddof=1) sobre {} seeds {:?}",
+        n, seeds
+    ));
+    lines.push(
+        "(cada seed = nova realizacao das gaussianas 2D + novo embaralhamento do split)"
+            .to_string(),
+    );
+    let n_test = n_samples - (n_samples as f64 * train_ratio).round() as usize;
+    lines.push(format!(
+        "Dataset por seed: {} amostras (teste ~{}). Dataset GRANDE de proposito:",
+        n_samples, n_test
+    ));
+    lines.push(
+        "o desvio da acuracia e o erro-padrao BINOMIAL ~sqrt(p(1-p)/n_teste), dominado".to_string(),
+    );
+    lines.push(
+        "pelo tamanho do teste (nao pelo nº de seeds); teste grande encolhe-o de graca.".to_string(),
+    );
+    lines.push(String::new());
+    let hdr = format!("{:<18} {:>12} {:>12}", "Metrica (teste)", "Media", "Desvio");
+    let sep = "-".repeat(hdr.len());
+    lines.push(hdr.clone());
+    lines.push(sep.clone());
+    lines.push(format!("{:<18} {:>11.2}% {:>11.2}%", "Acuracia", acc_m * 100.0, acc_s * 100.0));
+    lines.push(format!("{:<18} {:>12.4} {:>12.4}", "Precisao", prec_m, prec_s));
+    lines.push(format!("{:<18} {:>12.4} {:>12.4}", "Recall", rec_m, rec_s));
+    lines.push(format!("{:<18} {:>12.4} {:>12.4}", "F1-Score", f1_m, f1_s));
+    lines.push(format!("{:<18} {:>12.4} {:>12.4}", "BCE (loss)", bce_m, bce_s));
+    lines.push(sep.clone());
+    lines.push(String::new());
+    lines.push("Por seed (teste):".to_string());
+    lines.push(format!(
+        "{:>6} {:>10} {:>10} {:>10} {:>10} {:>10}",
+        "seed", "acc", "prec", "recall", "f1", "bce"
+    ));
+    for m in &per_seed {
+        lines.push(format!(
+            "{:>6} {:>10.4} {:>10.4} {:>10.4} {:>10.4} {:>10.4}",
+            m.seed, m.accuracy, m.precision, m.recall, m.f1, m.bce
+        ));
+    }
+    lines.push(String::new());
+    // Contextualiza a claim do RELATORIO/slides contra a variabilidade multi-seed.
+    let bayes_err = 3.57_f64; // Phi(-sqrt(13)/2), erro de Bayes do problema (centros fixos)
+    lines.push(format!(
+        "Erro de teste multi-seed : {:.2}% +/- {:.2}%  (100% - acuracia)",
+        (1.0 - acc_m) * 100.0,
+        acc_s * 100.0
+    ));
+    lines.push(format!(
+        "Limite de Bayes (teorico): {:.2}%  [Phi(-sqrt(13)/2), centros fixos das gaussianas]",
+        bayes_err
+    ));
+
+    let report = lines.join("\n") + "\n";
+    std::fs::write(output_dir.join("report_multiseed.txt"), &report)?;
+    println!("Saved: {}", output_dir.join("report_multiseed.txt").display());
+
+    // CSV mean/std — alimenta o helper Python portatil (plot_multiseed.py) para
+    // gerar metrics_multiseed.png em maquinas headless sem fontconfig (ex.: yalien),
+    // onde o backend de texto do plotters (font-kit) nao esta disponivel.
+    let mut csv = String::from("metric,mean,std\n");
+    csv.push_str(&format!("accuracy,{:.6},{:.6}\n", acc_m, acc_s));
+    csv.push_str(&format!("precision,{:.6},{:.6}\n", prec_m, prec_s));
+    csv.push_str(&format!("recall,{:.6},{:.6}\n", rec_m, rec_s));
+    csv.push_str(&format!("f1,{:.6},{:.6}\n", f1_m, f1_s));
+    csv.push_str(&format!("bce,{:.6},{:.6}\n", bce_m, bce_s));
+    std::fs::write(output_dir.join("metrics_multiseed.csv"), &csv)?;
+    println!("Saved: {}", output_dir.join("metrics_multiseed.csv").display());
+
+    // stdout
+    println!("=== RESULTADO OFICIAL (multi-seed) ===");
+    println!("{report}");
+
+    // plot em Rust (plotters) — mecanismo padrao no Windows/xmain (font-kit/DirectWrite).
+    // Nao-fatal: se o backend de fonte faltar (headless sem fontconfig), avisa e
+    // segue — nesse caso use `python3 plot_multiseed.py` sobre o CSV acima.
+    match plot_metrics_multiseed(
+        &["Acuracia", "Precisao", "Recall", "F1"],
+        &[acc_m, prec_m, rec_m, f1_m],
+        &[acc_s, prec_s, rec_s, f1_s],
+        n,
+        output_dir.join("metrics_multiseed.png").to_str().unwrap(),
+    ) {
+        Ok(()) => {}
+        Err(e) => eprintln!(
+            "Aviso: plot Rust de metrics_multiseed.png falhou ({e}). \
+             Gere via helper portatil: python3 plot_multiseed.py"
+        ),
+    }
+
+    Ok(())
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Mini-Projeto 4: Logistic Regression from Scratch ===\n");
+
+    // Flag CLI: -n <N> (default 3). Seeds = [42, 43, ..., 42+N-1].
+    let mut n_seeds: usize = 3;
+    let args: Vec<String> = std::env::args().collect();
+    let mut ai = 1;
+    while ai < args.len() {
+        match args[ai].as_str() {
+            "-n" | "--n-seeds" => {
+                if ai + 1 < args.len() {
+                    n_seeds = args[ai + 1].parse().unwrap_or_else(|_| {
+                        eprintln!("Aviso: -n invalido ('{}'), usando 3", args[ai + 1]);
+                        3
+                    });
+                    ai += 1;
+                } else {
+                    eprintln!("Aviso: -n sem valor, usando 3");
+                }
+            }
+            other => eprintln!("Aviso: argumento ignorado: {other}"),
+        }
+        ai += 1;
+    }
+    if n_seeds == 0 {
+        eprintln!("Aviso: -n 0 invalido, usando 1");
+        n_seeds = 1;
+    }
 
     let n_samples   = 300_usize;
     let epochs      = 1000_usize;
@@ -408,7 +723,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !output_dir.parent().unwrap().join("Cargo.toml").exists() {
         eprintln!("Warning: Cargo.toml not found in CWD -- output files may land in the wrong place. Run with `cargo run` from the project root.");
     }
+    std::fs::create_dir_all(&output_dir)?;
 
+    // -- 0. Multi-seed: RESULTADO OFICIAL (media +/- desvio sobre N seeds) -----
+    // Cada seed varia as gaussianas sinteticas + o split. Roda antes do single-seed.
+    // Usa dataset GRANDE (ms_n_samples): o desvio da acuracia por seed e dominado
+    // pelo erro-padrao BINOMIAL de medir num teste finito (~sqrt(p(1-p)/n_teste)),
+    // NAO pelo numero de seeds. Como o dado e sintetico, avaliar em n grande encolhe
+    // esse erro de graca e a media encosta no limite de Bayes (~96.43%). A ilustracao
+    // single-seed abaixo segue em n=300 (fronteira de decisao legivel).
+    let ms_n_samples = 10_000_usize;
+    let seeds: Vec<u64> = (0..n_seeds as u64).map(|i| seed + i).collect();
+    run_multiseed(&seeds, ms_n_samples, epochs, lr, train_ratio, acc_threshold, &output_dir)?;
+    println!();
+
+    // -- 1. Single-seed (seed=42): ILUSTRACAO de 1 realizacao (gera as figuras) -
+    println!("--- Ilustracao (seed=42, 1 realizacao) — base das figuras single-seed ---");
     let (x, y) = generate_dataset(n_samples, seed);
     let split_idx = (n_samples as f64 * train_ratio).round() as usize;
 
@@ -426,7 +756,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Treinando regressao logistica (lr={lr}, epochs={epochs}):");
     println!("Nota: loss e acuracia por epoca sao pre-atualizacao dos pesos daquela epoca.");
     let (w, b, loss_history, first_thresh_epoch, csv_log) =
-        train(x_train, y_train, epochs, lr, acc_threshold);
+        train(x_train, y_train, epochs, lr, acc_threshold, true);
 
     let p_train_final    = predict_proba(x_train, &w, b);
     let train_final_loss = binary_cross_entropy(y_train, &p_train_final);
@@ -464,7 +794,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    std::fs::create_dir_all(&output_dir)?;
     println!("Diretorio de saida: {}", output_dir.display());
 
     plot_decision_boundary(x_train, y_train, x_test, y_test, &w, b,
@@ -503,6 +832,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let report = format!(
         "Mini-Projeto 4 - Logistic Regression Results\n\
          =============================================\n\
+         NOTA: este relatorio e a ILUSTRACAO single-seed (seed=42, 1 realizacao),\n\
+         base das figuras. O RESULTADO OFICIAL (media +/- desvio sobre N seeds)\n\
+         esta em output/report_multiseed.txt.\n\
+         \n\
          Dataset           : {n_samples} amostras (gaussianas 2D sinteticas, seed={seed})\n\
          Split             : {:.0}% treino / {:.0}% teste\n\
          Treino (neg/pos)  : {n_neg_train} / {n_pos_train}\n\
@@ -552,6 +885,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
          \n\
          Arquivos de Saida\n\
          -----------------\n\
+         output/report_multiseed.txt   (RESULTADO OFICIAL: media +/- desvio)\n\
+         output/metrics_multiseed.png  (barras de metricas com barras de erro)\n\
          output/decision_boundary.png  (treino: solido, teste: circulo oco)\n\
          output/loss_curve.png\n\
          output/accuracy_curve.png\n\
