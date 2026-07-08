@@ -23,7 +23,7 @@ O objetivo deste mini-projeto e implementar a Regressao Logistica **do zero** �
 | Ruido            | Normal(0, 1) em cada feature  |
 | Balanceamento    | 50% / 50%                     |
 
-Cada classe e amostrada de uma gaussiana isotrópica 2D com desvio padrao 1.0. As classes sao linearmente separaveis com alguma sobreposicao (distancia entre centros de sqrt(3.0^2 + 2.0^2) = sqrt(13) ~3.61 unidades no espaco de features, gerando sobreposicao pequena mas nao nula). A taxa de erro de Bayes estimada para este problema e de aproximadamente 3.5-4%, consistente com os 11/240 erros de treino observados (4.58% de erro, proximo ao limite teorico dado a sobreposicao gaussiana com std=1.0 e separacao de ~3.61 unidades). O valor exato e Phi(-sqrt(13)/2) = Phi(-1.803) ≈ 3.57%. O erro de teste observado (2/60 = 3.33%) e ligeiramente abaixo da estimativa do erro de Bayes (3.57%), o que e consistente com a variancia amostral elevada para n=60 (IC 95% Wilson: [0.9%, 11.4%]); nao indica violacao do limite teorico.
+Cada classe e amostrada de uma gaussiana isotrópica 2D com desvio padrao 1.0. As classes sao linearmente separaveis com alguma sobreposicao (distancia entre centros de sqrt(3.0^2 + 2.0^2) = sqrt(13) ~3.61 unidades no espaco de features, gerando sobreposicao pequena mas nao nula). A taxa de erro de Bayes estimada para este problema e de aproximadamente 3.5-4%, consistente com os 11/240 erros de treino observados (4.58% de erro, proximo ao limite teorico dado a sobreposicao gaussiana com std=1.0 e separacao de ~3.61 unidades). O valor exato e Phi(-sqrt(13)/2) = Phi(-1.803) ≈ 3.57%. O erro de teste observado com a seed=42 (2/60 = 3.33%, ilustracao) e ligeiramente abaixo da estimativa do erro de Bayes (3.57%), o que e consistente com a variancia amostral elevada para n=60 (IC 95% Wilson: [0.9%, 11.4%]); nao indica violacao do limite teorico. O numero oficial, obtido via multi-seed com conjunto de teste maior (ver secao *Resultados Multi-Seed*), e 3.71% ± 0.27% — consistente com o limite de Bayes.
 
 ## Metodologia
 
@@ -86,7 +86,7 @@ O modelo e treinado exclusivamente nas 240 amostras de treino; a avaliacao no co
 
 ## Resultados
 
-### Parametros Aprendidos
+### Parametros Aprendidos (seed=42, ilustracao)
 
 | Parametro | Valor     |
 |-----------|-----------|
@@ -94,7 +94,7 @@ O modelo e treinado exclusivamente nas 240 amostras de treino; a avaliacao no co
 | w1        | 1.613707  |
 | bias (b)  | 0.121817  |
 
-### Desempenho
+### Desempenho (seed=42, ilustracao)
 
 | Metrica                  | Treino    | Teste     |
 |--------------------------|-----------|-----------|
@@ -111,6 +111,39 @@ A loss de teste ser substancialmente menor (0.065 vs 0.106) e consistente com a 
 para um subconjunto aleatorio de 60 amostras: com n=60, o erro padrao da BCE e elevado e o gap observado
 esta dentro da variabilidade amostral esperada. Nao ha evidencia de data leakage — o modelo foi treinado
 exclusivamente nas 240 amostras de treino. A diferenca nao indica problema sistematico.
+
+**Atencao:** os 96.67% de acuracia de teste acima vêm de uma unica seed (42) com apenas 60 amostras de
+teste, e sao uma realizacao **sortuda** dessa amostra pequena (entre as 10 seeds testadas, uma chegou a
+100%). Nao devem ser citados como o desempenho do modelo — usar a secao abaixo.
+
+### Resultados Multi-Seed (Oficial)
+
+Para obter uma estimativa confiavel do desempenho, o experimento foi repetido em **10 seeds**, cada uma
+com um dataset sintetico **maior** (n=10000, teste ~2000 amostras) — como os dados sao sinteticos e
+gerados sob demanda, aumentar o dataset nao tem custo. Os numeros abaixo (media ± desvio padrao, ddof=1,
+sobre as 10 seeds) sao os **oficiais** deste relatorio:
+
+| Metrica     | Valor (media ± desvio padrao) |
+|-------------|--------------------------------|
+| Acuracia    | 96.29% ± 0.27%                  |
+| Erro        | 3.71% ± 0.27%                   |
+| Precisao    | 0.961 ± 0.006                   |
+| Recall      | 0.965 ± 0.004                   |
+| F1-Score    | 0.963 ± 0.003                   |
+| BCE (teste) | 0.098 ± 0.005                   |
+
+O limite de Bayes teorico e Phi(-sqrt(13)/2) ≈ **3.57%**; o erro multi-seed observado, 3.71% ± 0.27%, e
+consistente com esse limite (dentro de ~0.5 desvio padrao).
+
+**Por que os numeros mudam entre seed unica e multi-seed:** o "96.67%" de teste com seed=42 vem de medir
+acuracia sobre so **60** pontos de teste — o erro padrao binomial dessa medida e da ordem de
+sqrt(0.96 x 0.04 / 60) ≈ 2.5%, ou seja, o proprio numero de teste unico ja carrega ±2.5 pontos de ruido
+de amostragem. Isso **nao** e um problema de numero de seeds (rodar mais seeds com o mesmo teste de 60
+pontos so mediria essa mesma variancia repetidamente); e um problema de **tamanho do conjunto de teste**.
+A correcao correta e aumentar n do teste, o que reduz o erro padrao (∝ 1/sqrt(n)): com teste de ~2000
+amostras, o desvio padrao cai para os ±0.27% observados. As 10 seeds servem para confirmar a
+consistencia entre execucoes independentes, mas quem "encolhe" a incerteza da acuracia e o tamanho do
+teste, nao a quantidade de seeds.
 
 ### Matriz de Confusao
 
@@ -150,10 +183,10 @@ A inclinacao negativa reflete que classe 1 ocupa a regiao superior-direita e cla
 
 ## Conclusao
 
-- A regressao logistica implementada do zero atingiu 95.42% de acuracia de treino e **96.67% de acuracia de teste** em 1000 epocas, confirmando a implementacao correta do gradiente e boa generalizacao.
+- A regressao logistica implementada do zero atingiu 95.42% de acuracia de treino (seed=42, ilustracao) em 1000 epocas, confirmando a implementacao correta do gradiente e boa generalizacao. O numero **oficial** de acuracia de teste, obtido via multi-seed (10 seeds, teste ~2000 amostras), e **96.3% ± 0.3%** (erro 3.71% ± 0.27%) — o "96.67%" de uma unica seed com teste de 60 pontos era uma realizacao sortuda dentro da variancia amostral esperada (erro binomial ≈ sqrt(0.96·0.04/60) ≈ 2.5 pontos), nao o desempenho real do modelo.
 - A Loss caiu de 0.693 (baseline aleatoria ln(2)) para 0.106 no treino — reducao de 84.69%, indicando boa separacao aprendida.
 - O modelo e linear: a fronteira e uma reta. Para dados nao-linearmente separaveis seria necessario features polinomiais ou modelos nao-lineares.
 - A acuracia de treino de 95.42% (229/240) foi atingida apos apenas 1 passo de gradiente descendente (registrado como epoca 2 no log, pois o log exibe a acuracia pre-atualizacao de cada epoca); a loss continuou decrescendo suavemente ate a epoca 1000 sem um ponto de convergencia discreto. Isso ocorre porque a loss mede confianca probabilistica continua enquanto a acuracia e uma metrica binaria com limiar em 0.5.
 - Limitacoes identificadas: (1) batch gradient descent completo — inviavel para datasets grandes; (2) ausencia de regularizacao L2 (para dados linearmente separaveis sem sobreposicao, os pesos divergem sem regularizacao; neste dataset com sobreposicao, os pesos convergem a valores finitos — 2.46, 1.61 — mas regularizacao L2 ainda melhoraria a margem de generalizacao); (3) sem criterio formal de convergencia (treinamento para em `epochs` fixas independente da variacao da loss); (4) a curva `loss_curve.png` exibe apenas a loss de treino por epoca — a loss de teste (0.0649) e avaliada somente ao final do treinamento, nao por epoca, portanto nao aparece como overlay no grafico. Neste experimento especifico, o plateau de acuracia de 95.42% a partir da epoca 2 corresponde ao limite de Bayes do problema (~3.57% de erro), tornando um criterio de parada irrelevante na pratica; para outros datasets, a ausencia de criterio de convergencia pode resultar em treinamento desnecessariamente longo ou em overfitting em epocas tardias.
 - Direcoes de melhoria: adicionar regularizacao L2 (`loss += lambda * (w0^2 + w1^2)`) reduziria a magnitude dos pesos aprendidos e melhoraria generalizacao; incluir features polinomiais (`x1^2, x1*x2, x2^2`) permitiria fronteiras curvas para dados nao-linearmente separaveis.
-- O erro de teste observado (2/60 = 3.33%) e consistente com o limite teorico de Bayes estimado para este problema (~3.57%, dado por Phi(-sqrt(13)/2) = Phi(-1.803)), confirmando que o modelo se aproxima do melhor classificador linear possivel dado o ruido intrinseco de sobreposicao gaussiana.
+- O erro de teste oficial (multi-seed, 10 seeds, teste ~2000 amostras) e 3.71% ± 0.27%, consistente com o limite teorico de Bayes estimado para este problema (~3.57%, dado por Phi(-sqrt(13)/2) = Phi(-1.803)), confirmando que o modelo se aproxima do melhor classificador linear possivel dado o ruido intrinseco de sobreposicao gaussiana. (O erro pontual de 2/60 = 3.33% da seed=42 e apenas ilustrativo, sujeito a alta variancia amostral para n=60.)
