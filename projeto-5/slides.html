@@ -40,7 +40,7 @@
   <h1>Árvore de Decisão: Gini vs Entropia</h1>
   <p class="muted">Árvore CART <strong>construída manualmente</strong> (sem <code>sklearn.tree</code>): impureza, busca de split, recursão e predição do zero. Os dois critérios comparados no mesmo dataset 2D (500 amostras, split 80/20).</p>
   <div class="grid3">
-    <div class="card"><div class="num">96% vs 94%</div><p>acurácia de teste (Gini vs Entropy)</p></div>
+    <div class="card"><div class="num">Gini ≈ Entropy</div><p>acurácia empatada no multi-seed (10 seeds)</p></div>
     <div class="card"><div class="num">9 vs 13</div><p>profundidade da árvore</p></div>
     <div class="card"><div class="num">100%</div><p>acurácia de treino → overfitting nos dois</p></div>
   </div>
@@ -88,7 +88,7 @@ IG = H(pai) − Σ (|filho|/|pai|)·H(filho)</code></pre>
         <tr><td>Profundidade</td><td>9</td><td>13</td></tr>
         <tr><td>Folhas</td><td>26</td><td>27</td></tr>
       </table>
-      <p class="muted">Geometrias de partição distintas. As predições divergem em <strong>4 das 100</strong> amostras de teste.</p>
+      <p class="muted">Tabela da <strong>seed=42</strong> (ilustração). No <strong>multi-seed (10 seeds, teste 400)</strong>: Gini 0.943±0.033 ≈ Entropy 0.945±0.033 — a vantagem do Gini é <strong>ruído</strong> (intervalos se sobrepõem, o ranking até inverte).</p>
     </div>
   </div>
 </section>
@@ -97,7 +97,7 @@ IG = H(pai) − Σ (|filho|/|pai|)·H(filho)</code></pre>
 <section>
   <h2>Conclusão</h2>
   <ul>
-    <li><strong>O critério teve efeito pequeno, mas real:</strong> Gini ficou 2 p.p. acima (96% vs 94%) e gerou uma árvore <strong>mais rasa</strong> (9 vs 13) — a maior curvatura da entropia reordena os splits gulosos e abre mais níveis.</li>
+    <li><strong>Acurácia: empate.</strong> No multi-seed (10 seeds) Gini 0.943±0.033 ≈ Entropy 0.945±0.033 — a diferença de 2 p.p. da seed única era <strong>ruído</strong>. O que <strong>é</strong> real: Entropy gera árvore mais <strong>profunda</strong> (10.7±2.1 vs 8.0±1.7 níveis) — a maior curvatura da entropia reordena os splits gulosos.</li>
     <li><strong>Overfitting confirmado:</strong> 100% no treino vs 94-96% no teste; ~8-10 folhas com 1 só amostra (memorização).</li>
     <li>O sweep <code>depth_vs_accuracy</code> mostra que profundidades menores já atingem o platô — os níveis extras são supérfluos.</li>
     <li>Em produção: <code>max_depth</code>, <code>min_samples_split</code>, poda e validação cruzada k-fold.</li>
