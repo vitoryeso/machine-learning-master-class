@@ -23,6 +23,11 @@ from sklearn.model_selection import train_test_split
 SEED = 42
 N_SEEDS = 3  # rodadas para media +/- desvio; suba p/ 10/30 p/ std mais firme
 SEEDS = [SEED + i for i in range(N_SEEDS)]  # [42, 43, 44]
+# Dataset do multi-seed: grande de proposito. O std entre seeds e dominado pelo
+# erro binomial do TESTE (sqrt(p(1-p)/n_teste)), nao pelo nº de seeds — entao
+# teste grande = numero preciso. A ilustracao single-seed segue em N_ILUSTRA.
+N_EVAL = 2000     # multi-seed: teste ~400 (SE ~0.011 vs ~0.022 com 500)
+N_ILUSTRA = 500   # single-seed (fronteiras/arvore/sweep) — legivel
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -268,11 +273,12 @@ def prf1(cm):
 # =============================================================================
 # Multi-seed — robustez estatistica (media +/- desvio sobre N_SEEDS rodadas)
 # =============================================================================
-def _make_data(seed):
+def _make_data(seed, n_samples=N_ILUSTRA):
     """Gera o dataset e o split para uma seed. Cada seed = uma realizacao nova
-    do problema (make_classification) + um split estratificado novo."""
+    do problema (make_classification) + um split estratificado novo. n_samples
+    grande -> teste grande -> estimativa de metrica precisa (menor erro binomial)."""
     X, y = make_classification(
-        n_samples=500, n_features=2, n_informative=2, n_redundant=0,
+        n_samples=n_samples, n_features=2, n_informative=2, n_redundant=0,
         n_clusters_per_class=1, class_sep=0.9, random_state=seed,
     )
     return train_test_split(X, y, test_size=0.2, random_state=seed, stratify=y)
@@ -297,7 +303,7 @@ def run_multiseed():
     analise single-seed (seed=42) do main(). Retorna (stats, report_lines)."""
     agg = {c: {k: [] for k in MS_KEYS} for c in ("gini", "entropy")}
     for seed in SEEDS:
-        X_tr, X_te, y_tr, y_te = _make_data(seed)
+        X_tr, X_te, y_tr, y_te = _make_data(seed, N_EVAL)
         for crit in ("gini", "entropy"):
             m = _train_eval(crit, X_tr, y_tr, X_te, y_te)
             for k in MS_KEYS:
@@ -308,7 +314,7 @@ def run_multiseed():
                  for k, v in agg[c].items()} for c in agg}
 
     lines = ["Multi-seed: media +/- desvio (ddof=1) sobre {} seeds {}".format(N_SEEDS, SEEDS),
-             "(cada seed = novo make_classification + novo split estratificado)", ""]
+             "(cada seed = make_classification de {} amostras + split; teste ~{} p/ precisao)".format(N_EVAL, N_EVAL // 5), ""]
     hdr = "{:<16} {:>22} {:>22}".format("Metric", "Gini", "Entropy")
     lines += [hdr, "-" * len(hdr)]
     for k in MS_KEYS:
@@ -358,7 +364,7 @@ def main():
 
     # -- 1. Dataset (seed=42, referencia para as analises qualitativas) -------
     X, y = make_classification(
-        n_samples=500, n_features=2, n_informative=2, n_redundant=0,
+        n_samples=N_ILUSTRA, n_features=2, n_informative=2, n_redundant=0,
         n_clusters_per_class=1, class_sep=0.9, random_state=SEED,
     )
     X_train, X_test, y_train, y_test = train_test_split(
