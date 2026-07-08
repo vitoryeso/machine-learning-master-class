@@ -8,6 +8,11 @@ use std::io::Write as _;
 
 const SEED: u64 = 42;
 const N_SAMPLES: usize = 300;
+// Multi-seed usa um dataset GRANDE: o std entre seeds e dominado pelo erro
+// amostral (~1/sqrt(n)), nao pelo nº de seeds. Como o dado e SINTETICO, mais
+// amostras = estimativa de MSE/pesos quase de graca (Rust roda 10k instantaneo).
+// A ilustracao single-seed segue em N_SAMPLES=300 (figuras legiveis).
+const MS_N_SAMPLES: usize = 10_000;
 const N_FEATURES: usize = 2;
 const TRUE_W: [f64; N_FEATURES] = [3.0, -2.0];
 const TRUE_BIAS: f64 = 1.0;
@@ -110,12 +115,12 @@ fn register_fonts() {
     }); // end FONT_INIT.call_once
 }
 
-fn generate_dataset(rng: &mut StdRng) -> (Vec<Vec<f64>>, Vec<f64>) {
+fn generate_dataset(rng: &mut StdRng, n_samples: usize) -> (Vec<Vec<f64>>, Vec<f64>) {
     let feat_dist = Normal::new(0.0, 1.0).unwrap();
     let noise_dist = Normal::new(0.0, NOISE_STD).unwrap();
-    let mut x = Vec::with_capacity(N_SAMPLES);
-    let mut y = Vec::with_capacity(N_SAMPLES);
-    for _ in 0..N_SAMPLES {
+    let mut x = Vec::with_capacity(n_samples);
+    let mut y = Vec::with_capacity(n_samples);
+    for _ in 0..n_samples {
         let xi: Vec<f64> = (0..N_FEATURES).map(|_| feat_dist.sample(rng)).collect();
         let yi = dot(&xi, &TRUE_W) + TRUE_BIAS + noise_dist.sample(rng);
         x.push(xi);
@@ -448,26 +453,238 @@ fn save_report(
     Ok(())
 }
 
+// =============================================================================
+// Multi-seed -- robustez estatistica (media +/- desvio amostral sobre N seeds)
+// -----------------------------------------------------------------------------
+// Espelha run_multiseed() do projeto-5 (Python), adaptado ao Rust. Cada seed
+// gera uma nova realizacao do dataset sintetico y=3x1-2x2+1+ruido; coletamos,
+// por seed, o MSE final e os pesos (w0, w1, bias) de GD e de LMS, e agregamos
+// media +/- desvio amostral (ddof=1). Este e o RESULTADO OFICIAL. O GD segue
+// deliberadamente nao-convergido (lr baixo, didatico); so reportamos mean+/-std.
+// =============================================================================
+
+/// Metricas finais de UMA seed (uma realizacao do dataset).
+struct SeedMetrics {
+    gd_mse: f64, gd_w0: f64, gd_w1: f64, gd_b: f64,
+    lms_mse: f64, lms_w0: f64, lms_w1: f64, lms_b: f64,
+}
+
+/// media + desvio amostral de uma metrica agregada sobre as seeds.
+struct Stat { mean: f64, std: f64 }
+
+/// Resultado multi-seed agregado (o que vai pro report e pro plot).
+struct MultiseedStats {
+    n: usize,
+    seeds: Vec<u64>,
+    gd_mse: Stat, gd_w0: Stat, gd_w1: Stat, gd_b: Stat,
+    lms_mse: Stat, lms_w0: Stat, lms_w1: Stat, lms_b: Stat,
+}
+
+/// Media e desvio amostral (ddof=1, divide por N-1). Com 1 valor, std=0.
+fn mean_std(v: &[f64]) -> (f64, f64) {
+    let n = v.len() as f64;
+    let mean = v.iter().sum::<f64>() / n;
+    let std = if v.len() > 1 {
+        (v.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / (n - 1.0)).sqrt()
+    } else {
+        0.0
+    };
+    (mean, std)
+}
+
+/// Roda o experimento completo para uma seed e devolve as metricas finais.
+fn run_seed(seed: u64) -> SeedMetrics {
+    let mut rng = StdRng::seed_from_u64(seed);
+    // dataset GRANDE (MS_N_SAMPLES): reduz o erro amostral da estimativa
+    let (x, y) = generate_dataset(&mut rng, MS_N_SAMPLES);
+    let (gd_w, gd_b, gd_history) = batch_gradient_descent(&x, &y, GD_LR, MAX_ITERS);
+    let (lms_w, lms_b, lms_history) = lms_widrow_hoff(&x, &y, LMS_LR, MAX_ITERS);
+    SeedMetrics {
+        gd_mse: *gd_history.last().unwrap(), gd_w0: gd_w[0], gd_w1: gd_w[1], gd_b,
+        lms_mse: *lms_history.last().unwrap(), lms_w0: lms_w[0], lms_w1: lms_w[1], lms_b,
+    }
+}
+
+/// Roda todas as seeds e agrega media +/- desvio por metrica.
+fn run_multiseed(seeds: &[u64]) -> MultiseedStats {
+    let results: Vec<SeedMetrics> = seeds.iter().map(|&s| run_seed(s)).collect();
+    // extrai uma coluna (uma metrica sobre todas as seeds) e agrega
+    let col = |f: fn(&SeedMetrics) -> f64| -> Stat {
+        let v: Vec<f64> = results.iter().map(f).collect();
+        let (mean, std) = mean_std(&v);
+        Stat { mean, std }
+    };
+    MultiseedStats {
+        n: seeds.len(),
+        seeds: seeds.to_vec(),
+        gd_mse: col(|r| r.gd_mse), gd_w0: col(|r| r.gd_w0),
+        gd_w1: col(|r| r.gd_w1), gd_b: col(|r| r.gd_b),
+        lms_mse: col(|r| r.lms_mse), lms_w0: col(|r| r.lms_w0),
+        lms_w1: col(|r| r.lms_w1), lms_b: col(|r| r.lms_b),
+    }
+}
+
+/// Monta as linhas do relatorio multi-seed (usadas em stdout e no .txt).
+fn multiseed_report_lines(stats: &MultiseedStats) -> Vec<String> {
+    let mut l: Vec<String> = Vec::new();
+    l.push("================================================================".into());
+    l.push("  MINI-PROJETO 3 -- Multi-seed (RESULTADO OFICIAL)".into());
+    l.push("================================================================".into());
+    l.push(format!("Seeds ({}): {:?}", stats.n, stats.seeds));
+    l.push(format!("(cada seed = nova realizacao do dataset sintetico y=3x1-2x2+1+ruido, n={} amostras)", MS_N_SAMPLES));
+    l.push("Media +/- desvio amostral (ddof=1, divide por N-1)".into());
+    l.push("NOTA: GD e DELIBERADAMENTE nao-convergido (lr baixo, didatico).".into());
+    l.push(String::new());
+    let hdr = format!("  {:<18} {:>22} {:>22}", "Metrica", "GD", "LMS");
+    let bar = format!("  {}", "-".repeat(hdr.len().saturating_sub(2)));
+    l.push(hdr);
+    l.push(bar.clone());
+    let row = |name: &str, g: &Stat, m: &Stat| {
+        format!("  {:<18} {:>13.4} +/-{:>6.4} {:>13.4} +/-{:>6.4}",
+                name, g.mean, g.std, m.mean, m.std)
+    };
+    l.push(row("MSE final", &stats.gd_mse, &stats.lms_mse));
+    l.push(row("w0 (true=3.0)", &stats.gd_w0, &stats.lms_w0));
+    l.push(row("w1 (true=-2.0)", &stats.gd_w1, &stats.lms_w1));
+    l.push(row("bias (true=1.0)", &stats.gd_b, &stats.lms_b));
+    l.push(bar);
+    l.push(format!("Referencia teorica: MSE minimo (ruido irredutivel sigma^2) = {:.4}",
+                   NOISE_STD * NOISE_STD));
+    l
+}
+
+/// Escreve o relatorio multi-seed em output/report_multiseed.txt.
+fn save_report_multiseed(lines: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let path = format!("{}/report_multiseed.txt", output_dir());
+    let mut f = fs::File::create(&path)?;
+    for line in lines {
+        writeln!(f, "{}", line)?;
+    }
+    println!("Relatorio salvo: {}", path);
+    Ok(())
+}
+
+/// Barras GD vs LMS do MSE final com barra de erro = desvio; piso do eixo y
+/// adaptativo (nao fixo em 0). output/metrics_multiseed.png.
+fn plot_metrics_multiseed(stats: &MultiseedStats) -> Result<(), Box<dyn std::error::Error>> {
+    let path = format!("{}/metrics_multiseed.png", output_dir());
+    let root = BitMapBackend::new(&path, (900, 700)).into_drawing_area();
+    root.fill(&WHITE)?;
+
+    let gd_m = stats.gd_mse.mean; let gd_s = stats.gd_mse.std;
+    let lms_m = stats.lms_mse.mean; let lms_s = stats.lms_mse.std;
+
+    // Piso adaptativo: baseado no min/max de (mean +/- std), NAO ancorado em 0.
+    let data_min = (gd_m - gd_s).min(lms_m - lms_s);
+    let data_max = (gd_m + gd_s).max(lms_m + lms_s);
+    let range = (data_max - data_min).max(1e-6);
+    // desce 15% do range abaixo do menor (mean-std); so trava em 0 se ficar negativo
+    let y_lo = (data_min - 0.15 * range).max(0.0);
+    let y_hi = data_max + 0.28 * range; // espaco p/ rotulo de valor acima da barra
+
+    let mut chart = ChartBuilder::on(&root)
+        .caption(format!("MSE final: GD vs LMS -- media +/- desvio ({} seeds)", stats.n),
+                 ("sans-serif", 28))
+        .margin(30)
+        .x_label_area_size(50)
+        .y_label_area_size(95)
+        .build_cartesian_2d(0f64..2f64, y_lo..y_hi)?;
+
+    chart.configure_mesh()
+        .disable_x_mesh()
+        .x_labels(0) // categorias desenhadas manualmente abaixo
+        .y_desc("MSE final (media sobre seeds)")
+        .label_style(("sans-serif", 20))
+        .axis_desc_style(("sans-serif", 24))
+        .draw()?;
+
+    // (x0, x1, mean, std, rotulo, cor)
+    let bars = [
+        (0.25f64, 0.75f64, gd_m, gd_s, "GD", RGBColor(31, 119, 180)),
+        (1.25f64, 1.75f64, lms_m, lms_s, "LMS", RGBColor(214, 39, 40)),
+    ];
+    for (x0, x1, m, s, name, color) in bars {
+        let xc = (x0 + x1) / 2.0;
+        // barra: do piso adaptativo ate a media
+        chart.draw_series(std::iter::once(Rectangle::new(
+            [(x0, y_lo), (x1, m)], color.mix(0.65).filled(),
+        )))?;
+        chart.draw_series(std::iter::once(Rectangle::new(
+            [(x0, y_lo), (x1, m)], color.stroke_width(2),
+        )))?;
+        // barra de erro vertical (mean-std .. mean+std) + caps
+        chart.draw_series(std::iter::once(PathElement::new(
+            vec![(xc, m - s), (xc, m + s)], BLACK.stroke_width(2))))?;
+        for cap_y in [m - s, m + s] {
+            chart.draw_series(std::iter::once(PathElement::new(
+                vec![(xc - 0.09, cap_y), (xc + 0.09, cap_y)], BLACK.stroke_width(2))))?;
+        }
+        // rotulo: categoria + valor mean +/- std, acima da barra de erro
+        chart.draw_series(std::iter::once(Text::new(
+            format!("{}: {:.4} +/- {:.4}", name, m, s),
+            (x0 + 0.02, m + s + 0.06 * range),
+            ("sans-serif", 22).into_font(),
+        )))?;
+    }
+
+    root.present()?;
+    println!("Plot salvo: {}", path);
+    Ok(())
+}
+
+/// Parse do flag CLI `-n <N>` / `--n-seeds <N>` (default 3, minimo 1).
+fn parse_n_seeds() -> usize {
+    let mut args = std::env::args().skip(1);
+    let mut n: usize = 3;
+    while let Some(a) = args.next() {
+        if a == "-n" || a == "--n-seeds" {
+            if let Some(v) = args.next() {
+                if let Ok(p) = v.parse::<usize>() {
+                    if p >= 1 { n = p; }
+                }
+            }
+        } else if let Some(v) = a.strip_prefix("-n") {
+            // forma colada: -n5
+            if let Ok(p) = v.parse::<usize>() {
+                if p >= 1 { n = p; }
+            }
+        }
+    }
+    n
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(output_dir())?;
 
     // Register fonts before any plotting
     register_fonts();
 
+    let n_seeds = parse_n_seeds();
+    let seeds: Vec<u64> = (0..n_seeds as u64).map(|i| SEED + i).collect();
+
     println!("=== Mini-Projeto 3: Regressao Linear GD vs LMS ===");
-    println!("Gerando dataset sintetico ({} amostras, {} features)...", N_SAMPLES, N_FEATURES);
 
-    let mut rng = StdRng::seed_from_u64(SEED);
-    let (x, y) = generate_dataset(&mut rng);
-
-    println!("Rodando Batch Gradient Descent ({} epocas, lr={})...", MAX_ITERS, GD_LR);
-    let (gd_w, gd_b, gd_history) = batch_gradient_descent(&x, &y, GD_LR, MAX_ITERS);
-
-    println!("Rodando LMS/Widrow-Hoff ({} epocas, lr={})...", MAX_ITERS, LMS_LR);
-    let (lms_w, lms_b, lms_history) = lms_widrow_hoff(&x, &y, LMS_LR, MAX_ITERS);
-
+    // -- 0. Multi-seed: RESULTADO OFICIAL (media +/- desvio) ------------------
+    println!("[Multi-seed] rodando {} seeds {:?} ({} amostras, {} features cada)...",
+             n_seeds, seeds, MS_N_SAMPLES, N_FEATURES);
+    let stats = run_multiseed(&seeds);
+    let ms_lines = multiseed_report_lines(&stats);
     println!();
-    println!("--- Resultados finais ---");
+    for line in &ms_lines {
+        println!("{}", line);
+    }
+    save_report_multiseed(&ms_lines)?;
+    plot_metrics_multiseed(&stats)?;
+
+    // -- 1. Ilustracao single-seed (seed=42, 1 realizacao) --------------------
+    // Gera as figuras single-seed existentes (convergence/scatter/pred_vs_actual
+    // + report.txt). NAO e o numero oficial -- e so uma realizacao para ilustrar.
+    println!();
+    println!("--- Ilustracao single-seed (seed={}, 1 realizacao, {} amostras) ---", SEED, N_SAMPLES);
+    let mut rng = StdRng::seed_from_u64(SEED);
+    let (x, y) = generate_dataset(&mut rng, N_SAMPLES);
+    let (gd_w, gd_b, gd_history) = batch_gradient_descent(&x, &y, GD_LR, MAX_ITERS);
+    let (lms_w, lms_b, lms_history) = lms_widrow_hoff(&x, &y, LMS_LR, MAX_ITERS);
     println!("Pesos verdadeiros : w=[{}, {}], b={}", TRUE_W[0], TRUE_W[1], TRUE_BIAS);
     println!("GD  -> w=[{:.6}, {:.6}], b={:.6}, MSE={:.6}", gd_w[0], gd_w[1], gd_b, gd_history.last().unwrap());
     println!("LMS -> w=[{:.6}, {:.6}], b={:.6}, MSE={:.6}", lms_w[0], lms_w[1], lms_b, lms_history.last().unwrap());
@@ -478,6 +695,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     save_report(&gd_w, gd_b, &gd_history, &lms_w, lms_b, &lms_history)?;
 
     println!();
-    println!("Concluido. Veja output/ para plots e relatorio.");
+    println!("Concluido. OFICIAL: output/report_multiseed.txt + output/metrics_multiseed.png.");
+    println!("Ilustracao (seed=42): convergence.png, scatter.png, pred_vs_actual.png, report.txt.");
     Ok(())
 }
