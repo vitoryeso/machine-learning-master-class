@@ -82,13 +82,13 @@ LMS: w ← w + η·(y−ŷ)·x          (η=0.001)
     <div><img class="fit" src="output/convergence.png" alt="Convergência GD vs LMS"></div>
     <div>
       <table>
-        <tr><th></th><th>GD</th><th>LMS</th><th>Verd./Mín.</th></tr>
-        <tr><td>MSE final</td><td>0.480 *</td><td><strong>0.235</strong></td><td>0.250</td></tr>
+        <tr><th>(seed=42)</th><th>GD</th><th>LMS</th><th>Verd./Mín.</th></tr>
+        <tr><td>MSE final</td><td>0.480</td><td><strong>0.235</strong></td><td>0.250</td></tr>
         <tr><td>w[0]</td><td>2.637</td><td>2.966</td><td>3.000</td></tr>
         <tr><td>w[1]</td><td>−1.669</td><td>−2.007</td><td>−2.000</td></tr>
         <tr><td>bias</td><td>0.825</td><td>0.986</td><td>1.000</td></tr>
       </table>
-      <p class="muted">* GD <strong>não converge de propósito</strong>: α=0.01 escolhido p/ evidenciar a sensibilidade ao hiperparâmetro. LMS encosta no ótimo (erro &lt; 0.04 nos pesos).</p>
+      <p class="muted">Tabela da <strong>seed=42</strong> (ilustração) — GD <strong>não converge de propósito</strong> (α=0.01, evidencia sensibilidade ao hiperparâmetro). Multi-seed (10 seeds, n=10000): LMS MSE <strong>0.252±0.004</strong> vs GD <strong>0.502±0.012</strong> — gap ~20× o std; LMS pousa no piso σ²=0.25 com pesos exatos.</p>
     </div>
   </div>
 </section>
@@ -112,7 +112,7 @@ LMS: w ← w + η·(y−ŷ)·x          (η=0.001)
       </ul>
     </div>
   </div>
-  <p class="muted"><strong>O eixo central:</strong> gradiente exato com poucos passos (GD) vs muitos passos ruidosos (LMS) — mesmo custo O(Nd) por época, estratégias opostas. A escolha do learning rate é crítica e independente para cada um.</p>
+  <p class="muted"><strong>O eixo central:</strong> gradiente exato com poucos passos (GD) vs muitos passos ruidosos (LMS) — mesmo custo O(Nd) por época, estratégias opostas. A escolha do learning rate é crítica e independente para cada um (robusto no multi-seed: gap ≫ std).</p>
 </section>
 
 </div>
