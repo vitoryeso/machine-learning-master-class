@@ -60,7 +60,7 @@
   <div class="grid2" style="margin-top:22px">
     <div class="card warn">
       <h3>O risco: circularidade</h3>
-      <p>Classificar sobre os <strong>mesmos</strong> embeddings CLIP que geraram os clusters infla a acurácia — os clusters são células de Voronoi nesse espaço.</p>
+      <p>Classificar sobre os <strong>mesmos</strong> embeddings CLIP que geraram os clusters infla a acurácia — os clusters são células de Voronoi (cada ponto fica com o centro mais próximo) nesse espaço.</p>
     </div>
     <div class="card good">
       <h3>A solução</h3>
@@ -82,7 +82,7 @@
         <tr><td><strong>ConvNeXt / macro</strong></td><td><strong>0.827</strong></td><td>0.816</td></tr>
         <tr><td><strong>ConvNeXt / folha</strong></td><td><strong>0.660</strong></td><td>0.625</td></tr>
       </table>
-      <p class="muted">Teste 4.466 imgs (split 80/20 estratificado). Métricas P/R/F1 macro-averaged. O CLIP classifica os próprios clusters bem acima do ConvNeXt — a circularidade aparece nos números.</p>
+      <p class="muted">Teste 4.466 imgs (split 80/20 estratificado). Métricas P/R/F1 macro-averaged (média por classe, peso igual). O CLIP classifica os próprios clusters bem acima do ConvNeXt — a circularidade aparece nos números.</p>
     </div>
   </div>
 </section>
