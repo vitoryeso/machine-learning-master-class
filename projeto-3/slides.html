@@ -27,6 +27,7 @@
     th { background:#f1f5f9; }
     td, th { padding: .4em .55em !important; }
     .reveal pre code { font-size:.82em; line-height:1.25; }
+    .terms li { font-size:.62em; }
   </style>
 </head>
 <body>
@@ -63,6 +64,14 @@ LMS: w ← w + η·(y−ŷ)·x          (η=0.001)
      ↑ por exemplo, online</code></pre>
       <p class="muted">200 épocas: GD dá 200 passos; LMS dá 200×300 = <strong>60.000</strong>.</p>
     </div>
+  </div>
+  <div class="card terms" style="margin-top:16px">
+    <ul style="columns:2; gap:24px; margin:0">
+      <li><strong>x</strong> — features de entrada; <strong>ŷ</strong> — previsão; <strong>y</strong> — alvo real.</li>
+      <li><strong>w, b</strong> — pesos e viés (o que se treina).</li>
+      <li><strong>N</strong> — nº de exemplos; <strong>Σ</strong> — soma sobre eles.</li>
+      <li><strong>α, η</strong> — learning rate (passo) do GD e do LMS.</li>
+    </ul>
   </div>
 </section>
 

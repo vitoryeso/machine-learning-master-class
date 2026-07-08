@@ -27,6 +27,7 @@
     th { background:#f1f5f9; }
     td, th { padding: .4em .55em !important; }
     .reveal pre code { font-size:.82em; line-height:1.25; }
+    .terms li { font-size:.62em; }
   </style>
 </head>
 <body>
@@ -52,15 +53,23 @@
     <div class="card">
       <h3>Modelo + custo</h3>
       <pre><code>p = sigmoid(wᵀx + b) = 1/(1+e^−z)
-BCE: L = −(1/n)Σ[y·ln p + (1−y)·ln(1−p)]</code></pre>
+BCE: L = −(1/N)Σ[y·ln p + (1−y)·ln(1−p)]</code></pre>
       <p class="muted">Sigmoid em 2 ramos (z≥0 / z&lt;0) p/ evitar overflow.</p>
     </div>
     <div class="card good">
       <h3>Gradiente (a beleza)</h3>
-      <pre><code>∂L/∂w = (1/n)·Σ (p − y)·x
-∂L/∂b = (1/n)·Σ (p − y)</code></pre>
+      <pre><code>∂L/∂w = (1/N)·Σ (p − y)·x
+∂L/∂b = (1/N)·Σ (p − y)</code></pre>
       <p class="muted">A chain-rule BCE∘sigmoid <strong>cancela</strong> → sobra <code>(p−y)</code>. Treino: lr=0.1, 1000 épocas.</p>
     </div>
+  </div>
+  <div class="card terms" style="margin-top:14px">
+    <ul style="columns:2; gap:24px; margin:0">
+      <li><strong>x</strong> — features; <strong>z = wᵀx+b</strong> — score linear.</li>
+      <li><strong>p</strong> — probabilidade prevista (classe 1 se p ≥ 0.5).</li>
+      <li><strong>w, b</strong> — pesos e viés (o que se treina).</li>
+      <li><strong>N</strong> — nº de exemplos; <strong>y</strong> — rótulo real (0/1).</li>
+    </ul>
   </div>
 </section>
 

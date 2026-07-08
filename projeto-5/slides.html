@@ -27,6 +27,7 @@
     th { background:#f1f5f9; }
     td, th { padding: .4em .55em !important; }
     .reveal pre code { font-size:.82em; line-height:1.25; }
+    .terms li { font-size:.62em; }
   </style>
 </head>
 <body>
@@ -60,6 +61,14 @@
 IG = H(pai) − Σ (|filho|/|pai|)·H(filho)</code></pre>
       <p class="muted">Máx. 1.0. Maior curvatura em p≈0.5.</p>
     </div>
+  </div>
+  <div class="card terms" style="margin-top:14px">
+    <ul style="columns:2; gap:24px; margin:0">
+      <li><strong>p_k</strong> — proporção da classe k no nó.</li>
+      <li><strong>G, H</strong> — impureza Gini e entropia (0 = nó puro).</li>
+      <li><strong>IG</strong> — information gain: queda de impureza no split.</li>
+      <li><strong>|filho|/|pai|</strong> — peso do filho (fração de amostras).</li>
+    </ul>
   </div>
   <p class="muted">A cada nó, busca gulosa: escolhe (feature, limiar) que <strong>maximiza a redução de impureza</strong>. Cresce até folhas puras.</p>
 </section>

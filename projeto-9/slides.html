@@ -27,6 +27,7 @@
     th { background:#f1f5f9; }
     td, th { padding: .38em .5em !important; }
     .reveal pre code { font-size:.8em; line-height:1.25; }
+    .terms li { font-size:.62em; }
   </style>
 </head>
 <body>
@@ -64,6 +65,14 @@ saída:  sigmoid → p</code></pre>
         <li><strong>Viz 2D:</strong> cada neurônio = uma reta; a combinação = a fronteira não-linear.</li>
       </ul>
     </div>
+  </div>
+  <div class="card terms" style="margin-top:14px">
+    <ul style="columns:2; gap:24px; margin:0">
+      <li><strong>a</strong> — entrada da camada; <strong>W, b</strong> — pesos e viés (aprendidos).</li>
+      <li><strong>z = aᵀW+b</strong> — pré-ativação; <strong>p</strong> — saída sigmoid.</li>
+      <li><strong>y</strong> — rótulo real; <strong>δ_saída</strong> — erro na saída (p−y).</li>
+      <li><strong>act'</strong> — derivada da ativação (relu/tanh) na backprop.</li>
+    </ul>
   </div>
 </section>
 
