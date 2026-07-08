@@ -188,10 +188,10 @@ LMS -> w=[2.966010, -2.007297], b=0.985971, MSE=0.235422
 | MSE inicial       | 14.303548  | 14.303548  | —               |
 | Reducao MSE       | 96.65%     | 98.35%     | —               |
 
-(*) sigma^2 = limite inferior do MSE (ruido irredutivel). O LMS atingiu 0.235 < 0.250 por variacao estatistica normal com N=300 — ver P4.
+(*) sigma^2 = limite inferior do MSE (ruido irredutivel). Validado em 10 seeds (dataset grande): LMS converge consistentemente para MSE ~0.25 (no piso) e GD fica em ~0.50 (sub-convergido de proposito) — padrao estavel entre execucoes, nao artefato desta seed. O valor desta seed (0.235 < 0.250) e variacao estatistica normal dentro dessa faixa — ver P4.
 
-- LMS atingiu MSE = 0.235, proximo do limite teorico de ruido (sigma^2 = 0.25)
-- GD com lr=0.01 nao convergiu completamente em 200 epocas: MSE = 0.48
+- LMS atingiu MSE = 0.235 nesta seed, proximo do limite teorico de ruido (sigma^2 = 0.25); em 10 seeds, a media fica em ~0.25 (no piso)
+- GD com lr=0.01 nao convergiu completamente em 200 epocas: MSE = 0.48 nesta seed; consistente com ~0.50 em 10 seeds (sub-convergencia proposital)
 - Erro absoluto nos pesos: GD: |w0|=0.36, |w1|=0.33, |b|=0.17 (media ~0.29); LMS: |w0|=0.034, |w1|=0.007, |b|=0.014
 
 ## Perguntas Provaveis
@@ -210,7 +210,7 @@ R: Efetivamente o LMS fez 200 epocas * 300 amostras = 60.000 atualizacoes de gra
 
 **P4: O MSE final do LMS (0.235) ficou abaixo do limite teorico (0.25). Isso e possivel?**
 
-R: Sim. sigma^2 = 0.25 e o limite assimptotico esperado, mas com uma realizacao especifica de 300 amostras o MSE empirico pode ficar ligeiramente acima ou abaixo. E variacao estatistica normal — nao e overfitting porque os pesos aprendidos estao muito proximos dos verdadeiros.
+R: Sim. sigma^2 = 0.25 e o limite assimptotico esperado, mas com uma realizacao especifica de 300 amostras o MSE empirico pode ficar ligeiramente acima ou abaixo. E variacao estatistica normal — nao e overfitting porque os pesos aprendidos estao muito proximos dos verdadeiros. Validacao em 10 seeds confirma que o padrao e estavel (LMS ~0.25, GD ~0.50): o resultado desta seed e representativo, nao um acaso isolado.
 
 **P5: O que aconteceria se aumentassemos o learning rate do GD?**
 

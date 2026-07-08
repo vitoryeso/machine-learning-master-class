@@ -142,7 +142,7 @@ Você reconstruiu 2 níveis de rótulos (5 macro-grupos, 25 folhas) do clusterin
 | CLIP (circular — gerou os clusters) | 0.95 | 0.89 |
 | **ConvNeXt (honesto — independente)** | **0.83** | **0.66** |
 
-Leitura: o nível **macro é "real"** (um espaço independente recupera 83%), mas as 25 subclasses são mais **específicas do CLIP** (caem pra 66%). O *gap* CLIP→ConvNeXt **quantifica** a circularidade.
+Leitura: o nível **macro é "real"** (um espaço independente recupera 83%), mas as 25 subclasses são mais **específicas do CLIP** (caem pra 66%). O *gap* CLIP→ConvNeXt **quantifica** a circularidade — e, rodando em 5 seeds, esse gap é **robusto** (16–47× maior que o desvio entre seeds): a circularidade está sendo medida de verdade, não é ruído de uma rodada.
 
 ### Exercícios
 1. Por que classificar os clusters no próprio espaço que os gerou infla a acurácia?
@@ -193,7 +193,7 @@ Duas estratégias de atualização:
 - **LMS / Widrow-Hoff:** atualiza a cada exemplo: `w ← w + η·(y−ŷ)·x` → **N passos por época**. Gradiente ruidoso, mas muitos passos.
 
 ### No seu projeto (Projeto 3)
-Dados sintéticos (`y = 3x₁ − 2x₂ + 1 + ruído`), então você *conhece* os pesos verdadeiros. Em 200 épocas: o GD deu 200 passos; o **LMS deu 200×300 = 60.000**. Resultado: LMS chegou a MSE 0.235 (≈ o mínimo teórico do ruído, 0.25), GD ficou em 0.48 — **mas o GD não convergiu de propósito** (lr=0.01 escolhido pra mostrar a sensibilidade ao hiperparâmetro).
+Dados sintéticos (`y = 3x₁ − 2x₂ + 1 + ruído`), então você *conhece* os pesos verdadeiros. Em 200 épocas: o GD deu 200 passos; o **LMS deu 200×300 = 60.000**. Resultado: LMS chegou a MSE ~0,25 (o piso teórico do ruído), GD ficou em ~0,50 — **mas o GD não convergiu de propósito** (lr=0.01 escolhido pra mostrar a sensibilidade ao hiperparâmetro). O padrão é **consistente em 10 seeds** — não é sorte de uma rodada.
 
 ### Pegadinhas
 - O **fator 2** do gradiente costuma ser absorvido no learning rate (convenção).
@@ -241,7 +241,7 @@ L = −(1/N) Σ_i [ y_i·log(p_i) + (1−y_i)·log(1−p_i) ]
 O gradiente é só **(previsto − real) × entrada** — o mesmo formato da regressão linear! (Não é coincidência: ambas são *modelos lineares generalizados*.)
 
 ### No seu projeto (Projeto 4)
-Implementada **do zero** em Rust. Atingiu **96,7% de acurácia no teste**. O ponto sofisticado: o erro de teste (3,33%) praticamente **encostou no limite de Bayes** (~3,57%, o erro irredutível dado o overlap das gaussianas) — ou seja, o gargalo é o **ruído do problema**, não o modelo.
+Implementada **do zero** em Rust. Em 10 seeds (dataset de teste grande), a acurácia média foi **96,3% ± 0,3%** — erro médio **3,71% ± 0,27%**, que segue praticamente colado ao **limite de Bayes** (~3,57%, o erro irredutível dado o overlap das gaussianas): o gargalo é o **ruído do problema**, não o modelo. (Uma seed isolada chegou a dar 96,7%/3,33% de erro — mais perto do Bayes ainda, mas isso era sorte de amostra pequena; o número oficial é o multi-seed acima.)
 
 ### Pegadinhas
 - A sigmoid satura: para `z` muito grande/negativo, `e^(−z)` dá overflow → implemente em **dois ramos** (z≥0 e z<0).
@@ -285,11 +285,11 @@ Ganho = Impureza(pai) − (|E|/|P|)·Imp(E) − (|D|/|P|)·Imp(D)
 (E, D = filhos esquerdo/direito; P = pai). Escolhe-se gulosamente o split de maior ganho.
 
 ### No seu projeto (Projeto 5)
-Árvore **construída manualmente** (sem `sklearn.tree`). Com Gini vs Entropia no mesmo dataset: **acurácias quase iguais** (Gini 96% / Entropy 94%), mas **estruturas diferentes** — a árvore da Entropia ficou mais profunda (13 vs 9 níveis). A explicação é geométrica: a entropia tem maior curvatura perto de p=0.5, o que muda a *ordem* dos splits gulosos. E confirmou **overfitting**: 100% no treino, ~95% no teste, com folhas de 1 amostra (memorização).
+Árvore **construída manualmente** (sem `sklearn.tree`). Um teste pareado com 30 seeds mostra que **Gini = Entropia**: a diferença de acurácia entre os dois critérios é, na prática, **zero** — o "2 pontos" de vantagem (Gini 96% / Entropy 94%) que apareceu numa única seed era **ruído estatístico**, não um efeito real. O único efeito real e consistente entre seeds: a árvore da Entropia fica **mais profunda** (ex.: 13 vs 9 níveis). A explicação é geométrica: a entropia tem maior curvatura perto de p=0.5, o que muda a *ordem* dos splits gulosos — e é exatamente essa mudança de ordem que produz a árvore mais profunda. Podar a árvore (limitando profundidade) confirma que o excesso de níveis é **overfitting**: sem poda, 100% no treino, ~95% no teste, com folhas de 1 amostra (memorização).
 
 ### Pegadinhas
 - Sem `max_depth`, a árvore cresce até folhas puras → **decora** o treino (overfitting). Controle com `max_depth`, `min_samples_split`, poda (`ccp_alpha`).
-- Gini vs Entropia quase nunca muda muito o desempenho — é uma decisão secundária.
+- Gini vs Entropia **não muda o desempenho** (efeito medido como zero, pareado) — a decisão que importa de verdade é profundidade/poda, não o critério de impureza.
 - Métricas agregadas iguais **não** significam predições iguais: erros podem se compensar.
 
 ### Exercícios
@@ -325,7 +325,7 @@ Camada oculta de gaussianas + saída linear:
 A decisão de projeto crítica é **onde colocar os centros**: aleatório, por **K-Means** (§1), ou subconjunto dos dados.
 
 ### No seu projeto (Projeto 7)
-RBF **manual** sobre features CLIP. Ablação de centros: **K-Means vence** em todo k (F1 macro 0.93), amostragem aleatória fica perto, subconjunto fixo atrás. Detalhe importante: o **σ** precisa ser calibrado pela *escala dos dados* — você usou a **mediana das distâncias ponto→centro**, porque a heurística clássica `d_max/√(2k)` **colapsa em alta dimensão** (zera todas as ativações). Mais centros → melhor, com retorno decrescente.
+RBF **manual** sobre features CLIP. Ablação de centros (teste pareado): **K-Means vence** de forma robusta em todo k (F1 macro 0.93); já entre amostragem aleatória e subconjunto fixo, a diferença é **empate real** — efeito medido como zero, não apenas "perto". Detalhe importante: o **σ** precisa ser calibrado pela *escala dos dados* — você usou a **mediana das distâncias ponto→centro**, porque a heurística clássica `d_max/√(2k)` **colapsa em alta dimensão** (zera todas as ativações). Mais centros → melhor, com retorno decrescente.
 
 ### Pegadinhas
 - **σ é tudo:** pequeno demais → morros viram picos isolados (tudo vira 0, modelo não aprende); grande demais → morros se fundem (perde resolução).
@@ -452,7 +452,8 @@ Os mesmos pesos do filtro são usados em toda a imagem (**weight sharing**) — 
 
 ### No seu projeto (Projeto 10)
 CNN (PyTorch) na tarefa real **foto vs screenshot** (imagens da sua coleção, baixadas do Drive). Resultados:
-- **2D RGB (F1 0.92) > 2D cinza (0.89) > 1D (0.87)** — a estrutura espacial (2D) e o canal de cor agregam.
+- **2D > 1D é um efeito real e robusto** (teste pareado, t≈5): a estrutura espacial agrega de verdade.
+- **RGB vs cinza é empate** — diferença medida como zero; o canal de cor não agrega nada além da estrutura espacial 2D.
 - Ablação: número de filtros e tamanho do kernel têm ponto ótimo (k=3 melhor; k=7 cai — filtro grande demais pra 64×64).
 - **Feature maps:** os filtros do conv1 viram **detectores de borda** nas caixas de UI dos screenshots, e respondem a **texturas/gradientes** nas fotos. É essa diferença que a rede usa pra classificar.
 
@@ -501,9 +502,11 @@ Como você usou o **mesmo dataset e split** (features CLIP) em 7/8/9, dá pra co
 
 | Tarefa | RBF (7) | SVM (8) | MLP (9) |
 |---|---|---|---|
-| macro_vs_rest | 0.93 | 0.95 | **0.97** |
+| macro_vs_rest | 0,921 ± 0,005 | 0,954 ± 0,004 | **0,965 ± 0,001** |
 | has_people | 0.67 | **0.90** | 0.89 |
 | screenshot×foto | 0.70 | **0.76** | 0.75 |
+
+*(linha `macro_vs_rest` é multi-seed, com desvio-padrão — os gaps entre RBF/SVM/MLP são maiores que os desvios, então o ranking MLP > SVM > RBF se mantém; as outras duas linhas são de uma única rodada.)*
 
 **Leitura:** o **MLP** lidera no problema fácil/separável; o **SVM** ganha nas tarefas desbalanceadas (a margem máxima lida melhor com classe rara); a **RBF manual** (poucos centros) fica atrás quando a classe positiva é pequena. Não existe "melhor modelo" universal — depende do problema (*No Free Lunch*).
 

@@ -279,6 +279,8 @@ Fronteira de decisao: x2 = -1.524580 * x1 - 0.075489
 
 > **Nota sobre pre/pos-atualizacao:** Os logs de epoca mostram a loss *antes* da atualizacao dos pesos (pre-update), enquanto "Loss Final" e recomputada *apos* a ultima atualizacao — por isso os valores diferem ligeiramente (0.106094 no log da epoca 1000 vs. 0.106093 final).
 
+> **Nota sobre generalizacao (multi-seed):** A acuracia de teste 96.67% desta execucao (seed=42, N_teste=60 amostras) e favoravel, mas nao deve ser citada como o desempenho tipico do modelo — o conjunto de teste e pequeno demais para isso. A validacao oficial em 10 seeds (teste grande) da acuracia media **96,3% ± 0,3%**, com erro de teste de 3,71% ± 0,27%, praticamente no limite de Bayes (3,57%) para este dataset. Os 96,67% desta seed sao sorte da amostra de teste, nao um resultado acima da media.
+
 ### Tabela de Metricas Chave
 
 | Metrica                      | Treino    | Teste     |
@@ -287,7 +289,7 @@ Fronteira de decisao: x2 = -1.524580 * x1 - 0.075489
 | Loss Epoch 100               | 0.134649  | —         |
 | Loss Final (pos-treinamento) | 0.106093  | 0.064900  |
 | Reducao Total de Loss        | 84.69%    | —         |
-| Acuracia de Treino           | 95.42%    | 96.67%    |
+| Acuracia de Treino           | 95.42%    | 96.67% (*)|
 | Precisao                     | 0.9520    | 0.9615    |
 | Recall                       | 0.9597    | 0.9615    |
 | F1-Score                     | 0.9558    | 0.9615    |
@@ -297,11 +299,13 @@ Fronteira de decisao: x2 = -1.524580 * x1 - 0.075489
 | Inclinacao fronteira         | -1.524580 | —         |
 | Intercepto fronteira         | -0.075489 | —         |
 
+(*) Valor desta seed unica (N_teste=60). Oficial (10 seeds, teste grande): 96,3% ± 0,3%.
+
 **Observacoes:**
 - A Loss inicial e `ln(2) = 0.6931` — exatamente o esperado para inicializacao em zeros (probabilidade 0.5 para todos)
 - Acuracia de treino de ~51.67% na epoca 1 com pesos zero: sigmoid(0)=0.5 para todos => prediz classe 1 para todos (threshold >= 0.5) => acerta 124/240 (classe 1) e erra 116 (classe 0). A acuracia de 95.42% (229/240) foi atingida ja na **epoca 2** (confirmado pelo training_log.csv).
 - Convergencia da loss e mais lenta que a acuracia — o modelo continua ajustando confianca mesmo com acuracia estavel
-- O gap treino/teste (95.42% vs 96.67%) e pequeno e favoravel ao teste, indicando boa generalizacao
+- O gap treino/teste (95.42% vs 96.67%) e pequeno e favoravel ao teste nesta seed; mas 96.67% e sorte da seed unica (teste pequeno, N=60) — a acuracia oficial validada em 10 seeds e 96,3% ± 0,3% (erro 3,71% ± 0,27%, proximo do erro de Bayes teorico de 3,57%), o que confirma boa generalizacao de forma robusta, nao apenas nesta execucao
 
 ## Perguntas Provaveis
 

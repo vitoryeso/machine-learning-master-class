@@ -210,7 +210,7 @@ Samples where predictions differ: 6
 - Entropia gera ~8% mais nos (7.8%; 55 vs 51)
 - Feature 1 domina a importancia em ambos (~62-66%)
 - Ambos os plots mostram fronteiras em forma de grade (eixos-paralelos)
-- `depth_vs_accuracy.png`: sweep max_depth=1-17 (range dinamico) para ambos os criterios; tabela numerica completa em report.txt (secao "Depth-vs-accuracy sweep"); acuracia Gini atinge 95% pela primeira vez em depth=4, sobe para 96% em depth=5 (pico), e volta a 95% a partir de depth=6 onde se mantem; Entropy estabiliza definitivamente em 95% a partir de depth=8
+- `depth_vs_accuracy.png`: sweep max_depth=1-17 (range dinamico) para ambos os criterios; tabela numerica completa em report.txt (secao "Depth-vs-accuracy sweep"); acuracia Gini atinge 95% pela primeira vez em depth=4, sobe para 96% em depth=5 (pico), e volta a 95% a partir de depth=6 onde se mantem; Entropy estabiliza definitivamente em 95% a partir de depth=8. **Atencao:** esse pico pontual de Gini (96% em depth=5) e ruido desta seed unica — o teste pareado oficial (30 seeds) mostra Gini e Entropia empatados na pratica (diferenca de acuracia praticamente zero); o unico efeito real e estrutural: Entropy produz arvores consistentemente mais profundas
 - Ambos erram 5 amostras no total, mas apenas 2 em comum (indices 49, 59); os outros 3+3 erros sao exclusivos de cada criterio (Gini-exclusivos: indices 34, 81, 82; Entropy-exclusivos: indices 51, 76, 92)
 - `confusion_matrix.png`: matrizes identicas (TN=46 FP=4 FN=1 TP=49) apesar de 6 predicoes diferentes — coincidencia numerica, nao indicador de arvores equivalentes
 
