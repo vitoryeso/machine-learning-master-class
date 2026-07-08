@@ -82,12 +82,12 @@ saída:  sigmoid → p</code></pre>
   <div class="grid2">
     <div>
       <table>
-        <tr><th>Tarefa (full-dim)</th><th>Acc</th><th>F1</th><th>base (acc)</th></tr>
+        <tr><th>Tarefa (full-dim, seed=42)</th><th>Acc</th><th>F1</th><th>base (acc)</th></tr>
         <tr><td>macro_vs_rest</td><td>0.976</td><td>0.965</td><td>0.654</td></tr>
         <tr><td>has_people</td><td>0.963</td><td>0.885</td><td>0.836</td></tr>
         <tr><td>screenshot×foto</td><td>0.924</td><td>0.751</td><td>0.844</td></tr>
       </table>
-      <p class="muted">Full-dim torna as 3 tarefas aprendíveis (no 2D PCA, screenshot tinha F1 0.29 — quase morta).</p>
+      <p class="muted">Tabela da <strong>seed=42</strong> (ilustração). Full-dim torna as 3 tarefas aprendíveis (no 2D PCA, screenshot tinha F1 0.29 — quase morta). Oficial: <strong>multi-seed (3 seeds)</strong> F1 CE — has_people 0.886±0.004, screenshot×foto 0.756±0.010, macro 0.965±0.001.</p>
     </div>
     <div><img class="fit" src="output/mse_vs_ce_and_arch.png" alt="MSE vs CE e ablação de arquitetura"></div>
   </div>
@@ -97,12 +97,12 @@ saída:  sigmoid → p</code></pre>
 <section>
   <h2>Como os neurônios particionam o plano</h2>
   <div class="grid2">
-    <div><img class="fit" src="output/boundary_neurons.png" alt="Partições dos neurônios ocultos"></div>
+    <div><img class="fit" src="output/boundary_neurons.png" alt="Partições dos neurônios ocultos" style="max-height:360px"></div>
     <div>
-      <ul>
+      <ul style="font-size:.76em; line-height:1.18">
         <li>Cada um dos 4 neurônios ocultos é uma <strong>reta</strong> (tracejada); a saída combina-as numa <strong>região não-linear</strong> que isola o grupo.</li>
-        <li><strong>MSE ≈ CE</strong> aqui (F1 0.962 vs 0.965) — a CE converge um pouco mais rápido.</li>
-        <li><strong>0 camadas ocultas (=logística) já dá F1 0.956:</strong> as features CLIP são quase linearmente separáveis, então a não-linearidade do MLP agrega pouco em full-dim. A não-linearidade importa mais no plano 2D comprimido.</li>
+        <li><strong>MSE ≈ CE em magnitude</strong>, mas no multi-seed a <strong>CE fica consistentemente um fio acima</strong> onde há sinal (0.965±0.001 vs 0.961±0.003 no macro — bandas não se sobrepõem).</li>
+        <li><strong>Camada oculta ajuda um pouco de verdade:</strong> no multi-seed a logística (0 ocultas) fica reprodutivelmente ~1 ponto ABAIXO (F1 0.954±0.002 vs 0.965±0.003 com oculta, ~3σ). O single-seed (0.956≈0.967) mascarava isso. Ainda assim o ganho é pequeno: as features CLIP já são quase linearmente separáveis.</li>
       </ul>
     </div>
   </div>
