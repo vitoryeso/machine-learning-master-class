@@ -66,12 +66,12 @@ f(x) = Σᵢ αᵢ·yᵢ·K(x, xᵢ) + b
   <div class="grid2">
     <div>
       <table>
-        <tr><th>Tarefa (full-dim)</th><th>Acc</th><th>F1</th><th>SVs</th></tr>
+        <tr><th>Tarefa (full-dim, seed=42)</th><th>Acc</th><th>F1</th><th>SVs</th></tr>
         <tr><td>macro_vs_rest</td><td>0.966</td><td>0.951</td><td>1515</td></tr>
         <tr><td>has_people</td><td>0.966</td><td>0.895</td><td>1684</td></tr>
         <tr><td>screenshot×foto</td><td>0.931</td><td>0.762</td><td>2652</td></tr>
       </table>
-      <p class="muted">C=10, γ=scale, treino subamostrado a 6000 (SVM escala O(N²)).</p>
+      <p class="muted">C=10, γ=scale, treino subamostrado a 6000 (SVM escala O(N²)). Tabela da <strong>seed=42</strong> (ilustração); oficial <strong>multi-seed (3 seeds)</strong>: has_people 0.962±0.003 (F1 0.883±0.010), screenshot×foto 0.933±0.002 (F1 0.770±0.007), macro_vs_rest 0.968±0.002 (F1 0.954±0.004).</p>
     </div>
     <div><img class="fit" src="output/c_gamma_sweep.png" alt="Varredura C x gamma"></div>
   </div>
@@ -85,7 +85,7 @@ f(x) = Σᵢ αᵢ·yᵢ·K(x, xᵢ) + b
       <ul>
         <li>Os <strong>círculos</strong> são os vetores de suporte — só eles definem a fronteira; o resto dos pontos é irrelevante.</li>
         <li>No plano 2D comprimido as classes se sobrepõem, então quase um quarto dos pontos vira vetor de suporte (faixa larga de incerteza).</li>
-        <li><strong>γ é crítico:</strong> γ alto (0.1) faz o kernel só "ver" o ponto vizinho → colapsa para F1 0.09; γ baixo/scale generaliza (0.95). C importa bem menos aqui.</li>
+        <li><strong>γ é crítico:</strong> γ alto (0.1) faz o kernel só "ver" o ponto vizinho → colapsa para F1 0.09; γ baixo/scale generaliza (0.95). C importa bem menos aqui. <strong>(Robusto no multi-seed: γ ~200× o std; SVM &gt; baseline nas 3 tarefas.)</strong></li>
       </ul>
     </div>
   </div>
