@@ -82,7 +82,7 @@
         <tr><td><strong>ConvNeXt / macro</strong></td><td><strong>0.827</strong></td><td>0.816</td></tr>
         <tr><td><strong>ConvNeXt / folha</strong></td><td><strong>0.660</strong></td><td>0.625</td></tr>
       </table>
-      <p class="muted">Teste 4.466 imgs (split 80/20 estratificado). Métricas P/R/F1 macro-averaged (média por classe, peso igual). O CLIP classifica os próprios clusters bem acima do ConvNeXt — a circularidade aparece nos números.</p>
+      <p class="muted">Tabela da <strong>seed=42</strong> (ilustração; teste 4.466 imgs, split 80/20). Oficial: <strong>multi-seed (5 seeds)</strong> — macro CLIP 0.954±0.004 vs ConvNeXt 0.833±0.006; folha CLIP 0.896±0.005 vs ConvNeXt 0.661±0.004. Gap = <strong>16–47× o std</strong> → circularidade robustamente mensurável (não ruído).</p>
     </div>
   </div>
 </section>
@@ -93,7 +93,7 @@
   <ul>
     <li><strong>O nível macro é "real":</strong> um espaço independente (ConvNeXt) recupera os 5 grupos com 83% — a taxonomia grossa não é um artefato do CLIP.</li>
     <li><strong>O nível fino é CLIP-específico:</strong> as 25 subclasses caem para 66% no ConvNeXt — distinções sutis que vivem sobretudo na semântica do CLIP.</li>
-    <li><strong>A circularidade é mensurável:</strong> o gap CLIP→ConvNeXt (95%→83% macro, 89%→66% folha) quantifica quanto da "acurácia" seria auto-confirmação.</li>
+    <li><strong>A circularidade é mensurável:</strong> o gap CLIP→ConvNeXt (95%→83% macro, 89%→66% folha) quantifica quanto da "acurácia" seria auto-confirmação (no multi-seed o gap ≫ std: 16–47× o desvio, não é ruído).</li>
     <li><strong>Limitações:</strong> rótulos vêm de clustering não-supervisionado (sem verdade externa); linear probe não captura fronteiras não-lineares; classes desbalanceadas (folhas de 276 a 4.218).</li>
   </ul>
 </section>
