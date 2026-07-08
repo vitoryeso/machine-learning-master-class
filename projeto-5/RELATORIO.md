@@ -60,7 +60,7 @@ A cada nó, uma **busca gulosa** percorre cada feature e cada ponto-médio entre
 
 ## Resultados
 
-### Métricas de Classificação
+### Métricas de Classificação (seed=42, ilustração)
 
 | Métrica          | Gini   | Entropy |
 |------------------|--------|---------|
@@ -70,9 +70,22 @@ A cada nó, uma **busca gulosa** percorre cada feature e cada ponto-médio entre
 | Recall           | 0.9800 | 0.9600  |
 | F1-Score         | 0.9608 | 0.9412  |
 
-Diferente do que se vê em muitos datasets (onde Gini e Entropia tendem a empatar), aqui o **Gini levou vantagem em todas as métricas** — 2 pontos percentuais de acurácia de teste. As predições dos dois critérios divergem em **4 das 100** amostras de teste, confirmando que a escolha do critério produziu modelos distintos.
+Nesta seed isolada, o **Gini aparenta vantagem em todas as métricas** — 2 pontos percentuais de acurácia de teste — e as predições dos dois critérios divergem em **4 das 100** amostras de teste. **Atenção:** a validação multi-seed abaixo mostra que essa diferença é ruído de amostragem, não um efeito real do critério — ver seção "Validação Multi-Seed".
 
-### Matriz de Confusão (teste, n=100)
+### Validação Multi-Seed (10 seeds, N=2000) — resultado oficial
+
+A tabela de métricas acima usa uma única seed (42) e um dataset pequeno (N=500) — insuficiente para separar efeito real de ruído de amostragem. Para validar o claim, repetimos o experimento com **10 seeds** em um dataset maior (**N=2000**), reportando média ± desvio padrão (ddof=1):
+
+| Métrica          | Gini            | Entropy         |
+|------------------|-----------------|-----------------|
+| Test Accuracy    | 0.943 ± 0.033   | 0.945 ± 0.033   |
+| F1-Score         | (idem, mesma ordem de grandeza e sobreposição) | |
+
+**Gini ≈ Entropia — indistinguíveis no multi-seed.** Os intervalos se sobrepõem quase totalmente e o ranking até **inverte** em relação à seed única (Entropy nominalmente acima, não Gini). A diferença de "2 p.p." observada com seed=42 era **ruído de amostragem**, não um efeito do critério. O que se mantém direcionalmente real entre os dois critérios é a **estrutura**: a árvore de Entropia tende a ficar mais profunda que a de Gini.
+
+**Lição sobre variância:** aumentar o dataset de teste (N=500 → 2000) **não reduziu** o desvio-padrão entre seeds — pelo contrário, foi de ±0.021 para ±0.033. Isso é o oposto do que aconteceu nos modelos lineares dos projetos 3/4, onde mais dados tende a estabilizar a métrica. A razão é que a **árvore de decisão não-podada é um modelo de alta variância**: ela cresce até folhas puras (ver overfitting abaixo), então pequenas mudanças na amostra de treino/teste mudam a estrutura da árvore e, com ela, o resultado — o desvio entre seeds reflete a **instabilidade do próprio modelo**, não o erro amostral da estimativa de teste. Mais dados por si só não resolve isso; apenas **restringir `max_depth` (poda)** reduziria essa variância. Isso reforça a nota já presente neste relatório sobre validação cruzada k-fold como trabalho futuro — o problema não é só a margem de erro da estimativa (100 amostras de teste), mas a variância estrutural do modelo em si, que k-fold ajudaria a quantificar melhor do que uma única seed.
+
+### Matriz de Confusão (teste, n=100, seed=42, ilustração)
 
 **Gini:**
 
@@ -90,7 +103,7 @@ Diferente do que se vê em muitos datasets (onde Gini e Entropia tendem a empata
 
 O Gini errou 4 amostras (3 FP + 1 FN); a Entropia errou 6 (4 FP + 2 FN).
 
-### Estrutura da Árvore
+### Estrutura da Árvore (seed=42, ilustração)
 
 | Propriedade   | Gini | Entropy |
 |---------------|------|---------|
@@ -119,8 +132,9 @@ Em ambos os critérios, a **Feature 1 concentra mais poder preditivo** (~61–64
 
 ## Conclusão
 
-- **O critério teve efeito pequeno, mas real neste dataset:** o Gini ficou 2 p.p. acima em acurácia (96% vs 94%) e gerou uma árvore mais rasa (9 vs 13). Não é o empate "clássico" — a geometria específica deste dataset favoreceu o Gini.
+- **Gini ≈ Entropia — indistinguíveis (resultado oficial, multi-seed):** na validação com 10 seeds e N=2000, Gini (0.943±0.033) e Entropy (0.945±0.033) ficam dentro do mesmo intervalo de variação, com o ranking até invertido em relação à seed única. A "vantagem de 2 p.p." vista com seed=42 (96% vs 94%) era ruído de amostragem, não um efeito real do critério. O que se sustenta direcionalmente é a **estrutura**: a árvore de Entropia tende a crescer mais profunda que a de Gini.
+- **Lição de alta variância:** ao contrário dos modelos lineares (P3/P4), aqui **aumentar os dados de teste não encolheu o desvio entre seeds** (foi de ±0.021 para ±0.033) — porque a árvore não-podada é um modelo de **alta variância** por construção (cresce até folhas puras), então a dispersão entre seeds vem da instabilidade do próprio modelo, e não do erro amostral da estimativa de teste. Mais dados não firma o número; só **podar (`max_depth`)** reduziria essa variância.
 - **Estrutura difere por geometria, não por parada:** ambas crescem até folhas puras; a diferença de profundidade vem da escala de redução de impureza da entropia reordenar os splits.
-- **Overfitting confirmado:** train accuracy = 100% para os dois, test 94–96%. As árvores têm folhas com 1 só amostra (10 no Gini, 8 na Entropy), evidência de memorização de exemplos isolados.
-- **Limitações:** sem `max_depth`, ambas overfitam (dados sintéticos permitem splits até folhas puras). O `depth_vs_accuracy.png` mostra que profundidades menores já atingem o platô de acurácia de teste — os níveis extras são supérfluos. Validação cruzada k-fold é recomendada como trabalho futuro, já que com 100 amostras de teste a estimativa de acurácia tem margem de ±~4 p.p.
+- **Overfitting confirmado:** train accuracy = 100% para os dois, test 94–96% (seed=42). As árvores têm folhas com 1 só amostra (10 no Gini, 8 na Entropy), evidência de memorização de exemplos isolados.
+- **Limitações:** sem `max_depth`, ambas overfitam (dados sintéticos permitem splits até folhas puras). O `depth_vs_accuracy.png` mostra que profundidades menores já atingem o platô de acurácia de teste — os níveis extras são supérfluos. Validação cruzada k-fold é recomendada como trabalho futuro: além da margem de ±~4 p.p. de uma estimativa com 100 amostras de teste, o resultado multi-seed mostra que a própria variância estrutural do modelo (não só o erro amostral) precisa ser quantificada — k-fold ajudaria a capturar essa instabilidade de forma mais sistemática que seeds isoladas.
 - **Nota de implementação:** árvore construída manualmente; a varredura de profundidade re-treina a árvore manual para cada `max_depth`, confirmando o comportamento de generalização.
