@@ -179,6 +179,8 @@ espaço de features diferente também deve recuperá-la. Rodamos os dois e compa
 
 ## Resultados
 
+### Single-seed (seed=42, ilustração)
+
 | Features / nível        | Acurácia | Precisão | Recall | F1 (macro) |
 |-------------------------|----------|----------|--------|------------|
 | CLIP / macro (circular) | 0.9503   | 0.9501   | 0.9486 | 0.9493     |
@@ -188,9 +190,27 @@ espaço de features diferente também deve recuperá-la. Rodamos os dois e compa
 
 Plots em `output/classification/`: `accuracy_comparison.png`, `confusion_macro_convnext.png`, `confusion_leaf_convnext.png`; números completos em `report_classification.txt`.
 
+### Multi-seed (5 seeds, mean±std, ddof=1) — resultado oficial
+
+O experimento acima foi repetido com 5 seeds (split estratificado + `random_state`
+do `LogisticRegression` variando; dados reais fixos), para checar se o gap
+CLIP→ConvNeXt é estável ou um artefato de uma amostragem particular:
+
+| Features / nível | Acurácia | F1 (macro) |
+|-------------------|----------|------------|
+| CLIP / macro       | 0.954 ± 0.004 | 0.953 ± 0.004 |
+| CLIP / folha        | 0.896 ± 0.005 | 0.884 ± 0.003 |
+| ConvNeXt / macro    | 0.833 ± 0.006 | 0.817 ± 0.008 |
+| ConvNeXt / folha     | 0.661 ± 0.004 | 0.624 ± 0.004 |
+
+Os valores single-seed batem dentro de ~1 std da média multi-seed em todas as
+linhas — a tabela seed=42 acima é consistente com o resultado oficial, apenas
+uma amostra pontual dele.
+
 ## Conclusão
 
-- **O nível macro é real:** o ConvNeXt (independente) recupera os 5 grupos com 82.7% — a estrutura grossa não é artefato do CLIP.
-- **O nível fino é CLIP-específico:** as 25 subclasses caem para 66% no ConvNeXt — distinções sutis que vivem sobretudo na semântica do CLIP.
-- **A circularidade é mensurável (descontando o baseline):** o gap CLIP→ConvNeXt (95.0%→82.7% macro; 89.3%→66.0% folha) mistura dois efeitos. Parte dele é apenas o ConvNeXt ser um extrator pior para esta distribuição — na Parte I, com rótulos **externos e determinísticos** (sem circularidade alguma), o ConvNeXt já fica ~4 F1-pts atrás do CLIP (type_f1 0.826 vs 0.869). Só o **excesso** sobre esse baseline (12 pts macro, 23 pts folha) é atribuível à auto-confirmação — e ainda assim excede o baseline com folga.
+- **O nível macro é real:** o ConvNeXt (independente) recupera os 5 grupos com ~83% (multi-seed) — a estrutura grossa não é artefato do CLIP.
+- **O nível fino é CLIP-específico:** as 25 subclasses caem para ~66% no ConvNeXt — distinções sutis que vivem sobretudo na semântica do CLIP.
+- **A circularidade é mensurável (descontando o baseline):** o gap CLIP→ConvNeXt (95.0%→82.7% macro; 89.3%→66.0% folha, seed=42) mistura dois efeitos. Parte dele é apenas o ConvNeXt ser um extrator pior para esta distribuição — na Parte I, com rótulos **externos e determinísticos** (sem circularidade alguma), o ConvNeXt já fica ~4 F1-pts atrás do CLIP (type_f1 0.826 vs 0.869). Só o **excesso** sobre esse baseline (12 pts macro, 23 pts folha) é atribuível à auto-confirmação — e ainda assim excede o baseline com folga.
+- **O gap é robusto, não ruído amostral:** no multi-seed, o gap CLIP→ConvNeXt (acc: 0.954→0.833 macro, 0.896→0.661 folha) vale **16–47× o desvio-padrão** observado entre seeds (std de 0.004 a 0.008). Ou seja, a variação seed-a-seed é irrisória frente à diferença entre extratores — a circularidade discutida acima é um efeito real e robustamente mensurável, não um acaso do split seed=42.
 - **Limitações:** rótulos vêm de clustering não-supervisionado (sem verdade externa); a rotulagem é **transdutiva** — a partição-alvo foi ajustada pelo K-means global sobre as 22.328 imagens (incl. as de teste), logo os rótulos do teste não são independentes dele (um protocolo plenamente honesto clusterizaria só no treino e atribuiria o teste por centróide mais próximo); linear probe é linear; classes desbalanceadas (folhas de 276 a 4.218 imagens) — por isso reportamos F1 macro-averaged.
