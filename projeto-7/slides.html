@@ -64,12 +64,12 @@
   <div class="grid2">
     <div>
       <table>
-        <tr><th>Tarefa (full-dim)</th><th>Acc</th><th>F1</th><th>base</th></tr>
+        <tr><th>Tarefa (full-dim, seed=42)</th><th>Acc</th><th>F1</th><th>base</th></tr>
         <tr><td>macro_vs_rest</td><td>0.948</td><td>0.926</td><td>0.654</td></tr>
         <tr><td>has_people</td><td>0.898</td><td>0.673</td><td>0.836</td></tr>
         <tr><td>screenshot×foto</td><td>0.918</td><td>0.701</td><td>0.844</td></tr>
       </table>
-      <p class="muted">k=30 centros (K-means). As tarefas desbalanceadas são mais difíceis para poucas gaussianas.</p>
+      <p class="muted">k=30 centros (K-means); tabela da <strong>seed=42</strong> (ilustração). As tarefas desbalanceadas são mais difíceis para poucas gaussianas. Oficial (<strong>multi-seed, 3 seeds</strong>): has_people 0.901±0.003 acc / 0.682±0.010 F1; screenshot×foto 0.911±0.006 acc / 0.668±0.030 F1; macro_vs_rest 0.945±0.004 acc / 0.921±0.005 F1.</p>
     </div>
     <div><img class="fit" src="output/centers_ablation.png" alt="Ablação de centros"></div>
   </div>
@@ -82,7 +82,7 @@
     <div>
       <ul>
         <li>Cada <strong>estrela</strong> é um centro cⱼ; em volta dele a gaussiana "acende", e a soma ponderada desenha a fronteira.</li>
-        <li><strong>A escolha dos centros importa:</strong> K-means vence em todo k (F1 0.913→0.931), aleatório fica perto (0.829→0.920), subset é o pior (0.723→0.914).</li>
+        <li><strong>A escolha dos centros importa (multi-seed):</strong> K-means vence de forma <strong>robusta</strong> (intervalos não se sobrepõem). Já <strong>aleatório vs subset é empate/ruído</strong> — os ±desvios se sobrepõem e a ordem inverte por tarefa.</li>
         <li><strong>Mais centros → melhor</strong>, mas com retorno decrescente — cobrem melhor o espaço.</li>
       </ul>
     </div>
