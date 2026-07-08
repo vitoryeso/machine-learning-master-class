@@ -40,7 +40,7 @@
   <h1>Regressão Logística do Zero</h1>
   <p class="muted">Classificação binária em 2D: sigmoid, Binary Cross-Entropy e gradiente analítico, implementados à mão em Rust. Dataset sintético: 2 gaussianas, 300 pontos, split 80/20.</p>
   <div class="grid3">
-    <div class="card"><div class="num">96.7%</div><p>acurácia no teste</p></div>
+    <div class="card"><div class="num">96.3%</div><p>acurácia no teste — multi-seed (±0.3%)</p></div>
     <div class="card"><div class="num">(p − y)</div><p>o gradiente após o cancelamento</p></div>
     <div class="card"><div class="num">3.57%</div><p>erro de Bayes — o teto do problema</p></div>
   </div>
@@ -80,14 +80,14 @@ BCE: L = −(1/N)Σ[y·ln p + (1−y)·ln(1−p)]</code></pre>
     <div><img class="fit" src="output/decision_boundary.png" alt="Fronteira de decisão"></div>
     <div>
       <table>
-        <tr><th>Métrica</th><th>Treino</th><th>Teste</th></tr>
+        <tr><th>Métrica (seed=42)</th><th>Treino</th><th>Teste</th></tr>
         <tr><td>Acurácia</td><td>95.4%</td><td><strong>96.7%</strong></td></tr>
         <tr><td>Precisão</td><td>0.952</td><td>0.962</td></tr>
         <tr><td>Recall</td><td>0.960</td><td>0.962</td></tr>
         <tr><td>F1</td><td>0.956</td><td>0.962</td></tr>
         <tr><td>BCE</td><td>0.106</td><td>0.065</td></tr>
       </table>
-      <p class="muted">Heatmap de probabilidade + reta p=0.5. Modelo linear → fronteira reta. Gap treino/teste pequeno → boa generalização.</p>
+      <p class="muted">Tabela da <strong>seed=42</strong> (ilustração). Oficial: <strong>multi-seed (10 seeds)</strong> acurácia <strong>96.3% ± 0.3%</strong> (dataset grande, teste ~2000). Modelo linear → fronteira reta.</p>
     </div>
   </div>
 </section>
@@ -96,8 +96,8 @@ BCE: L = −(1/N)Σ[y·ln p + (1−y)·ln(1−p)]</code></pre>
 <section>
   <h2>Conclusão</h2>
   <ul>
-    <li>Implementação do zero <strong>correta</strong>: 96.7% de teste confirma o gradiente analítico.</li>
-    <li>Erro de teste 3.33% ≈ <strong>limite de Bayes 3.57%</strong> (Φ(−√13/2)) → o gargalo é o ruído do problema, não o modelo.</li>
+    <li>Implementação do zero <strong>correta</strong>: <strong>96.3% ± 0.3%</strong> de teste (multi-seed, 10 seeds) confirma o gradiente analítico.</li>
+    <li>Erro de teste <strong>3.71% ± 0.27%</strong> ≈ <strong>limite de Bayes 3.57%</strong> (Φ(−√13/2)) → o gargalo é o ruído do problema, não o modelo (a seed única dava 3.33%, uma realização sortuda).</li>
     <li>Modelo linear → fronteira é reta; dados não-lineares exigiriam features polinomiais.</li>
     <li><strong>Melhorias:</strong> regularização L2 (<code>+λ‖w‖²</code>), critério formal de parada, mini-batch para escala.</li>
   </ul>
