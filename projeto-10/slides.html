@@ -66,12 +66,12 @@ A = ReLU(S)   →   MaxPool → ... → fc</code></pre>
   <div class="grid2">
     <div>
       <table>
-        <tr><th>Modalidade</th><th>Acc</th><th>F1</th></tr>
+        <tr><th>Modalidade (seed=42)</th><th>Acc</th><th>F1</th></tr>
         <tr><td><strong>2D RGB</strong></td><td>0.911</td><td><strong>0.917</strong></td></tr>
         <tr><td>2D grayscale</td><td>0.889</td><td>0.891</td></tr>
         <tr><td>1D (perfil de linha)</td><td>0.867</td><td>0.872</td></tr>
       </table>
-      <p class="muted">2D &gt; 1D (estrutura espacial importa); RGB &gt; cinza (o canal de cor agrega). Ablação: nf=16 e k=3 são o melhor; k=7 cai p/ 0.79 — kernel grande demais p/ 64×64.</p>
+      <p class="muted">Tabela da <strong>seed=42</strong> (ilustração). <strong>Multi-seed (3 seeds):</strong> 2D-RGB 0.884±0.024 &gt; 2D-gray 0.839±0.068 &gt; 1D 0.814±0.060 — o ranking vale nas médias e o <strong>2D-RGB é o mais estável</strong> (std bem menor), mas gray/1D se sobrepõem (CNN = alta variância, teste ~90). Ablação: k=3 melhor, k=7 cai.</p>
     </div>
     <div><img class="fit" src="output/modalities_ablation.png" alt="Modalidades e ablação"></div>
   </div>
