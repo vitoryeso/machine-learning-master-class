@@ -71,7 +71,7 @@ A = ReLU(S)   →   MaxPool → ... → fc</code></pre>
         <tr><td>2D grayscale</td><td>0.889</td><td>0.891</td></tr>
         <tr><td>1D (perfil de linha)</td><td>0.867</td><td>0.872</td></tr>
       </table>
-      <p class="muted">Tabela da <strong>seed=42</strong> (ilustração). <strong>Multi-seed (3 seeds):</strong> 2D-RGB 0.884±0.024 &gt; 2D-gray 0.839±0.068 &gt; 1D 0.814±0.060 — o ranking vale nas médias e o <strong>2D-RGB é o mais estável</strong> (std bem menor), mas gray/1D se sobrepõem (CNN = alta variância, teste ~90). Ablação: k=3 melhor, k=7 cai.</p>
+      <p class="muted">Tabela da <strong>seed=42</strong> (ilustração). <strong>Teste pareado (n=30):</strong> <strong>2D &gt; 1D é sinal REAL</strong> (t≈5 — a estrutura espacial importa), mas <strong>RGB vs gray = empate</strong> (t=1.3 — a cor não agrega em screenshot×foto). O "ranking" RGB&gt;gray&gt;1D do single-seed misturava sinal real (2D&gt;1D) com ruído (RGB=gray). Ablação: k=3 melhor, k=7 cai.</p>
     </div>
     <div><img class="fit" src="output/modalities_ablation.png" alt="Modalidades e ablação"></div>
   </div>
