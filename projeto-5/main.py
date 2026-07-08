@@ -21,6 +21,8 @@ from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 
 SEED = 42
+N_SEEDS = 3  # rodadas para media +/- desvio; suba p/ 10/30 p/ std mais firme
+SEEDS = [SEED + i for i in range(N_SEEDS)]  # [42, 43, 44]
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -263,8 +265,98 @@ def prf1(cm):
     return prec, rec, f1
 
 
+# =============================================================================
+# Multi-seed — robustez estatistica (media +/- desvio sobre N_SEEDS rodadas)
+# =============================================================================
+def _make_data(seed):
+    """Gera o dataset e o split para uma seed. Cada seed = uma realizacao nova
+    do problema (make_classification) + um split estratificado novo."""
+    X, y = make_classification(
+        n_samples=500, n_features=2, n_informative=2, n_redundant=0,
+        n_clusters_per_class=1, class_sep=0.9, random_state=seed,
+    )
+    return train_test_split(X, y, test_size=0.2, random_state=seed, stratify=y)
+
+
+def _train_eval(crit, X_tr, y_tr, X_te, y_te):
+    """Treina uma arvore com o criterio dado e devolve as metricas de teste."""
+    clf = DecisionTree(criterion=crit).fit(X_tr, y_tr)
+    cm = confusion(y_te, clf.predict(X_te))
+    prec, rec, f1 = prf1(cm)
+    return {"accuracy": clf.score(X_te, y_te), "train_accuracy": clf.score(X_tr, y_tr),
+            "precision": prec, "recall": rec, "f1": f1,
+            "depth": clf.get_depth(), "n_leaves": clf.get_n_leaves()}
+
+
+MS_KEYS = ["accuracy", "f1", "precision", "recall", "depth", "n_leaves", "train_accuracy"]
+
+
+def run_multiseed():
+    """Roda gini e entropy sobre N_SEEDS realizacoes e agrega media +/- desvio.
+    Escreve report_multiseed.txt + metrics_multiseed.png. Aditivo: nao mexe na
+    analise single-seed (seed=42) do main(). Retorna (stats, report_lines)."""
+    agg = {c: {k: [] for k in MS_KEYS} for c in ("gini", "entropy")}
+    for seed in SEEDS:
+        X_tr, X_te, y_tr, y_te = _make_data(seed)
+        for crit in ("gini", "entropy"):
+            m = _train_eval(crit, X_tr, y_tr, X_te, y_te)
+            for k in MS_KEYS:
+                agg[crit][k].append(m[k])
+    # media e desvio amostral (ddof=1); com 1 seed cai p/ 0
+    stats = {c: {k: (float(np.mean(v)),
+                     float(np.std(v, ddof=1)) if len(v) > 1 else 0.0)
+                 for k, v in agg[c].items()} for c in agg}
+
+    lines = ["Multi-seed: media +/- desvio (ddof=1) sobre {} seeds {}".format(N_SEEDS, SEEDS),
+             "(cada seed = novo make_classification + novo split estratificado)", ""]
+    hdr = "{:<16} {:>22} {:>22}".format("Metric", "Gini", "Entropy")
+    lines += [hdr, "-" * len(hdr)]
+    for k in MS_KEYS:
+        gm, gs = stats["gini"][k]
+        em, es = stats["entropy"][k]
+        if k in ("depth", "n_leaves"):
+            lines.append("{:<16} {:>15.1f} +/-{:>5.1f} {:>15.1f} +/-{:>5.1f}".format(k, gm, gs, em, es))
+        else:
+            lines.append("{:<16} {:>14.4f} +/-{:>5.4f} {:>14.4f} +/-{:>5.4f}".format(k, gm, gs, em, es))
+    lines.append("-" * len(hdr))
+
+    # plot com barras de erro (std) — acuracia e F1
+    metrics_to_plot = [("accuracy", "Acuracia"), ("f1", "F1")]
+    colors = {"gini": "#4e79a7", "entropy": "#f28e2b"}
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    xpos = np.arange(len(metrics_to_plot))
+    width = 0.35
+    for i, crit in enumerate(("gini", "entropy")):
+        means = [stats[crit][k][0] for k, _ in metrics_to_plot]
+        stds = [stats[crit][k][1] for k, _ in metrics_to_plot]
+        ax.bar(xpos + (i - 0.5) * width, means, width, yerr=stds, capsize=6,
+               label=crit.capitalize(), color=colors[crit], edgecolor="k",
+               linewidth=0.7, error_kw=dict(ecolor="#333", lw=1.3))
+    ax.set_xticks(xpos)
+    ax.set_xticklabels([lbl for _, lbl in metrics_to_plot])
+    ax.set_ylabel("Score (teste)")
+    ax.set_ylim(0.90, 1.02)
+    ax.set_title("Gini vs Entropia -- media +/- desvio ({} seeds)".format(N_SEEDS))
+    ax.legend()
+    ax.grid(True, axis="y", alpha=0.3)
+    plt.tight_layout()
+    ms_path = os.path.join(OUTPUT_DIR, "metrics_multiseed.png")
+    plt.savefig(ms_path, dpi=120, bbox_inches="tight")
+    plt.close()
+
+    with open(os.path.join(OUTPUT_DIR, "report_multiseed.txt"), "w") as f:
+        f.write("\n".join(lines))
+    return stats, lines, ms_path
+
+
 def main():
-    # -- 1. Dataset ------------------------------------------------------------
+    # -- 0. Multi-seed: robustez estatistica (media +/- desvio) ---------------
+    _, ms_report, ms_path = run_multiseed()
+    print("\n".join(ms_report))
+    print("Saved:", ms_path)
+    print()
+
+    # -- 1. Dataset (seed=42, referencia para as analises qualitativas) -------
     X, y = make_classification(
         n_samples=500, n_features=2, n_informative=2, n_redundant=0,
         n_clusters_per_class=1, class_sep=0.9, random_state=SEED,
@@ -295,9 +387,12 @@ def main():
             "confusion_matrix": cm.tolist(),
         }
 
-    # -- 3. Tabela de metricas ------------------------------------------------
-    header = "{:<22} {:>10} {:>10}".format("Metric", "Gini", "Entropy")
+    # -- 3. Tabela de metricas (seed=42) --------------------------------------
+    # ILUSTRACAO de 1 realizacao (a que gera as figuras abaixo). O resultado
+    # OFICIAL e o multi-seed impresso no topo; esta tabela e so o caso da seed=42.
+    header = "{:<22} {:>10} {:>10}".format("Metric (seed=42)", "Gini", "Entropy")
     sep = "-" * len(header)
+    print("[ilustracao seed=42 — numeros oficiais = multi-seed acima]")
     print(sep); print(header); print(sep)
     for key in ["train_accuracy", "accuracy", "precision", "recall", "f1",
                 "depth", "n_leaves", "n_nodes"]:
@@ -472,10 +567,15 @@ def main():
         "=" * 60,
         "PROJETO 5 -- ARVORE DE DECISAO MANUAL: Gini vs Entropia",
         "=" * 60, "",
-        "Dataset: make_classification, n_samples=500, n_features=2, random_state=42",
-        "Train: {}  |  Test: {}".format(X_train.shape[0], X_test.shape[0]),
+        "Dataset: make_classification, n_samples=500, n_features=2",
         "Implementacao: arvore CART construida do zero (ver main.py).", "",
-        "Metrics Comparison:", header, sep,
+        "RESULTADO OFICIAL (multi-seed):",
+    ] + ms_report + [
+        "",
+        "-" * 60,
+        "Ilustracao (seed=42, 1 realizacao) — base das figuras fronteira/arvore/sweep:",
+        "Train: {}  |  Test: {}".format(X_train.shape[0], X_test.shape[0]),
+        "Metrics (seed=42):", header, sep,
     ]
     for key in ["train_accuracy", "accuracy", "precision", "recall", "f1",
                 "depth", "n_leaves", "n_nodes"]:
@@ -518,4 +618,11 @@ def main():
 
 
 if __name__ == "__main__":
+    import argparse
+    _ap = argparse.ArgumentParser(description="Arvore Gini vs Entropia — multi-seed")
+    _ap.add_argument("-n", "--n-seeds", type=int, default=N_SEEDS,
+                     help="numero de seeds para media +/- desvio (default: %(default)s)")
+    _args = _ap.parse_args()
+    N_SEEDS = _args.n_seeds
+    SEEDS = [SEED + i for i in range(N_SEEDS)]
     main()
