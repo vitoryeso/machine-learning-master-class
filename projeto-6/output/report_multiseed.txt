@@ -1,0 +1,15 @@
+Multi-seed: arvore unica vs Random Forest (N=51 arvores) sobre 10 seeds [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+(cada seed = nova realizacao make_classification de 2000 amostras + split; teste ~400)
+
+Metrica        Arvore unica           Random Forest         
+------------------------------------------------------------
+accuracy           0.9433 +/-0.0335     0.9603 +/-0.0241
+f1                 0.9437 +/-0.0331     0.9602 +/-0.0244
+------------------------------------------------------------
+
+>> REDUCAO DE VARIANCIA (o ponto do ensemble):
+   desvio da acuracia entre seeds: arvore 0.0335  ->  floresta 0.0241  (1.4x menor)
+
+>> TESTE PAREADO (floresta - arvore, mesma realizacao por seed):
+   diferenca de acuracia = +0.0170 +/- 0.0134 | SE 0.0042 | t = +4.00
+   (|t| > ~2 => a floresta e consistentemente melhor; nao e acaso de uma seed)

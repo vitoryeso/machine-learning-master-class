@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto 6 — Random Forest: Ensemble e Variabilidade (manual)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; --green:#15803d; --orange:#b45309; }
+    .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
+    .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
+    .reveal h1 { font-size: 2.0em; }
+    .reveal h2 { font-size: 1.45em; }
+    .reveal p,.reveal li { font-size: .68em; line-height: 1.3; }
+    .muted { color: var(--muted); }
+    .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .good { border-color:#bbf7d0; background:#f0fdf4; }
+    .warn { border-color:#fed7aa; background:#fff7ed; }
+    .num { font-size:1.5em; font-weight:900; color:var(--blue); }
+    code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; color:#0f172a; }
+    img.fit { max-height: 440px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
+    table { font-size:.52em; }
+    th { background:#f1f5f9; }
+    td, th { padding: .4em .55em !important; }
+    .reveal pre code { font-size:.72em; line-height:1.25; white-space:pre-wrap; word-break:break-word; }
+    .terms li { font-size:.62em; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- SLIDE 1 — Problema + números -->
+<section>
+  <span class="tag">Projeto 6</span>
+  <h1>Random Forest: Ensemble e Variabilidade</h1>
+  <p class="muted">Random Forest <strong>construído manualmente</strong> (sem <code>sklearn.ensemble</code>): bootstrap (bagging), subamostragem aleatória de features por split e voto de maioria, reaproveitando a árvore CART do Projeto 5 como estimador-base. Fecha o arco do P5: árvore não-podada é de <strong>alta variância</strong> — o RF é a cura clássica.</p>
+  <div class="grid3">
+    <div class="card good"><div class="num">0,943 → 0,960</div><p>acurácia: árvore única → Random Forest (10 seeds)</p></div>
+    <div class="card good"><div class="num">±0,034 → ±0,024</div><p>desvio entre seeds: <strong>1,4× menor</strong> na floresta</p></div>
+    <div class="card"><div class="num">t = 4,00</div><p>teste pareado (floresta−árvore = +0,017): efeito consistente</p></div>
+  </div>
+</section>
+
+<!-- SLIDE 2 — Método -->
+<section>
+  <h2>Bagging + features aleatórias + voto</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Duas fontes de diversidade</h3>
+      <pre><code>Bootstrap: amostra n itens
+  do treino COM reposicao
+max_features: sorteia k
+  features candidatas
+  por split (aqui k=1 de 2)</code></pre>
+      <p class="muted">Cada árvore vê dados e splits diferentes → árvores diversas.</p>
+    </div>
+    <div class="card">
+      <h3>Predição por voto</h3>
+      <pre><code>votos = [t.predict(X) para
+         t in floresta]
+pred = media(votos) >= 0.5</code></pre>
+      <p class="muted">51 árvores (ímpar, sem empate). O voto cancela ruído individual.</p>
+    </div>
+  </div>
+  <div class="card terms" style="margin-top:14px">
+    <ul style="columns:2; gap:24px; margin:0">
+      <li><strong>Bagging</strong> — Bootstrap Aggregating: treina em reamostragens, combina por média/voto.</li>
+      <li><strong>Bootstrap</strong> — amostragem com reposição do mesmo tamanho do treino.</li>
+      <li><strong>max_features</strong> — nº de features candidatas sorteadas por split (o "random" do RF).</li>
+      <li><strong>Voto de maioria</strong> — fração de árvores que prevê classe 1 ≥ 0,5.</li>
+    </ul>
+  </div>
+  <p class="muted">A árvore-base é a mesma CART manual do Projeto 5 (Gini, busca gulosa, recursão até folha pura) — só ganhou o parâmetro <code>max_features</code>.</p>
+</section>
+
+<!-- SLIDE 3 — Resultados -->
+<section>
+  <h2>Partições diversas → fronteira estável</h2>
+  <div class="grid2">
+    <div><img class="fit" src="output/forest_partitions.png" alt="Particoes individuais da floresta vs arvore unica vs combinada vs fracao de votos"></div>
+    <div>
+      <img class="fit" src="output/metrics_multiseed.png" alt="Barras arvore unica vs Random Forest com barra de erro"><br>
+      <table>
+        <tr><th>Métrica</th><th>Árvore única</th><th>Random Forest</th></tr>
+        <tr><td>Accuracy</td><td>0,943 ± 0,034</td><td><strong>0,960 ± 0,024</strong></td></tr>
+      </table>
+      <p class="muted">10 seeds, N=2000, 51 árvores. <strong>Pareado</strong>: floresta−árvore = <strong>+0,017</strong>, <strong>t=4,00</strong> — vitória consistente, não sorte de seed.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4 — Conclusão -->
+<section>
+  <h2>Conclusão</h2>
+  <ul>
+    <li><strong>A tese do P5 se confirma: bagging reduz variância sem inflar viés.</strong> Média sobe (0,943→0,960) <em>e</em> desvio entre seeds cai (0,034→0,024, <strong>1,4× menor</strong>) — dupla melhora, não trade-off.</li>
+    <li><strong>Teste pareado confirma que não é ruído de uma seed:</strong> diferença floresta−árvore = <strong>+0,017</strong>, <strong>t=4,00</strong> (bem acima do limiar informal de ~2).</li>
+    <li><strong>Variância cai com mais árvores</strong> (sweep 1→101 árvores, <code>variance_vs_ntrees.png</code>): queda monotônica do desvio entre seeds, com retornos decrescentes após algumas dezenas de árvores — consistente com variabilidade ∝ 1/nº árvores.</li>
+    <li><strong>Custo:</strong> 51 árvores ≈ 51× mais caro que uma única; cada árvore é independente → embaraçosamente paralelizável. Trabalho futuro: variar <code>max_features</code>/profundidade da base e comparar com <code>RandomForestClassifier</code> do sklearn.</li>
+  </ul>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash:true, slideNumber:'c/t', transition:'slide' });</script>
+</body>
+</html>
