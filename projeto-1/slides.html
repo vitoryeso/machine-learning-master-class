@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projeto 1 — K-Means do zero em embeddings de imagens</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/white.css">
+  <style>
+    :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; --green:#15803d; --orange:#b45309; }
+    .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
+    .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
+    .reveal h1 { font-size: 1.9em; }
+    .reveal h2 { font-size: 1.4em; }
+    .reveal p,.reveal li { font-size: .66em; line-height: 1.3; }
+    .muted { color: var(--muted); }
+    .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .good { border-color:#bbf7d0; background:#f0fdf4; }
+    .warn { border-color:#fed7aa; background:#fff7ed; }
+    .num { font-size:1.4em; font-weight:900; color:var(--blue); }
+    code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; color:#0f172a; }
+    img.fit { max-height: 430px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
+    img.half { max-height: 195px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; display:block; }
+    .stack { display:flex; flex-direction:column; gap:10px; }
+    .stack p.cap { font-size:.5em; text-align:center; margin:2px 0 0; color: var(--muted); }
+    table { font-size:.5em; }
+    th { background:#f1f5f9; }
+    td, th { padding: .38em .5em !important; }
+    .flow { display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:18px; }
+    .box { border:2px solid #cbd5e1; border-radius:14px; padding:10px 14px; font-size:.6em; font-weight:800; background:#f8fafc; }
+    .arrow { font-size:1.1em; color:var(--blue); font-weight:900; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- SLIDE 1 — Problema + números -->
+<section>
+  <span class="tag">Projeto 1</span>
+  <h1>K-Means do zero sobre embeddings de imagens</h1>
+  <p class="muted">Minha coleção pessoal de imagens (fotos, wallpapers, arte gerada por IA, screenshots, memes) não tem rótulos. Este projeto implementa <strong>K-Means (Lloyd + K-means++) do zero em Rust</strong> para descobrir uma taxonomia visual a partir de embeddings CLIP — não-supervisionado, sem verdade externa.</p>
+  <div class="grid3">
+    <div class="card"><div class="num">8.000</div><p>imagens amostradas de 22.258 (63 corrompidas descartadas)</p></div>
+    <div class="card"><div class="num">512-d</div><p>embeddings CLIP ViT-B/32 (fastembed-rs, ONNX runtime)</p></div>
+    <div class="card"><div class="num">K=4</div><p>escolhido por elbow <strong>e</strong> silhouette — os dois concordam</p></div>
+  </div>
+</section>
+
+<!-- SLIDE 2 — Método -->
+<section>
+  <h2>Pipeline: do pixel ao cluster, 100% Rust</h2>
+  <div class="flow">
+    <div class="box">CLIP ViT-B/32<br>512-d + L2-norm</div><div class="arrow">→</div>
+    <div class="box">K-means++<br>(inicialização)</div><div class="arrow">→</div>
+    <div class="box">Lloyd<br>(iteração)</div><div class="arrow">→</div>
+    <div class="box">Elbow + Silhouette<br>(escolha de K)</div>
+  </div>
+  <div class="grid2" style="margin-top:22px">
+    <div class="card">
+      <h3>K-means++ (Arthur &amp; Vassilvitskii, 2007)</h3>
+      <p>Em vez de sortear os K centroides iniciais uniformemente ao acaso — o que arrisca centroides próximos e mínimos locais ruins — o primeiro é sorteado ao acaso e cada centroide seguinte é sorteado com probabilidade proporcional a <strong>D²</strong> (distância ao quadrado até o centroide já escolhido mais próximo). Pontos distantes dos centros atuais viram candidatos mais prováveis, espalhando a inicialização.</p>
+    </div>
+    <div class="card">
+      <h3>Lloyd (o K-means "clássico")</h3>
+      <p>Duas etapas repetidas até convergir: <strong>(1)</strong> atribuir cada ponto ao centroide mais próximo (partição de Voronoi no espaço 512-d) e <strong>(2)</strong> recalcular cada centroide como a média dos pontos atribuídos a ele. Rodo 3 runs por K para reduzir a variância da inicialização aleatória.</p>
+    </div>
+  </div>
+  <div style="margin-top:14px; text-align:center;">
+    <img class="half" style="max-height:220px" src="output/convergence_k4.png" alt="Convergência do WCSS por iteração, K=4">
+    <p class="cap">Convergência do Lloyd para K=4: WCSS cai monotonicamente até estabilizar</p>
+  </div>
+</section>
+
+<!-- SLIDE 3 — Resultados: escolha de K -->
+<section>
+  <h2>Escolha de K: elbow e silhouette concordam</h2>
+  <div class="grid2">
+    <div><img class="fit" src="output/elbow_silhouette.png" alt="Curvas de elbow (WCSS) e silhouette por K"></div>
+    <div>
+      <table>
+        <tr><th>K</th><th>Inércia (WCSS)</th><th>Silhouette</th></tr>
+        <tr><td>2</td><td>3753.7</td><td>0.0559</td></tr>
+        <tr><td><strong>4</strong></td><td><strong>3520.9</strong></td><td><strong>0.0576 (melhor)</strong></td></tr>
+        <tr><td>8</td><td>3290.3</td><td>0.0488</td></tr>
+        <tr><td>15</td><td>3087.1</td><td>0.0554</td></tr>
+      </table>
+      <p class="muted">Cotovelo sutil em K=4 na curva de inércia, e K=4 também é o <strong>melhor</strong> silhouette score entre K=2..15. Os scores absolutos são baixos (~0,05) — esperado para embeddings 512-d com dados visuais heterogêneos e contínuos: os clusters existem, mas não são perfeitamente separados.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4 — Conclusão -->
+<section>
+  <h2>4 clusters, separados por semântica visual</h2>
+  <div class="grid2">
+    <div class="stack">
+      <img class="half" src="output/pca_by_cluster.png" alt="PCA 2D colorido por cluster">
+      <p class="cap">PCA 2D — colorido por cluster (K-means)</p>
+      <img class="half" src="output/pca_by_folder.png" alt="PCA 2D colorido por pasta de origem">
+      <p class="cap">Mesma projeção — colorido por pasta de origem: sem correspondência clara</p>
+    </div>
+    <div>
+      <ul>
+        <li><strong>Cluster 0 (26,6%)</strong> — "arte digital": wallpapers e imagens de IA, paisagem/quadrado.</li>
+        <li><strong>Cluster 1 (28,8%)</strong> — "pessoas/retratos": 50% pasta people, 75% retrato, arquivos maiores (mediana 5,9MB).</li>
+        <li><strong>Cluster 2 (20,0%)</strong> — "screenshots": 57% iPhone, 12% capturas de tela, arquivos pequenos (mediana 241KB).</li>
+        <li><strong>Cluster 3 (24,6%)</strong> — "fotos pessoais": 81% iPhone, 70% retrato, arquivos grandes (mediana 8,5MB).</li>
+      </ul>
+      <p class="muted"><strong>Insight:</strong> o CLIP agrupou por <strong>semântica visual</strong>, não por metadados — fotos de iPhone aparecem nos 4 clusters, e formato (.png/.jpg) é uniforme entre eles.</p>
+    </div>
+  </div>
+  <p class="muted" style="margin-top:12px"><strong>Limitações:</strong> silhouette baixo; PCA 2D perde informação da projeção 512-d; K-means assume clusters esféricos. <strong>Trabalhos futuros:</strong> UMAP/t-SNE, DBSCAN, outros modelos de embedding (DINOv2), busca cross-modal.</p>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash:true, slideNumber:'c/t', transition:'slide' });</script>
+</body>
+</html>
