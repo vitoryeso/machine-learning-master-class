@@ -10,17 +10,17 @@
     :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; }
     .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
     .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
-    .reveal h1 { font-size: 1.9em; }
+    .reveal h1 { font-size: 1.5em; margin-bottom: .2em; }
     .reveal h2 { font-size: 1.4em; }
-    .reveal p,.reveal li { font-size: .66em; line-height: 1.3; }
+    .reveal p,.reveal li { font-size: .62em; line-height: 1.25; }
     .muted { color: var(--muted); }
     .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
     .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
     .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .card { border:2px solid #e2e8f0; border-radius:16px; padding:10px 14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
     .good { border-color:#bbf7d0; background:#f0fdf4; }
     .warn { border-color:#fed7aa; background:#fff7ed; }
-    .num { font-size:1.4em; font-weight:900; color:var(--blue); }
+    .num { font-size:1.2em; font-weight:900; color:var(--blue); }
     code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; color:#0f172a; }
     img.fit { max-height: 430px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
     table { font-size:.5em; }
@@ -38,8 +38,8 @@
 <section>
   <span class="tag">Projeto 9</span>
   <h1>ANN/MLP: Fronteiras Não-Lineares</h1>
-  <p class="muted">MLP construído <strong>do zero</strong> (numpy, backprop manual) para um problema <strong>real</strong>: classificação binária da coleção pessoal de imagens (features CLIP), em 3 tarefas. Desempenho medido em full-dim; o plano 2D (PCA) ilustra como os neurônios particionam o espaço.</p>
-  <div class="grid3">
+  <p class="muted">MLP construído <strong>do zero</strong> (numpy, backprop manual) para classificar a coleção pessoal de imagens (features CLIP) em 3 tarefas. Desempenho medido em full-dim; o plano 2D (PCA) ilustra como os neurônios particionam o espaço.</p>
+  <div class="grid3" style="margin-top:10px">
     <div class="card"><div class="num">numpy</div><p>forward + backprop na mão, sem framework</p></div>
     <div class="card"><div class="num">3 tarefas</div><p>pessoa, screenshot×foto, macro-grupo</p></div>
     <div class="card"><div class="num">MSE vs CE</div><p>duas perdas comparadas</p></div>
@@ -79,17 +79,17 @@ saída:  sigmoid → p</code></pre>
 <!-- SLIDE 3 -->
 <section>
   <h2>Resultados</h2>
-  <div class="grid2">
-    <div>
-      <table>
-        <tr><th>Tarefa (full-dim, seed=42)</th><th>Acc</th><th>F1</th><th>base (acc)</th></tr>
-        <tr><td>macro_vs_rest</td><td>0.976</td><td>0.965</td><td>0.654</td></tr>
-        <tr><td>has_people</td><td>0.963</td><td>0.885</td><td>0.836</td></tr>
-        <tr><td>screenshot×foto</td><td>0.924</td><td>0.751</td><td>0.844</td></tr>
-      </table>
-      <p class="muted">Tabela da <strong>seed=42</strong> (ilustração). Full-dim torna as 3 tarefas aprendíveis (no 2D PCA, screenshot tinha F1 0.29 — quase morta). Oficial: <strong>multi-seed (3 seeds)</strong> F1 CE — has_people 0.886±0.004, screenshot×foto 0.756±0.010, macro 0.965±0.001.</p>
-    </div>
-    <div><img class="fit" src="output/mse_vs_ce_and_arch.png" alt="MSE vs CE e ablação de arquitetura"></div>
+  <div style="text-align:center">
+    <img class="fit" style="max-height:300px" src="output/mse_vs_ce_and_arch.png" alt="MSE vs CE e ablação de arquitetura">
+  </div>
+  <div class="grid2" style="margin-top:10px">
+    <table>
+      <tr><th>Tarefa (full-dim, seed=42)</th><th>Acc</th><th>F1</th><th>base (acc)</th></tr>
+      <tr><td>macro_vs_rest</td><td>0.976</td><td>0.965</td><td>0.654</td></tr>
+      <tr><td>has_people</td><td>0.963</td><td>0.885</td><td>0.836</td></tr>
+      <tr><td>screenshot×foto</td><td>0.924</td><td>0.751</td><td>0.844</td></tr>
+    </table>
+    <p class="muted">Tabela da <strong>seed=42</strong> (ilustração). Full-dim torna as 3 tarefas aprendíveis (no 2D PCA, screenshot tinha F1 0.29 — quase morta). Oficial: <strong>multi-seed (3 seeds)</strong> F1 CE — has_people 0.886±0.004, screenshot×foto 0.756±0.010, macro 0.965±0.001.</p>
   </div>
 </section>
 

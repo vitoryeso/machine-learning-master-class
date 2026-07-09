@@ -75,10 +75,12 @@ fn output_dir() -> String {
 const FONT_PATHS: &[&str] = &[
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    "C:\\Windows\\Fonts\\arial.ttf",
 ];
 const FONT_BOLD_PATHS: &[&str] = &[
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+    "C:\\Windows\\Fonts\\arialbd.ttf",
 ];
 
 fn register_fonts() {
@@ -218,37 +220,37 @@ fn plot_convergence(gd_history: &[f64], lms_history: &[f64]) -> Result<(), Box<d
     let lms_final = lms_history.last().unwrap();
 
     let mut chart = ChartBuilder::on(&root)
-        .caption("GD vs LMS — Convergencia (eixo compartilhado)", ("sans-serif", 32))
+        .caption("GD vs LMS — Convergencia (eixo compartilhado)", ("sans-serif", 40))
         .margin(25)
-        .x_label_area_size(55)
-        .y_label_area_size(90)
+        .x_label_area_size(65)
+        .y_label_area_size(105)
         .build_cartesian_2d(0usize..n_epochs, global_min..global_max)?;
 
     chart.configure_mesh()
         .x_desc("Epoca (0 = inicial; 200 = final)")
         .y_desc("MSE Loss")
-        .label_style(("sans-serif", 22))
-        .axis_desc_style(("sans-serif", 26))
+        .label_style(("sans-serif", 28))
+        .axis_desc_style(("sans-serif", 32))
         .draw()?;
 
     // GD curve (blue)
     chart.draw_series(LineSeries::new(
         gd_history.iter().enumerate().map(|(i, &v)| (i, v)),
-        BLUE.stroke_width(3),
+        BLUE.stroke_width(4),
     ))?
     .label(format!("GD  (MSE final: {:.4})", gd_final))
-    .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], BLUE.stroke_width(3)));
+    .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], BLUE.stroke_width(4)));
 
     // LMS curve (red)
     chart.draw_series(LineSeries::new(
         lms_history.iter().enumerate().map(|(i, &v)| (i, v)),
-        RED.stroke_width(3),
+        RED.stroke_width(4),
     ))?
     .label(format!("LMS (MSE final: {:.4})", lms_final))
-    .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], RED.stroke_width(3)));
+    .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], RED.stroke_width(4)));
 
     chart.configure_series_labels()
-        .label_font(("sans-serif", 26))
+        .label_font(("sans-serif", 32))
         .position(SeriesLabelPosition::UpperRight)
         .background_style(WHITE.mix(0.8))
         .border_style(BLACK)

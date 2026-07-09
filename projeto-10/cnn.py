@@ -20,6 +20,13 @@ try:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     HAVE_MPL = True
+    plt.rcParams.update({           # fontes GRANDES p/ legibilidade no slide
+        "font.size": 16,
+        "axes.titlesize": 18,
+        "axes.labelsize": 15,
+        "xtick.labelsize": 13,
+        "ytick.labelsize": 13,
+    })
 except ImportError:                     # host sem matplotlib (ex.: mcculloch)
     plt = None
     HAVE_MPL = False
@@ -294,21 +301,22 @@ def main():
     plt.savefig(p_fm, dpi=120, bbox_inches="tight"); plt.close()
     print("  Saved:", p_fm)
 
-    # -- plot resumo: modalidades + ablação --------------------------------
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    # -- plot resumo: modalidades + ablação (empilhado, fonte grande) -------
+    fig, axes = plt.subplots(2, 1, figsize=(7.5, 9.5))
     mods = ["2D-RGB", "2D-gray", "1D-perfil"]
     axes[0].bar(mods, [results[m]["f1"] for m in mods], color=["#4e79a7", "#76b7b2", "#f28e2b"])
     axes[0].set_ylabel("F1 (teste)"); axes[0].set_ylim(0, 1)
     axes[0].set_title("Modalidade: 2D RGB vs 2D cinza vs 1D")
     for i, m in enumerate(mods):
-        axes[0].text(i, results[m]["f1"] + 0.02, "{:.3f}".format(results[m]["f1"]), ha="center", fontsize=9)
+        axes[0].text(i, results[m]["f1"] + 0.03, "{:.3f}".format(results[m]["f1"]),
+                      ha="center", fontsize=16, fontweight="bold")
     axes[1].bar(list(ablation.keys()), list(ablation.values()), color="#4e79a7")
     axes[1].set_ylabel("F1 (teste)"); axes[1].set_ylim(0, 1)
     axes[1].set_title("Ablação: nº de filtros / kernel (2D RGB)")
-    axes[1].tick_params(axis="x", rotation=30)
+    axes[1].tick_params(axis="x", rotation=0)
     plt.tight_layout()
     p_sum = os.path.join(OUT, "modalities_ablation.png")
-    plt.savefig(p_sum, dpi=120, bbox_inches="tight"); plt.close()
+    plt.savefig(p_sum, dpi=160, bbox_inches="tight"); plt.close()
     print("  Saved:", p_sum)
 
     # -- report -------------------------------------------------------------

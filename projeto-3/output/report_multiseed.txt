@@ -1,0 +1,16 @@
+================================================================
+  MINI-PROJETO 3 -- Multi-seed (RESULTADO OFICIAL)
+================================================================
+Seeds (10): [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+(cada seed = nova realizacao do dataset sintetico y=3x1-2x2+1+ruido, n=10000 amostras)
+Media +/- desvio amostral (ddof=1, divide por N-1)
+NOTA: GD e DELIBERADAMENTE nao-convergido (lr baixo, didatico).
+
+  Metrica                                GD                    LMS
+  ----------------------------------------------------------------
+  MSE final                 0.5018 +/-0.0118        0.2517 +/-0.0039
+  w0 (true=3.0)             2.6007 +/-0.0133        2.9963 +/-0.0111
+  w1 (true=-2.0)           -1.7324 +/-0.0121       -2.0009 +/-0.0057
+  bias (true=1.0)           0.8625 +/-0.0141        0.9911 +/-0.0159
+  ----------------------------------------------------------------
+Referencia teorica: MSE minimo (ruido irredutivel sigma^2) = 0.2500

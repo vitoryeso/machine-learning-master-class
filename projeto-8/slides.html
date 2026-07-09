@@ -42,22 +42,25 @@
 <section>
   <h2>Método: SVM-RBF</h2>
   <div class="grid2">
-    <div class="card">
+    <div class="card" style="padding:12px">
       <pre><code>K(x, xᵢ) = exp( −γ·‖x − xᵢ‖² )
 f(x) = Σᵢ αᵢ·yᵢ·K(x, xᵢ) + b
 ŷ = sinal( f(x) )</code></pre>
     </div>
-    <div class="card terms">
-      <ul>
-        <li><strong>x</strong> — entrada (features CLIP da imagem).</li>
-        <li><strong>xᵢ</strong> — os <em>vetores de suporte</em>: pontos de treino sobre ou dentro da margem (incl. mal classificados).</li>
-        <li><strong>K</strong> — kernel RBF: similaridade gaussiana entre x e xᵢ.</li>
-        <li><strong>γ</strong> — inverso da largura do kernel: alto = kernel estreito, influência local; baixo = kernel largo, suave.</li>
-        <li><strong>αᵢ, yᵢ</strong> — peso e rótulo (±1) de cada vetor de suporte.</li>
-        <li><strong>C</strong> — regularização: troca margem larga × erros no treino.</li>
-        <li><strong>ŷ</strong> — classe pelo sinal de f(x).</li>
-      </ul>
+    <div class="card" style="padding:12px">
+      <p style="margin:0">K mede a similaridade gaussiana entre <strong>x</strong> e cada vetor de suporte <strong>xᵢ</strong>; <strong>f(x)</strong> soma essas similaridades ponderadas (<strong>αᵢ·yᵢ</strong>) e o sinal decide a classe. <strong>γ</strong> ajusta o alcance do kernel; <strong>C</strong>, a tolerância a erro.</p>
     </div>
+  </div>
+  <div class="card terms" style="margin-top:10px; padding:10px 14px">
+    <ul style="columns:2; gap:20px; margin:0; line-height:1.15">
+      <li><strong>x</strong> — entrada (features CLIP).</li>
+      <li><strong>xᵢ</strong> — vetores de suporte (na margem).</li>
+      <li><strong>K</strong> — kernel RBF (similaridade gaussiana).</li>
+      <li><strong>γ</strong> — alcance do kernel: alto=local, baixo=suave.</li>
+      <li><strong>αᵢ, yᵢ</strong> — peso e rótulo do SV.</li>
+      <li><strong>C</strong> — regularização (margem × erro).</li>
+      <li><strong>ŷ</strong> — sinal de f(x).</li>
+    </ul>
   </div>
 </section>
 

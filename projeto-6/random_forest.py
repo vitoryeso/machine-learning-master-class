@@ -25,6 +25,8 @@ import matplotlib.patches as mpatches
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 
+plt.rcParams["font.size"] = 14  # figuras legiveis quando encolhidas nos slides
+
 SEED = 42
 N_SEEDS = 10               # rodadas para media +/- desvio (-n muda em runtime)
 SEEDS = [SEED + i for i in range(N_SEEDS)]
@@ -255,7 +257,7 @@ def run_multiseed():
     ax.grid(True, axis="y", alpha=0.3)
     plt.tight_layout()
     ms_path = os.path.join(OUTPUT_DIR, "metrics_multiseed.png")
-    plt.savefig(ms_path, dpi=120, bbox_inches="tight")
+    plt.savefig(ms_path, dpi=150, bbox_inches="tight")
     plt.close()
     return lines, ms_path, (tas, fas, dm, ds, t_stat)
 
@@ -277,42 +279,39 @@ def plot_partitions_2d():
     xx, yy = np.meshgrid(np.linspace(x0, x1, 220), np.linspace(y0, y1, 220))
     grid = np.c_[xx.ravel(), yy.ravel()]
 
-    fig, axes = plt.subplots(2, 4, figsize=(15, 7.6))
-    # linha 1: 4 arvores individuais da floresta (particoes diversas por bagging)
-    for j in range(4):
+    # Figura simplificada: 2 linhas x 3 colunas (6 paineis, fonte grande) em vez
+    # do layout anterior 2x4 (8 paineis) — legivel mesmo encolhida no slide.
+    fig, axes = plt.subplots(2, 3, figsize=(13, 8.4))
+    # linha 1: 3 arvores individuais da floresta (particoes diversas por bagging)
+    for j in range(3):
         ax = axes[0][j]
-        zz = forest.trees[j * 3].predict(grid).reshape(xx.shape)
+        zz = forest.trees[j * 4].predict(grid).reshape(xx.shape)
         ax.contourf(xx, yy, zz, alpha=0.5, cmap=cmap, levels=[-0.5, 0.5, 1.5])
-        ax.scatter(Xtr[:, 0], Xtr[:, 1], c=ytr, cmap=pts, s=8, alpha=0.5, edgecolors="none")
-        ax.set_title("Arvore #%d da floresta" % (j * 3 + 1), fontsize=10)
+        ax.scatter(Xtr[:, 0], Xtr[:, 1], c=ytr, cmap=pts, s=10, alpha=0.5, edgecolors="none")
+        ax.set_title("Arvore #%d da floresta" % (j * 4 + 1), fontsize=15)
         ax.set_xticks([]); ax.set_yticks([])
-    # linha 2: arvore unica, floresta combinada, e uma nota
+    # linha 2: arvore unica, floresta combinada, e fracao de votos
     labels = ["Arvore unica (P5)\n(instavel, recortada)", "Random Forest (%d arvores)\n(voto -> fronteira suave)" % N_TREES]
     models = [single, forest]
     for j in range(2):
         ax = axes[1][j]
         zz = models[j].predict(grid).reshape(xx.shape)
         ax.contourf(xx, yy, zz, alpha=0.5, cmap=cmap, levels=[-0.5, 0.5, 1.5])
-        ax.scatter(Xte[:, 0], Xte[:, 1], c=yte, cmap=pts, s=14, edgecolors="k", linewidths=0.3)
-        ax.set_title("%s  |  acc=%.3f" % (labels[j], models[j].score(Xte, yte)), fontsize=10)
+        ax.scatter(Xte[:, 0], Xte[:, 1], c=yte, cmap=pts, s=18, edgecolors="k", linewidths=0.4)
+        ax.set_title("%s\nacc=%.3f" % (labels[j], models[j].score(Xte, yte)), fontsize=15)
         ax.set_xticks([]); ax.set_yticks([])
     # probabilidade de voto da floresta (mapa continuo)
     ax = axes[1][2]
     votes = np.array([t.predict(grid) for t in forest.trees]).mean(0).reshape(xx.shape)
     cf = ax.contourf(xx, yy, votes, levels=np.linspace(0, 1, 11), cmap="RdBu_r", alpha=0.85)
-    ax.scatter(Xte[:, 0], Xte[:, 1], c=yte, cmap=pts, s=12, edgecolors="k", linewidths=0.3)
-    ax.set_title("Fracao de votos da floresta\n(incerteza na fronteira)", fontsize=10)
+    ax.scatter(Xte[:, 0], Xte[:, 1], c=yte, cmap=pts, s=16, edgecolors="k", linewidths=0.4)
+    ax.set_title("Fracao de votos da floresta\n(incerteza na fronteira)", fontsize=15)
     ax.set_xticks([]); ax.set_yticks([])
     fig.colorbar(cf, ax=ax, fraction=0.046, pad=0.04)
-    axes[1][3].axis("off")
-    axes[1][3].text(0.02, 0.5,
-                    "Bagging (bootstrap) + features\naleatorias por split geram arvores\nDIVERSAS (linha de cima).\n\n"
-                    "O voto de maioria (linha de baixo)\ncombina as particoes recortadas\nnuma fronteira mais suave e\nESTAVEL — reduz a variancia da\narvore unica sem aumentar o vies.",
-                    fontsize=10, va="center")
-    fig.suptitle("Projeto 6 — Random Forest: particoes individuais vs combinada (2D)", fontsize=13)
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    fig.suptitle("Projeto 6 — Random Forest: particoes individuais vs combinada (2D)", fontsize=18)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
     p = os.path.join(OUTPUT_DIR, "forest_partitions.png")
-    plt.savefig(p, dpi=120, bbox_inches="tight")
+    plt.savefig(p, dpi=150, bbox_inches="tight")
     plt.close()
     return p
 
@@ -338,7 +337,7 @@ def plot_variance_vs_ntrees():
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
     p = os.path.join(OUTPUT_DIR, "variance_vs_ntrees.png")
-    plt.savefig(p, dpi=120, bbox_inches="tight")
+    plt.savefig(p, dpi=150, bbox_inches="tight")
     plt.close()
     return p, list(zip(ns, stds))
 

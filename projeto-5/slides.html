@@ -10,24 +10,24 @@
     :root { --blue:#2563eb; --ink:#0f172a; --muted:#475569; --green:#15803d; --orange:#b45309; }
     .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
     .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
-    .reveal h1 { font-size: 2.0em; }
-    .reveal h2 { font-size: 1.45em; }
-    .reveal p,.reveal li { font-size: .68em; line-height: 1.3; }
+    .reveal h1 { font-size: 1.9em; }
+    .reveal h2 { font-size: 1.35em; margin-bottom:.35em; }
+    .reveal p,.reveal li { font-size: .6em; line-height: 1.25; }
     .muted { color: var(--muted); }
     .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
-    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
     .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-    .card { border:2px solid #e2e8f0; border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
+    .card { border:2px solid #e2e8f0; border-radius:14px; padding:10px 12px; background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.07); }
     .good { border-color:#bbf7d0; background:#f0fdf4; }
     .warn { border-color:#fed7aa; background:#fff7ed; }
-    .num { font-size:1.5em; font-weight:900; color:var(--blue); }
+    .num { font-size:1.4em; font-weight:900; color:var(--blue); }
     code { background:#f1f5f9; padding:.1em .3em; border-radius:6px; color:#0f172a; }
     img.fit { max-height: 440px; max-width: 100%; border-radius: 10px; border:1px solid #e2e8f0; }
-    table { font-size:.52em; }
+    table { font-size:.48em; }
     th { background:#f1f5f9; }
-    td, th { padding: .4em .55em !important; }
-    .reveal pre code { font-size:.72em; line-height:1.25; white-space:pre-wrap; word-break:break-word; }
-    .terms li { font-size:.62em; }
+    td, th { padding: .26em .5em !important; }
+    .reveal pre code { font-size:.64em; line-height:1.2; white-space:pre-wrap; word-break:break-word; }
+    .terms li { font-size:.56em; }
   </style>
 </head>
 <body>
@@ -62,34 +62,34 @@ IG = H(pai) − Σ (|filho|/|pai|)·H(filho)</code></pre>
       <p class="muted">Máx. 1.0. Maior curvatura em p≈0.5.</p>
     </div>
   </div>
-  <div class="card terms" style="margin-top:14px">
-    <ul style="columns:2; gap:24px; margin:0">
+  <div class="card terms" style="margin-top:10px">
+    <ul style="columns:2; gap:20px; margin:0">
       <li><strong>p_k</strong> — proporção da classe k no nó.</li>
-      <li><strong>G, H</strong> — impureza Gini e entropia (0 = nó puro).</li>
-      <li><strong>IG</strong> — information gain: queda de impureza no split.</li>
+      <li><strong>G, H</strong> — impureza Gini/entropia (0 = nó puro).</li>
+      <li><strong>IG</strong> — queda de impureza no split.</li>
       <li><strong>|filho|/|pai|</strong> — peso do filho (fração de amostras).</li>
     </ul>
   </div>
-  <p class="muted">A cada nó, busca gulosa: escolhe (feature, limiar) que <strong>maximiza a redução de impureza</strong>. Cresce até folhas puras.</p>
+  <p class="muted" style="margin-top:8px">Busca gulosa a cada nó: escolhe (feature, limiar) que <strong>maximiza a redução de impureza</strong>; cresce até folhas puras.</p>
 </section>
 
 <!-- SLIDE 3 — Fronteiras + métricas -->
 <section>
   <h2>Desempenho e o veredito pareado</h2>
-  <div class="grid2">
-    <div><img class="fit" src="output/paired_viz.png" alt="Nao-pareado (largo) vs pareado (zero): Gini vs Entropy"></div>
-    <div>
-      <table>
-        <tr><th>Métrica</th><th>Gini</th><th>Entropy</th></tr>
-        <tr><td>Test Acc</td><td><strong>0.960</strong></td><td>0.940</td></tr>
-        <tr><td>Precision</td><td>0.942</td><td>0.923</td></tr>
-        <tr><td>Recall</td><td>0.980</td><td>0.960</td></tr>
-        <tr><td>F1</td><td>0.961</td><td>0.941</td></tr>
-        <tr><td>Profundidade</td><td>9</td><td>13</td></tr>
-        <tr><td>Folhas</td><td>26</td><td>27</td></tr>
-      </table>
-      <p class="muted">Tabela da <strong>seed=42</strong> (ilustração). <strong>Teste pareado (n=30 seeds)</strong>: diferença Gini−Entropy = <strong>−0.0002 ± 0.008</strong> (<strong>t=0.11</strong>) — efeito medido como <strong>zero</strong>; só a profundidade difere (Entropy mais funda).</p>
-    </div>
+  <div style="display:flex; justify-content:center;">
+    <img class="fit" style="max-height:280px" src="output/paired_viz.png" alt="Nao-pareado (largo) vs pareado (zero): Gini vs Entropy">
+  </div>
+  <div class="grid2" style="margin-top:6px">
+    <table>
+      <tr><th>Métrica</th><th>Gini</th><th>Entropy</th></tr>
+      <tr><td>Test Acc</td><td><strong>0.960</strong></td><td>0.940</td></tr>
+      <tr><td>Precision</td><td>0.942</td><td>0.923</td></tr>
+      <tr><td>Recall</td><td>0.980</td><td>0.960</td></tr>
+      <tr><td>F1</td><td>0.961</td><td>0.941</td></tr>
+      <tr><td>Profundidade</td><td>9</td><td>13</td></tr>
+      <tr><td>Folhas</td><td>26</td><td>27</td></tr>
+    </table>
+    <p class="muted">Tabela da <strong>seed=42</strong> (ilustração). <strong>Teste pareado (n=30 seeds)</strong>: diferença Gini−Entropy = <strong>−0.0002 ± 0.008</strong> (<strong>t=0.11</strong>) — efeito medido como <strong>zero</strong>; só a profundidade difere (Entropy mais funda).</p>
   </div>
 </section>
 

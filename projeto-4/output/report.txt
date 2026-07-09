@@ -1,5 +1,9 @@
 Mini-Projeto 4 - Logistic Regression Results
 =============================================
+NOTA: este relatorio e a ILUSTRACAO single-seed (seed=42, 1 realizacao),
+base das figuras. O RESULTADO OFICIAL (media +/- desvio sobre N seeds)
+esta em output/report_multiseed.txt.
+
 Dataset           : 300 amostras (gaussianas 2D sinteticas, seed=42)
 Split             : 80% treino / 20% teste
 Treino (neg/pos)  : 116 / 124
@@ -49,6 +53,8 @@ intercepto c      : -0.075489
 
 Arquivos de Saida
 -----------------
+output/report_multiseed.txt   (RESULTADO OFICIAL: media +/- desvio)
+output/metrics_multiseed.png  (barras de metricas com barras de erro)
 output/decision_boundary.png  (treino: solido, teste: circulo oco)
 output/loss_curve.png
 output/accuracy_curve.png

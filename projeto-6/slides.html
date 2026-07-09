@@ -38,20 +38,20 @@
 <section>
   <span class="tag">Projeto 6</span>
   <h1>Random Forest: Ensemble e Variabilidade</h1>
-  <p class="muted">Random Forest <strong>construído manualmente</strong> (sem <code>sklearn.ensemble</code>): bootstrap (bagging), subamostragem aleatória de features por split e voto de maioria, reaproveitando a árvore CART do Projeto 5 como estimador-base. Fecha o arco do P5: árvore não-podada é de <strong>alta variância</strong> — o RF é a cura clássica.</p>
+  <p class="muted">Random Forest <strong>manual</strong> (sem <code>sklearn.ensemble</code>): bagging + subamostragem de features por split + voto de maioria, sobre a árvore CART do Projeto 5. Fecha o arco do P5: árvore não-podada tem <strong>alta variância</strong> — o RF é a cura clássica.</p>
   <div class="grid3">
-    <div class="card good"><div class="num">0,943 → 0,960</div><p>acurácia: árvore única → Random Forest (10 seeds)</p></div>
-    <div class="card good"><div class="num">±0,034 → ±0,024</div><p>desvio entre seeds: <strong>1,4× menor</strong> na floresta</p></div>
-    <div class="card"><div class="num">t = 4,00</div><p>teste pareado (floresta−árvore = +0,017): efeito consistente</p></div>
+    <div class="card good"><div class="num">0,960</div><p>acurácia RF, 10 seeds (árvore única: 0,943)</p></div>
+    <div class="card good"><div class="num">±0,024</div><p>desvio RF, <strong>1,4× menor</strong> (árvore: ±0,034)</p></div>
+    <div class="card"><div class="num">t = 4,00</div><p>pareado: floresta−árvore = +0,017</p></div>
   </div>
 </section>
 
 <!-- SLIDE 2 — Método -->
 <section>
-  <h2>Bagging + features aleatórias + voto</h2>
+  <h2>Bagging + features + voto</h2>
   <div class="grid2">
     <div class="card">
-      <h3>Duas fontes de diversidade</h3>
+      <h3>Diversidade</h3>
       <pre><code>Bootstrap: amostra n itens
   do treino COM reposicao
 max_features: sorteia k
@@ -60,7 +60,7 @@ max_features: sorteia k
       <p class="muted">Cada árvore vê dados e splits diferentes → árvores diversas.</p>
     </div>
     <div class="card">
-      <h3>Predição por voto</h3>
+      <h3>Voto de maioria</h3>
       <pre><code>votos = [t.predict(X) para
          t in floresta]
 pred = media(votos) >= 0.5</code></pre>
@@ -69,27 +69,26 @@ pred = media(votos) >= 0.5</code></pre>
   </div>
   <div class="card terms" style="margin-top:14px">
     <ul style="columns:2; gap:24px; margin:0">
-      <li><strong>Bagging</strong> — Bootstrap Aggregating: treina em reamostragens, combina por média/voto.</li>
-      <li><strong>Bootstrap</strong> — amostragem com reposição do mesmo tamanho do treino.</li>
-      <li><strong>max_features</strong> — nº de features candidatas sorteadas por split (o "random" do RF).</li>
-      <li><strong>Voto de maioria</strong> — fração de árvores que prevê classe 1 ≥ 0,5.</li>
+      <li><strong>Bagging</strong> — bootstrap + agregação por média/voto.</li>
+      <li><strong>Bootstrap</strong> — reamostra com reposição, mesmo tamanho do treino.</li>
+      <li><strong>max_features</strong> — nº de features sorteadas por split (o "random" do RF).</li>
+      <li><strong>Voto de maioria</strong> — fração de árvores prevendo classe 1 ≥ 0,5. Base: mesma CART do P5.</li>
     </ul>
   </div>
-  <p class="muted">A árvore-base é a mesma CART manual do Projeto 5 (Gini, busca gulosa, recursão até folha pura) — só ganhou o parâmetro <code>max_features</code>.</p>
 </section>
 
 <!-- SLIDE 3 — Resultados -->
 <section>
-  <h2>Partições diversas → fronteira estável</h2>
-  <div class="grid2">
-    <div><img class="fit" src="output/forest_partitions.png" alt="Particoes individuais da floresta vs arvore unica vs combinada vs fracao de votos"></div>
+  <h2>Resultados</h2>
+  <div class="grid2" style="grid-template-columns:1.35fr 1fr">
+    <div><img class="fit" src="output/forest_partitions.png" alt="Particoes individuais da floresta vs arvore unica vs combinada vs fracao de votos" style="max-height:480px"></div>
     <div>
-      <img class="fit" src="output/metrics_multiseed.png" alt="Barras arvore unica vs Random Forest com barra de erro"><br>
-      <table>
+      <img class="fit" src="output/metrics_multiseed.png" alt="Barras arvore unica vs Random Forest com barra de erro" style="max-height:200px">
+      <table style="margin-top:6px">
         <tr><th>Métrica</th><th>Árvore única</th><th>Random Forest</th></tr>
         <tr><td>Accuracy</td><td>0,943 ± 0,034</td><td><strong>0,960 ± 0,024</strong></td></tr>
       </table>
-      <p class="muted">10 seeds, N=2000, 51 árvores. <strong>Pareado</strong>: floresta−árvore = <strong>+0,017</strong>, <strong>t=4,00</strong> — vitória consistente, não sorte de seed.</p>
+      <p class="muted">10 seeds, N=2000, 51 árvores. <strong>Pareado</strong>: +0,017, <strong>t=4,00</strong> — vitória consistente.</p>
     </div>
   </div>
 </section>
@@ -99,9 +98,9 @@ pred = media(votos) >= 0.5</code></pre>
   <h2>Conclusão</h2>
   <ul>
     <li><strong>A tese do P5 se confirma: bagging reduz variância sem inflar viés.</strong> Média sobe (0,943→0,960) <em>e</em> desvio entre seeds cai (0,034→0,024, <strong>1,4× menor</strong>) — dupla melhora, não trade-off.</li>
-    <li><strong>Teste pareado confirma que não é ruído de uma seed:</strong> diferença floresta−árvore = <strong>+0,017</strong>, <strong>t=4,00</strong> (bem acima do limiar informal de ~2).</li>
-    <li><strong>Variância cai com mais árvores</strong> (sweep 1→101 árvores, <code>variance_vs_ntrees.png</code>): queda monotônica do desvio entre seeds, com retornos decrescentes após algumas dezenas de árvores — consistente com variabilidade ∝ 1/nº árvores.</li>
-    <li><strong>Custo:</strong> 51 árvores ≈ 51× mais caro que uma única; cada árvore é independente → embaraçosamente paralelizável. Trabalho futuro: variar <code>max_features</code>/profundidade da base e comparar com <code>RandomForestClassifier</code> do sklearn.</li>
+    <li><strong>Teste pareado</strong> confirma que não é ruído de uma seed: diferença floresta−árvore = <strong>+0,017</strong>, <strong>t=4,00</strong> (limiar informal ~2).</li>
+    <li><strong>Variância cai com mais árvores</strong> (sweep 1→101): de 0,071 (1 árvore) a um mínimo ~0,057 perto de 11; oscila depois — ruído de poucas seeds/teste pequeno, não curva perfeitamente suave.</li>
+    <li><strong>Custo:</strong> 51 árvores ≈ 51× mais caro, mas independentes → paralelizável. Próximo passo: variar <code>max_features</code>/profundidade e comparar com <code>sklearn</code>.</li>
   </ul>
 </section>
 

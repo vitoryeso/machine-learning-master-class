@@ -25,9 +25,9 @@ Resultados
   Reducao MSE (%)                      96.65%       98.35%
 
 Plots gerados
-  /home/vyeso/world/machine-learning-master-class/projeto-3/output/convergence.png
-  /home/vyeso/world/machine-learning-master-class/projeto-3/output/scatter.png
-  /home/vyeso/world/machine-learning-master-class/projeto-3/output/pred_vs_actual.png
+  C:\Users\vitor\world\machine-learning-master-class\projeto-3\output/convergence.png
+  C:\Users\vitor\world\machine-learning-master-class\projeto-3\output/scatter.png
+  C:\Users\vitor\world\machine-learning-master-class\projeto-3\output/pred_vs_actual.png
 
 (*) sigma^2 = limite inferior teorico do MSE (ruido irredutivel), nao um valor de parametro verdadeiro
 ================================================================

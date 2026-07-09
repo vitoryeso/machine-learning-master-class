@@ -289,25 +289,27 @@ def main():
                    os.path.join(OUT, "confusion_leaf_convnext.png"))
 
     # barra comparativa CLIP vs ConvNeXt (evidencia a circularidade)
-    fig, ax = plt.subplots(figsize=(7, 4))
+    # fontes grandes de proposito: este grafico e mostrado pequeno (meia largura
+    # de slide) no deck de apresentacao, entao precisa ser legivel bem reduzido.
+    fig, ax = plt.subplots(figsize=(7.5, 5.2))
     groups = ["macro\n(5 classes)", "folha\n(25 classes)"]
     xp = np.arange(2); w = 0.35
     clip_acc = [res_clip["macro"]["accuracy"], res_clip["leaf"]["accuracy"]]
     cnx_acc = [res_cnx["macro"]["accuracy"], res_cnx["leaf"]["accuracy"]]
     b1 = ax.bar(xp - w / 2, [a * 100 for a in clip_acc], w, label="CLIP (circular)", color="#bbb")
     b2 = ax.bar(xp + w / 2, [a * 100 for a in cnx_acc], w, label="ConvNeXt (honesto)", color="#4e79a7")
-    ax.set_xticks(xp); ax.set_xticklabels(groups)
-    ax.set_ylabel("Acuracia (%)"); ax.set_ylim(0, 105)
-    ax.set_title("Classificacao da taxonomia descoberta: CLIP vs ConvNeXt\n"
-                 "ilustracao (seed=42, 1 realizacao) — oficial = metrics_multiseed.png")
-    ax.legend()
+    ax.set_xticks(xp); ax.set_xticklabels(groups, fontsize=17)
+    ax.tick_params(axis="y", labelsize=15)
+    ax.set_ylabel("Acuracia (%)", fontsize=17); ax.set_ylim(0, 118)
+    ax.set_title("CLIP vs ConvNeXt", fontsize=19, fontweight="bold", pad=45)
+    ax.legend(fontsize=15, loc="upper center", bbox_to_anchor=(0.5, 1.13), ncol=2, frameon=False)
     for bars in (b1, b2):
         for b in bars:
-            ax.text(b.get_x() + b.get_width() / 2, b.get_height() + 1,
-                    "{:.1f}".format(b.get_height()), ha="center", fontsize=9)
+            ax.text(b.get_x() + b.get_width() / 2, b.get_height() + 1.5,
+                    "{:.1f}".format(b.get_height()), ha="center", fontsize=16, fontweight="bold")
     plt.tight_layout()
     cmp_path = os.path.join(OUT, "accuracy_comparison.png")
-    plt.savefig(cmp_path, dpi=120, bbox_inches="tight"); plt.close()
+    plt.savefig(cmp_path, dpi=150, bbox_inches="tight"); plt.close()
     print("Saved:", cmp_path)
 
     # -- report ---------------------------------------------------------------

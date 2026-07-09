@@ -11,7 +11,7 @@
     .reveal { font-family: Inter, Arial, sans-serif; color: var(--ink); }
     .reveal h1,.reveal h2,.reveal h3 { color: var(--ink); letter-spacing: -0.035em; }
     .reveal h1 { font-size: 1.9em; } .reveal h2 { font-size: 1.4em; }
-    .reveal p,.reveal li { font-size: .66em; line-height: 1.3; }
+    .reveal p,.reveal li { font-size: .66em; line-height: 1.26; }
     .muted { color: var(--muted); }
     .tag { display:inline-block; padding: .18em .5em; border-radius: 999px; background:#dbeafe; color:#1e3a8a; font-weight: 800; font-size:.5em; }
     .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
@@ -61,7 +61,7 @@
 
 <section>
   <h2>Resultados</h2>
-  <div class="grid2">
+  <div class="grid2" style="grid-template-columns:0.78fr 1.22fr">
     <div>
       <table>
         <tr><th>Tarefa (full-dim, seed=42)</th><th>Acc</th><th>F1</th><th>base</th></tr>
@@ -69,9 +69,9 @@
         <tr><td>has_people</td><td>0.898</td><td>0.673</td><td>0.836</td></tr>
         <tr><td>screenshot×foto</td><td>0.918</td><td>0.701</td><td>0.844</td></tr>
       </table>
-      <p class="muted">k=30 centros (K-means); tabela da <strong>seed=42</strong> (ilustração). As tarefas desbalanceadas são mais difíceis para poucas gaussianas. Oficial (<strong>multi-seed, 3 seeds</strong>): has_people 0.901±0.003 acc / 0.682±0.010 F1; screenshot×foto 0.911±0.006 acc / 0.668±0.030 F1; macro_vs_rest 0.945±0.004 acc / 0.921±0.005 F1.</p>
+      <p class="muted" style="font-size:.56em">k=30 centros (K-means); tabela <strong>seed=42</strong> (ilustração) — tarefas desbalanceadas são mais difíceis p/ poucas gaussianas. Oficial (<strong>multi-seed, 3 seeds</strong>): has_people 0.901±0.003 acc/0.682±0.010 F1; screenshot×foto 0.911±0.006 acc/0.668±0.030 F1; macro_vs_rest 0.945±0.004 acc/0.921±0.005 F1.</p>
     </div>
-    <div><img class="fit" src="output/centers_ablation.png" alt="Ablação de centros"></div>
+    <div><img class="fit" src="output/centers_ablation.png" alt="Ablação de centros" style="max-height:460px"></div>
   </div>
 </section>
 
@@ -82,7 +82,7 @@
     <div>
       <ul>
         <li>Cada <strong>estrela</strong> é um centro cⱼ; em volta dele a gaussiana "acende", e a soma ponderada desenha a fronteira.</li>
-        <li><strong>A escolha dos centros importa:</strong> K-means vence de forma <strong>robusta</strong> — teste pareado <strong>t≈16–20</strong>. Já <strong>aleatório vs subset é empate real</strong> (pareado <strong>t=0.36</strong>: zero medido, não falta de dado).</li>
+        <li><strong>A escolha dos centros importa:</strong> K-means vence de forma <strong>robusta</strong> (t≈16–20). Já <strong>aleatório vs subset empatam de fato</strong> (t=0.36 — zero medido, não falta de dado).</li>
         <li><strong>Mais centros → melhor</strong>, mas com retorno decrescente — cobrem melhor o espaço.</li>
       </ul>
     </div>

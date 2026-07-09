@@ -184,13 +184,18 @@ fn plot_decision_boundary(
     let x1_max = all_x.iter().map(|xi| xi[1]).fold(f64::NEG_INFINITY, f64::max) + 0.5;
 
     let mut chart = ChartBuilder::on(&root)
-        .caption("Fronteira de Decisao (treino: solido, teste: oco)", ("sans-serif", 16))
+        .caption("Fronteira de Decisao (treino: solido, teste: oco)", ("sans-serif", 24))
         .margin(20)
-        .x_label_area_size(40)
-        .y_label_area_size(40)
+        .x_label_area_size(55)
+        .y_label_area_size(70)
         .build_cartesian_2d(x0_min..x0_max, x1_min..x1_max)?;
 
-    chart.configure_mesh().x_desc("Feature 1").y_desc("Feature 2").draw()?;
+    chart.configure_mesh()
+        .x_desc("Feature 1")
+        .y_desc("Feature 2")
+        .label_style(("sans-serif", 18))
+        .axis_desc_style(("sans-serif", 20))
+        .draw()?;
 
     let grid = 100_usize; // heatmap resolution: grid x grid rectangles
     let dx = (x0_max - x0_min) / grid as f64;
@@ -254,7 +259,11 @@ fn plot_decision_boundary(
     }))?.label("Classe 1 (teste)")
       .legend(|(x, y)| Circle::new((x + 10, y), 5, RED.stroke_width(2)));
 
-    chart.configure_series_labels().background_style(WHITE.mix(0.8)).border_style(BLACK).draw()?;
+    chart.configure_series_labels()
+        .label_font(("sans-serif", 17))
+        .background_style(WHITE.mix(0.8))
+        .border_style(BLACK)
+        .draw()?;
     root.present()?;
     println!("Saved: {path}");
     Ok(())
