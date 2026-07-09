@@ -86,9 +86,9 @@
     <table>
       <tr><th>K</th><th>Inércia (WCSS)</th><th>Silhouette</th></tr>
       <tr><td>2</td><td>3753.7</td><td>0.0559</td></tr>
-      <tr><td><strong>4</strong></td><td><strong>3520.9</strong></td><td><strong>0.0576 (melhor)</strong></td></tr>
+      <tr><td><strong>4</strong></td><td><strong>3520.9</strong></td><td><strong>0.0591 (melhor)</strong></td></tr>
       <tr><td>8</td><td>3290.3</td><td>0.0488</td></tr>
-      <tr><td>15</td><td>3087.1</td><td>0.0554</td></tr>
+      <tr><td>15</td><td>3087.1</td><td>0.0432</td></tr>
     </table>
     <p class="muted" style="font-size:.56em">Cotovelo sutil em K=4, que também é o <strong>melhor</strong> silhouette entre K=2..15. Scores baixos (~0,05) — esperado p/ embeddings 512-d heterogêneos: clusters existem, mas não são perfeitamente separados.</p>
   </div>
@@ -109,9 +109,9 @@
   </div>
   <ul style="columns:2; column-gap:24px; margin:8px 0 0; font-size:.53em;">
     <li><strong>Cluster 0 (26,6%)</strong> "arte digital": wallpapers/IA, paisagem-quadrado.</li>
-    <li><strong>Cluster 1 (28,8%)</strong> "pessoas/retratos": 50% people, 75% retrato, mediana 5,9MB.</li>
-    <li><strong>Cluster 2 (20,0%)</strong> "screenshots": 57% iPhone, arquivos pequenos (241KB).</li>
-    <li><strong>Cluster 3 (24,6%)</strong> "fotos pessoais": 81% iPhone, 70% retrato, mediana 8,5MB.</li>
+    <li><strong>Cluster 1 (24,6%)</strong> "fotos pessoais": 81% iPhone, 70% retrato, mediana 8,5MB.</li>
+    <li><strong>Cluster 2 (28,8%)</strong> "pessoas/retratos": 50% people, 75% retrato, mediana 5,9MB.</li>
+    <li><strong>Cluster 3 (20,0%)</strong> "screenshots": 57% iPhone, arquivos pequenos (241KB).</li>
   </ul>
   <p class="muted" style="margin-top:6px; font-size:.52em;"><strong>Insight:</strong> CLIP agrupou por <strong>semântica visual</strong>, não metadados — iPhone aparece nos 4 clusters. <strong>Limitações:</strong> silhouette baixo, PCA 2D perde info de 512-d. <strong>Próximos passos:</strong> UMAP/DBSCAN, DINOv2.</p>
 </section>

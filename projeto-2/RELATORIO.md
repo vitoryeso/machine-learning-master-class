@@ -2,7 +2,7 @@
 
 ## Problema
 
-Classificação de imagens pessoais (~8000 amostras de D:\media) em duas tarefas simultâneas:
+Classificação de imagens pessoais (22.328 amostras de D:\media) em duas tarefas simultâneas:
 - **image_type** (6 classes): camera_photo, desktop_wallpaper, mobile_screenshot, ai_generated, screenshot_desktop, thumbnail
 - **has_people** (binário): presença de pessoas na imagem
 
@@ -10,7 +10,7 @@ As classes foram definidas por regras determinísticas sobre metadados (resoluç
 
 ## Dataset
 
-- **Origem**: coleção pessoal em D:\media (~8000 imagens, amostra do projeto-1)
+- **Origem**: coleção pessoal em D:\media (22.328 imagens, mesmo acervo do projeto-1)
 - **Embeddings CLIP**: 512-dim, extraídos com fastembed-rs (Qdrant/clip-ViT-B-32-vision, ONNX) no projeto-1
 - **Features ConvNeXt**: 768-dim, extraídos com ConvNeXt-Tiny (torchvision, IMAGENET1K_V1, frozen)
 - **Labeling**: pipeline de 3 tiers — Tier 1 (resolução exata), Tier 2 (pasta + aspect ratio), Tier 3 (fallback)
@@ -82,41 +82,38 @@ Três configurações, todas com Adam (lr=1e-3, weight_decay=1e-4), cosine annea
 
 ## Resultados (Test Set)
 
+Números do conjunto de teste sobre o acervo atual de **22.328 imagens**
+(pipeline unificado `train_all.py`, split 70/15/15; fonte:
+`output/all_metrics.json`).
+
 | Métrica | Linear (CLIP) | MLP (CLIP) | MLP (ConvNeXt) |
 |---|---|---|---|
-| type_acc | 0.823 | **0.872** | 0.828 |
-| type_f1 (weighted) | 0.817 | **0.869** | 0.826 |
-| people_acc | 0.898 | 0.941 | **0.943** |
-| people_f1 | 0.665 | 0.827 | **0.828** |
-| people_auc | 0.952 | **0.980** | 0.978 |
+| type_acc | 0.807 | **0.869** | 0.852 |
+| type_f1 (weighted) | 0.802 | **0.868** | 0.849 |
+| people_acc | 0.922 | 0.966 | **0.966** |
+| people_f1 | 0.758 | **0.898** | 0.897 |
+| people_auc | 0.966 | **0.992** | 0.987 |
 | Params treináveis | 3,591 | 165,127 | 230,663 |
 
-### F1 por classe (MLP CLIP, melhor modelo):
-
-| Classe | Precision | Recall | F1 | Support |
-|---|---|---|---|---|
-| ai_generated | 0.86 | 0.85 | 0.85 | 155 |
-| camera_photo | 0.89 | 0.92 | 0.90 | 658 |
-| desktop_wallpaper | 0.86 | 0.87 | 0.86 | 179 |
-| mobile_screenshot | 0.82 | 0.87 | 0.84 | 77 |
-| screenshot_desktop | 0.73 | 0.43 | 0.54 | 44 |
-| thumbnail | 0.84 | 0.80 | 0.82 | 87 |
+> O detalhamento de F1 por classe não foi re-exportado para o conjunto de
+> 22.328; a classe de menor suporte (`screenshot_desktop`) permanece a mais
+> fraca, por heterogeneidade visual e confusão com `camera_photo`.
 
 ## Análise
 
 1. **CLIP > ConvNeXt para image_type**: apesar de ter 3x mais parâmetros no encoder e embedding menor (512 vs 768), CLIP produz features mais discriminativas. A supervisão contrastiva em 400M pares image-text gera representações semânticas mais ricas que a classificação supervisionada em 1.28M imagens.
 
-2. **People empatado**: ambos os encoders capturam igualmente bem a presença humana (~83% F1). É uma feature visual saliente que qualquer rede profunda aprende.
+2. **People empatado**: ambos os encoders capturam igualmente bem a presença humana (~90% F1). É uma feature visual saliente que qualquer rede profunda aprende.
 
-3. **Linear probe CLIP quase empata ConvNeXt MLP**: 3,591 params vs 230,663 params com performance comparável. As features CLIP já são quase linearmente separáveis para essas classes.
+3. **Linear probe CLIP fica próximo do ConvNeXt MLP**: 3,591 params vs 230,663 params (60× menos) com type_acc 0.807 vs 0.852. As features CLIP já são quase linearmente separáveis para essas classes.
 
-4. **screenshot_desktop é a classe mais fraca** (F1=0.54): menor suporte (44 amostras no teste), alta confusão com camera_photo. Screenshots de desktop são visualmente heterogêneos.
+4. **A classe de menor suporte é a mais fraca**: `screenshot_desktop` tem alta confusão com `camera_photo` — screenshots de desktop são visualmente heterogêneos.
 
 5. **ConvNeXt overfita mais**: val_loss subiu de 1.0 para 1.66 durante o treino, enquanto CLIP manteve val_loss relativamente estável (~0.5 a 0.7).
 
 ## Limitações
 
-- Dataset é uma amostra de 8000 imagens (de um acervo maior), com classes desbalanceadas
+- Dataset de 22.328 imagens, com classes desbalanceadas
 - Labels derivados de metadados (resolução, pasta), não de anotação humana — pode haver ruído
 - Features são frozen (sem fine-tuning dos encoders) — limita o potencial de adaptação
 - has_people derivado apenas da pasta "people/" — não cobre todas as imagens com pessoas
@@ -132,12 +129,12 @@ projeto-2/
   mlp_probe.py          — experimento MLP (CLIP)
   convnext_probe.py     — feature extraction ConvNeXt + MLP
   train_all.py          — script unificado: 3 experimentos + curvas + plots
-  metadata.json         — metadados das 8000 imagens
+  metadata.json         — metadados das 22.328 imagens
   dataset/
-    X_embeddings.npy    — features CLIP (8000, 512)
-    X_convnext.npy      — features ConvNeXt (8000, 768)
-    y_type.npy          — labels de tipo (8000,)
-    y_people.npy        — labels de pessoas (8000,)
+    X_embeddings.npy    — features CLIP (22328, 512)
+    X_convnext.npy      — features ConvNeXt (22328, 768)
+    y_type.npy          — labels de tipo (22328,)
+    y_people.npy        — labels de pessoas (22328,)
     class_names.json    — nomes das 6 classes
   output/
     training_curves.png — curvas de loss e val metrics por epoch
@@ -211,6 +208,6 @@ uma amostra pontual dele.
 
 - **O nível macro é real:** o ConvNeXt (independente) recupera os 5 grupos com ~83% (multi-seed) — a estrutura grossa não é artefato do CLIP.
 - **O nível fino é CLIP-específico:** as 25 subclasses caem para ~66% no ConvNeXt — distinções sutis que vivem sobretudo na semântica do CLIP.
-- **A circularidade é mensurável (descontando o baseline):** o gap CLIP→ConvNeXt (95.0%→82.7% macro; 89.3%→66.0% folha, seed=42) mistura dois efeitos. Parte dele é apenas o ConvNeXt ser um extrator pior para esta distribuição — na Parte I, com rótulos **externos e determinísticos** (sem circularidade alguma), o ConvNeXt já fica ~4 F1-pts atrás do CLIP (type_f1 0.826 vs 0.869). Só o **excesso** sobre esse baseline (12 pts macro, 23 pts folha) é atribuível à auto-confirmação — e ainda assim excede o baseline com folga.
+- **A circularidade é mensurável (descontando o baseline):** o gap CLIP→ConvNeXt (95.0%→82.7% macro; 89.3%→66.0% folha, seed=42) mistura dois efeitos. Parte dele é apenas o ConvNeXt ser um extrator pior para esta distribuição — na Parte I, com rótulos **externos e determinísticos** (sem circularidade alguma), o ConvNeXt já fica ~2 F1-pts atrás do CLIP (type_f1 0.849 vs 0.868). Só o **excesso** sobre esse baseline (12 pts macro, 23 pts folha) é atribuível à auto-confirmação — e ainda assim excede o baseline com folga.
 - **O gap é robusto, não ruído amostral:** no multi-seed, o gap CLIP→ConvNeXt (acc: 0.954→0.833 macro, 0.896→0.661 folha) vale **16–47× o desvio-padrão** observado entre seeds (std de 0.004 a 0.008). Ou seja, a variação seed-a-seed é irrisória frente à diferença entre extratores — a circularidade discutida acima é um efeito real e robustamente mensurável, não um acaso do split seed=42.
 - **Limitações:** rótulos vêm de clustering não-supervisionado (sem verdade externa); a rotulagem é **transdutiva** — a partição-alvo foi ajustada pelo K-means global sobre as 22.328 imagens (incl. as de teste), logo os rótulos do teste não são independentes dele (um protocolo plenamente honesto clusterizaria só no treino e atribuiria o teste por centróide mais próximo); linear probe é linear; classes desbalanceadas (folhas de 276 a 4.218 imagens) — por isso reportamos F1 macro-averaged.

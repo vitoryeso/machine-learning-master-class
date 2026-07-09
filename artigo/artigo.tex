@@ -45,111 +45,85 @@
 
 \begin{abstract}
 The swing-up of a cart-mounted $N$-link pendulum is a canonical underactuated,
-chaotic control problem whose difficulty grows sharply with $N$. We argue --- and
-verify empirically --- that policy \emph{capacity} is not the bottleneck: the
-observation is tiny ($2+3N$ dimensions) and a small MLP suffices; the bottleneck
-is \emph{exploration under unstable, underactuated dynamics}, which is fought
-with samples. This paper is a study along three axes. \emph{Throughput}: a
-fully GPU-resident, $N$-generic environment (CuPy \texttt{RawKernel},
-zero-copy DLPack interchange with PyTorch) sustains 7--8~million environment
-steps per second end-to-end (environment $+$ PPO) on a single RTX~3060.
-\emph{Mixed precision}: bf16 autocast yields $1.87\times$ end-to-end,
-validated by a 3-seed learning A/B with zero NaN, while NF4-QAT compresses the
-policy $8\times$; honest counterpoints are reported --- CUDA graphs gave
-parity (the apparent $1.52\times$ was a strawman baseline), and a $2.88\times$
-fused Triton kernel survived integration as only $+2\%$: the real gains came
-from precision, not kernelization. \emph{Scalability}, in two senses: scaling
-the \emph{system} (the throughput budget enables trillion-step experiments on
-consumer hardware) and scaling the \emph{problem} ($n = 1 \to 5$): swing-up is
-solved at $n{=}1$ both fully observed (97\% upright) and blind ($x,\dot{x}$
-only, LSTM, 96.8\%), is partial at $n{=}4$, and remains an open frontier at
-$n{=}5$ (plateau at ${\sim}27\%$ of the reward ceiling after $1.6$~trillion
-steps).
+chaotic control problem whose difficulty grows sharply with $N$. We argue, and
+verify empirically, that policy capacity is not the bottleneck --- the
+bottleneck is exploration, which is fought with samples. This paper is a study
+along three axes. \emph{Throughput}: a fully GPU-resident, $N$-generic
+environment sustains 7--8~million environment steps per second end-to-end
+(environment $+$ PPO) on a single RTX~3060. \emph{Mixed precision}: bf16
+yields $1.87\times$ end-to-end without degrading learning, while kernel fusion
+and CUDA graphs yielded little --- the real gains came from precision, not
+kernelization.
+\emph{Scalability}: the throughput budget enables trillion-step experiments on
+consumer hardware; under a uniform 50-billion-step budget, swing-up is solved
+up to $n{=}3$ (94\%/86\% of the reward ceiling) --- at $n{=}1$ also blind
+($x,\dot{x}$ only, LSTM, 96.8\%) --- then collapses at $n{=}4$ (${\sim}20\%$),
+and $n{=}5$ remains open even after $1.6$~trillion steps (${\sim}27\%$).
 \end{abstract}
 
 \begin{resumo}
 O \emph{swing-up} de um pêndulo de $N$ elos montado em carrinho é um problema
 canônico de controle subatuado e caótico, cuja dificuldade cresce rapidamente
-com $N$. Argumentamos --- e verificamos empiricamente --- que a
-\emph{capacidade} da política não é o gargalo: a observação é minúscula
-($2+3N$ dimensões) e uma MLP pequena basta; o gargalo é a \emph{exploração sob
-dinâmica instável e subatuada}, combatida com amostras. Este artigo é um
-estudo em três eixos. \emph{Throughput}: um ambiente genérico em $N$,
-residente 100\% na GPU (CuPy \texttt{RawKernel}, interoperação
-\emph{zero-copy} via DLPack com PyTorch), sustenta 7--8 milhões de passos de
-ambiente por segundo ponta a ponta (ambiente $+$ PPO) em uma única RTX~3060.
-\emph{Precisão mista}: bf16 rende $1{,}87\times$ ponta a ponta, validado por
-A/B de aprendizado com 3 sementes e zero NaN, e o NF4-QAT comprime a política
-$8\times$; reportamos os contrapontos honestos --- CUDA graphs deram paridade
-(o aparente $1{,}52\times$ era um \emph{baseline} espantalho) e um
-\emph{kernel} Triton fundido de $2{,}88\times$ sobreviveu à integração como
-apenas $+2\%$: o ganho real veio da precisão, não da kernelização.
-\emph{Escalabilidade}, em dois sentidos: escalar o \emph{sistema} (o
-throughput viabiliza experimentos de trilhões de passos em hardware de
-consumo) e escalar o \emph{problema} ($n = 1 \to 5$): o \emph{swing-up} é
-resolvido em $n{=}1$ com observação completa (97\% ereto) e às cegas (apenas
-$x,\dot{x}$, LSTM, 96,8\%), é parcial em $n{=}4$ e permanece fronteira aberta
-em $n{=}5$ (platô em ${\sim}27\%$ do teto de recompensa após $1{,}6$ trilhão
-de passos).
+com $N$. Argumentamos, e verificamos empiricamente, que a capacidade da
+política não é o gargalo --- o gargalo é a exploração, combatida com amostras.
+Este artigo é um estudo em três eixos. \emph{Throughput}: um ambiente genérico
+em $N$, residente 100\% na GPU, sustenta 7--8 milhões de passos de ambiente
+por segundo ponta a ponta (ambiente $+$ PPO) em uma única RTX~3060.
+\emph{Precisão mista}: bf16 rende $1{,}87\times$ ponta a ponta sem degradar o
+aprendizado, enquanto fusão de \emph{kernels} e CUDA graphs renderam pouco ---
+o ganho real veio da precisão, não da kernelização. \emph{Escalabilidade}: o throughput viabiliza
+experimentos de trilhões de passos em hardware de consumo; sob um orçamento
+uniforme de 50 bilhões de passos, o swing-up é resolvido até $n{=}3$
+(94\%/86\% do teto) --- em $n{=}1$ inclusive às cegas (apenas $x,\dot{x}$,
+LSTM, 96,8\%) ---, despenca em $n{=}4$ (${\sim}20\%$) e permanece aberto em
+$n{=}5$ mesmo após $1{,}6$ trilhão de passos (${\sim}27\%$).
 \end{resumo}
 
 % =========================================================================
 \section{Introdução}\label{sec:intro}
 
-Equilibrar um pêndulo invertido sobre um carrinho é o ``olá, mundo'' do
-controle. Empilhar $N$ elos rígidos passivos sobre o mesmo carrinho transforma
-o exercício em um dos problemas mais duros do controle não linear: o sistema
-tem $n+1$ graus de liberdade (carrinho $+$ $n$ ângulos) e \textbf{um único
-atuador} --- a força horizontal aplicada ao carrinho. Todas as juntas entre
-elos são passivas, movidas apenas por gravidade e inércia. O sistema é
+Equilibrar um pêndulo invertido sobre um carrinho é um problema clássico de
+controle. Empilhar $N$ elos rígidos e passivos sobre o mesmo carrinho o
+transforma em um dos problemas mais difíceis do controle não linear: o sistema
+passa a ter $n+1$ graus de liberdade (carrinho mais $n$ ângulos), mas continua
+com um único atuador, a força horizontal aplicada ao carrinho. Todas as juntas
+entre elos são passivas, movidas apenas por gravidade e inércia. O sistema é
 \emph{subatuado} e, para $n \geq 2$, caótico: pequenas diferenças de estado
-divergem exponencialmente. O \emph{swing-up} --- partir da posição pendurada e
-levar todos os elos à vertical invertida, mantendo-os lá --- é o cenário mais
-exigente desse benchmark \cite{boubaker2013}.
+divergem exponencialmente. O \emph{swing-up}, que consiste em partir da posição
+pendurada e levar todos os elos à vertical invertida, mantendo-os lá, é o
+cenário mais exigente desse benchmark \cite{boubaker2013}.
 
-Este trabalho ataca o swing-up do pêndulo-$N$ com aprendizado por reforço
-profundo (PPO), sob uma restrição deliberadamente severa: \textbf{ação
-discreta} de três níveis ($\{-10, 0, +10\}$~N, \emph{bang-off-bang}), que
-elimina qualquer atalho de controle contínuo fino e força a política a
-sintetizar estratégias de bombeamento de energia por chaveamento.
+Este trabalho aborda o swing-up do pêndulo-$N$ com aprendizado por reforço
+(RL) profundo, usando o algoritmo PPO (\emph{Proximal Policy Optimization})
+\cite{schulman2017}, sob uma restrição adicional: a ação é discreta, com apenas três
+níveis ($\{-10, 0, +10\}$~N, \emph{bang-off-bang}). Isso impede qualquer ajuste
+fino de controle contínuo; a política precisa aprender a ganhar energia por
+chaveamento, balançando o sistema.
 
-A tese central do artigo é uma observação de alocação de recursos:
+A tese central deste artigo é uma questão de alocação de recursos: a capacidade
+da rede não é o gargalo. O estado do pêndulo-$N$ é pequeno (a observação tem
+$2+3n$ dimensões; para $n{=}21$, apenas 65) e uma rede MLP
+(\emph{multilayer perceptron}) pequena é suficiente para
+representar a política. O gargalo real é a exploração sob dinâmica instável e
+subatuada, e exploração se resolve com mais amostras. Por isso a alavanca
+científica deste trabalho é o throughput: cada otimização de sistemas que
+multiplica os passos por segundo multiplica também o orçamento de exploração
+disponível.
 
-\begin{quote}
-\emph{A capacidade da rede não é o gargalo. O estado do pêndulo-$N$ é minúsculo
---- a observação tem $2+3n$ dimensões (para $n{=}21$, apenas 65) --- e uma MLP
-pequena representa qualquer política necessária. O gargalo é a exploração sob
-dinâmica instável e subatuada, e exploração se compra com amostras. Logo, a
-alavanca científica é o throughput: cada otimização de sistemas que multiplica
-os passos por segundo multiplica diretamente o orçamento de exploração.}
-\end{quote}
-
-Essa tese inverte a ênfase usual: em vez de arquiteturas maiores ou algoritmos
-de RL mais sofisticados, investimos em fazer \emph{o mesmo} PPO ver ordens de
-grandeza mais experiência. Os orçamentos praticados aqui --- de 500 bilhões a
-$1{,}6$ trilhão de passos de ambiente por experimento, em uma única GPU de
-consumo (RTX~3060, 12~GB) --- só são viáveis porque o ambiente inteiro reside
-na GPU e o laço de treino foi otimizado e \emph{medido} camada por camada.
+Diferente da abordagem usual, que busca arquiteturas maiores ou algoritmos de
+RL mais sofisticados, este trabalho investe em fazer \emph{o mesmo} PPO
+processar ordens de grandeza mais experiência: de 500 bilhões a $1{,}6$
+trilhão de passos por experimento, em uma única GPU de consumo (RTX~3060,
+12~GB) --- viável porque o ambiente inteiro reside na GPU e o laço de treino
+foi otimizado e \emph{medido} camada por camada.
 
 O estudo se organiza em três pilares, que dão nome ao artigo e estruturam as
-Seções~\ref{sec:resultados} e~\ref{sec:analise}: (i) \textbf{Throughput} --- um
-ambiente pêndulo-$N$ genérico, 100\% residente em GPU, que sustenta 7--8
-milhões de passos/s
-ponta a ponta e financia o orçamento de exploração; (ii) \textbf{Precisão
-mista} --- bf16 ($1{,}87\times$ ponta a ponta, sem degradar o aprendizado) e
-NF4-QAT ($8\times$ de compressão), contra kernelização que rendeu pouco em um
-laço limitado por banda de memória (a precisão venceu); e (iii)
-\textbf{Escalabilidade} em dois sentidos que distinguimos --- escalar o
-\emph{sistema} (32\,768 ambientes, orçamentos de trilhões de passos em GPU de
-consumo) e escalar o \emph{problema} ($n{=}1$ resolvido, inclusive às cegas por
-LSTM; $n{=}4$ parcial; $n{=}5$ em platô a ${\sim}27\%$ do teto). Detalhes e
-ressalvas de cada pilar vêm nas seções seguintes.
-
-O restante do artigo segue a estrutura: a Seção~\ref{sec:sota} revisa o estado
-da arte; a Seção~\ref{sec:metodo} detalha ambiente, algoritmo, pilha de
-sistemas e metodologia de medição; a Seção~\ref{sec:resultados} apresenta os
-resultados; a Seção~\ref{sec:analise} analisa por que o throughput é a alavanca
-e onde o método quebra; a Seção~\ref{sec:conclusao} conclui.
+Seções~\ref{sec:resultados} e~\ref{sec:analise}: (i) \textbf{throughput}, o
+ambiente GPU-nativo que financia o orçamento de exploração;
+(ii) \textbf{precisão mista}, onde os ganhos reais de velocidade vieram; e
+(iii) \textbf{escalabilidade}, em dois sentidos que
+fazemos questão de distinguir --- a do \emph{sistema}, que foi entregue, e a
+do \emph{problema} (crescer $n$), que permanece parcialmente aberta.
 
 % =========================================================================
 \section{Estado da Arte}\label{sec:sota}
@@ -158,21 +132,22 @@ e onde o método quebra; a Seção~\ref{sec:conclusao} conclui.
 profundo costuma ser a geração de experiência, não o gradiente, produziu uma
 linhagem de simuladores GPU-nativos. Isaac Gym \cite{makoviychuk2021} moveu
 física e treino para a GPU, eliminando o tráfego CPU--GPU e atingindo dezenas
-de milhares de ambientes simultâneos. Brax \cite{freeman2021} implementou física
-diferenciável em JAX com a mesma filosofia. EnvPool \cite{weng2022} mostrou que
-mesmo ambientes em CPU ganham ordem de magnitude com execução assíncrona em
-C++, e Madrona \cite{shacklett2023} generalizou o padrão com um framework de
-simuladores em lote na GPU, reportando milhões de passos por segundo. No lado
-do algoritmo, Sample Factory \cite{petrenko2020} otimizou PPO assíncrono para
-$10^5$ passos/s em uma máquina, e PufferLib \cite{suarez2024} --- biblioteca
-sobre a qual este trabalho se apoia --- padronizou a vetorização de ambientes
-nativos de alta velocidade para RL. Nosso trabalho segue essa linhagem, mas com
-um recorte incomum: um único problema de controle clássico, uma única GPU de
-consumo, e a pergunta explícita de \emph{quanto} throughput compra de
-desempenho de controle.
+de milhares de ambientes simultâneos. Brax \cite{freeman2021} implementou
+física diferenciável em JAX com a mesma filosofia; EnvPool \cite{weng2022} e
+Madrona \cite{shacklett2023} generalizaram o padrão de execução paralela de
+ambientes, reportando milhões de passos por segundo. No lado do algoritmo,
+Sample Factory \cite{petrenko2020} otimizou PPO assíncrono para $10^5$
+passos/s em uma máquina, e PufferLib \cite{suarez2024}, biblioteca sobre a
+qual este trabalho se apoia, padronizou a vetorização de ambientes nativos de
+alta velocidade. Esses trabalhos constroem simuladores de propósito geral e
+demonstram throughput em dezenas de tarefas. Nosso trabalho segue a mesma
+linhagem, mas com foco invertido: um único problema de controle clássico e uma
+única GPU de consumo, usados como cenário controlado para uma pergunta que
+esses trabalhos não isolam --- aumentar o throughput de treino se traduz em
+\emph{quanto} ganho de desempenho de controle?
 
-\textbf{Algoritmo.} Usamos PPO \cite{schulman2017} com estimativa de vantagem
-generalizada (GAE) \cite{schulman2016}, a combinação dominante em RL
+\textbf{Algoritmo.} Usamos PPO \cite{schulman2017} com GAE
+(\emph{Generalized Advantage Estimation}) \cite{schulman2016}, a combinação dominante em RL
 \emph{on-policy} pela estabilidade do objetivo com razão de importância
 recortada (\emph{clipped surrogate}) e pelo controle de viés--variância do GAE.
 
@@ -182,44 +157,73 @@ Acrobot e as estratégias de colocação parcial de energia;
 Åström e Furuta \cite{astrom2000} derivaram o swing-up por modelagem de energia
 (\emph{energy-based control}), que permanece a referência analítica para
 $n{=}1$. Para $n \geq 2$ não há solução analítica geral; abordagens clássicas
-combinam bombeamento de energia com regulador linear na vizinhança do topo.
-Nossa escada de $n$ (Seção~\ref{sec:escada}) --- comprimento e massa totais
-fixos, apenas $n$ variando --- isola o efeito do número de elos sobre a
-dificuldade do swing-up.
+combinam uma fase de balanço, para ganho de energia, com um regulador linear
+na vizinhança do topo.
+Nossa escada de $n$ (Seção~\ref{sec:escada}), com elos idênticos e apenas $n$
+variando, isola o efeito do número de elos sobre a dificuldade do swing-up.
 
-\textbf{Precisão reduzida e quantização.} O treino em precisão mista
+\textbf{Precisão reduzida.} O treino em precisão mista
 \cite{micikevicius2018} estabeleceu que redes toleram aritmética de 16 bits com
 acumulação em 32; nós verificamos que isso vale também para o laço completo de
-PPO (política \emph{e} ambiente) em bf16. Na fronteira da compressão, o NF4
-(NormalFloat de 4 bits) proposto no QLoRA \cite{dettmers2023} inspirou nosso
-treino da política com quantização simulada (QAT via \emph{straight-through
-estimator}), obtendo $8\times$ de compressão do artefato final.
+PPO (política \emph{e} ambiente) em bf16 (\texttt{bfloat16}).
 
 % =========================================================================
 \section{Metodologia}\label{sec:metodo}
 
 \subsection{Formulação do ambiente: o pêndulo-$N$ sobre carrinho}\label{sec:env}
 
-O sistema é um carrinho de massa $M_c$ sobre trilho limitado
-($x \in [-2, 2]$~m), com $n$ elos rígidos idênticos acoplados em série; apenas
-o carrinho é atuado. A dinâmica vem da formulação lagrangiana: a cada passo
-monta-se a matriz de massa $A \in \mathbb{R}^{(n+1)\times(n+1)}$, cuja
-estrutura é regular e generalizável em $n$,
+O sistema é um carrinho sobre trilho limitado ($|x| \leq 5$~m) com $n$ elos
+rígidos idênticos acoplados em série; apenas o carrinho é atuado, e todas as
+juntas entre elos são passivas. A dinâmica segue da formulação lagrangiana. A
+cada passo, monta-se um sistema linear $A\,\ddot{q} = b$, em que $A$ é a matriz
+de massa $(n{+}1)\times(n{+}1)$ do conjunto carrinho-mais-elos e $b$ reúne as
+forças de gravidade, os termos inerciais (centrífugos e de Coriolis) e a força
+aplicada ao carrinho. Esse sistema é resolvido por eliminação gaussiana a cada
+passo e por ambiente, e o estado é integrado com passo $dt$ (convenção:
+$\theta{=}0$ é a vertical \emph{invertida}). A estrutura de $A$ é regular em
+$n$: sendo $m$ e $l$ a massa e o comprimento de cada elo e $\theta_k$ o ângulo
+do elo $k$,
 \begin{equation}
 \begin{aligned}
 A_{00} &= M_c + n\,m, \qquad
-A_{0k} = (n-k+1)\,m\,l\,\cos\theta_k,\\
-A_{jj} &= (n-j+1)\,m\,l^2, \qquad
-A_{jk} = (n-\max(j,k)+1)\,m\,l^2\cos(\theta_j-\theta_k),
+A_{0k} = (n{-}k{+}1)\,m\,l\cos\theta_k,\\
+A_{jk} &= (n{-}\max(j,k){+}1)\,m\,l^2\cos(\theta_j{-}\theta_k),
 \end{aligned}
 \label{eq:massmatrix}
 \end{equation}
-onde $m$ e $l$ são massa e comprimento de cada elo e $\theta_k$ o ângulo do
-elo $k$ (convenção: $\theta{=}0$ é a vertical \emph{invertida}). Em cada termo,
-$(n-k+1)\,m$ é a massa efetiva carregada pela junta $k$ (todos os elos acima
-dela). O sistema linear $A\ddot{q} = b$ é resolvido por eliminação gaussiana
-$(n{+}1)\times(n{+}1)$ a cada passo, por ambiente (realização em GPU:
-Seção~\ref{sec:sistemas}).
+com $j,k \geq 1$ (a diagonal $A_{jj}$ é o caso $j{=}k$). Em cada termo,
+$(n{-}k{+}1)\,m$ é a massa efetiva carregada pela junta $k$ --- todos os elos
+acima dela --- e o acoplamento entre elos depende do cosseno da diferença de
+ângulos. Essa regularidade permite montar e resolver a dinâmica com o mesmo
+código para qualquer número de elos (realização em GPU:
+Seção~\ref{sec:sistemas}). A Tabela~\ref{tab:fisica} lista os parâmetros
+físicos usados, e a Figura~\ref{fig:env} ilustra o ambiente e o comportamento
+aprendido.
+
+\begin{table}[ht]
+\centering
+\caption{Parâmetros físicos do ambiente pêndulo-$N$.}
+\label{tab:fisica}
+\small
+\begin{tabular}{ll@{\qquad}ll}
+\toprule
+Massa do carrinho $M_c$ & 1,0 kg & Gravidade $g$ & 9,8 m/s$^2$\\
+Massa por elo $m$ & 0,1 kg & Passo de integração $dt$ & 0,02 s\\
+Comprimento por elo $l$ & 0,35 m & Passos por episódio & 1500\\
+Força aplicada & $\pm 10$~N (3 níveis) & Limite do trilho & $|x| \leq 5$~m\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.92\linewidth]{env_frames.png}
+\caption{Episódio do agente treinado em $n{=}5$: (a) estado inicial pendurado;
+(b) fase de balanço (ganho de energia por chaveamento); (c) os cinco elos eretos, de forma
+\emph{transitória} --- atingir o topo é aprendido; \emph{manter} é a parte não
+resolvida (Seção~\ref{sec:escalabilidade}).}
+\label{fig:env}
+\end{figure}
 
 \textbf{Observação e ação.} A observação normalizada tem $2+3n$ dimensões:
 \begin{equation}
@@ -227,9 +231,8 @@ o = \big[\, x/5,\; \dot{x}/5,\; (\sin\theta_k,\ \cos\theta_k,\ \dot\theta_k/8)_{
 \end{equation}
 com $\sin/\cos$ no lugar do ângulo cru para evitar a descontinuidade circular
 em $\theta = \pm\pi$. A ação é discreta com três níveis,
-$a \in \{-10, 0, +10\}$~N (\emph{bang-off-bang}). Episódios têm
-\texttt{MAX\_STEPS} $= 1500$; o reset posiciona o sistema próximo da
-configuração pendurada, com ruído.
+$a \in \{-10, 0, +10\}$~N (\emph{bang-off-bang}); o reset posiciona o sistema
+próximo da configuração pendurada, com ruído.
 
 \textbf{Recompensa.} A recompensa por passo da linha principal é
 \begin{equation}
@@ -248,46 +251,45 @@ trabalho (Seção~\ref{sec:limitacoes}).
 
 \subsection{A escada de $n$: dificuldade crescente}\label{sec:escada}
 
-A dificuldade é parametrizada por $n$ sob a restrição de \textbf{comprimento e
-massa totais constantes}: $L_{\mathrm{total}} = 1{,}0$~m e
-$M_{\mathrm{total}} = 1{,}0$~kg fixos, com $l_i = L_{\mathrm{total}}/n$. Essa
-escolha é crítica: com $l_i$ fixo, aumentar $n$ mudaria o problema físico (um
-pêndulo cada vez maior); com $L$ e $M$ fixos, a escada
-$n = 1, 2, 3, 5, 8, 13, 21$ percorre regimes de dificuldade crescente do
-\emph{mesmo} objeto --- de corpo quase rígido ($n \leq 3$) a cadeia articulada
-fortemente caótica ($n \geq 8$), com o acoplamento entre elos endurecendo
-progressivamente o controle. A escala física
-(elos de dezenas de centímetros, curso de carrinho de $\sim$0,8~m, força de
-$\pm10$~N, $dt = 0{,}005$~s) é compatível com bancadas didáticas reais da linha
-Quanser (pêndulos de 33,65 e 64,13~cm, curso de 81,4~cm). Este artigo reporta
-resultados até $n = 5$; a escada completa é o programa de pesquisa.
+A dificuldade é parametrizada pelo número de elos $n$. Cada elo mantém massa e
+comprimento fixos (Tabela~\ref{tab:fisica}), de modo que a escada
+$n = 1, 2, 3, 5, 8, 13, 21$ acrescenta graus de liberdade e acoplamento a uma
+cadeia progressivamente mais longa. Ela percorre regimes de dificuldade
+crescente, de um corpo quase rígido ($n \leq 3$) a uma cadeia articulada
+fortemente caótica ($n \geq 8$), em que o acoplamento entre elos endurece o
+controle. O comprimento de $0{,}35$~m por elo é compatível com bancadas
+didáticas reais da linha Quanser (pêndulos de 33,65 e 64,13~cm). Este artigo
+reporta resultados até $n = 5$; a escada completa é o programa de pesquisa.
 
 \subsection{Algoritmo: PPO com GAE}\label{sec:ppo}
 
-O treino usa \textbf{PPO} (\emph{Proximal Policy Optimization})
-\cite{schulman2017}, um método de RL \emph{on-policy}: a política corrente
+O treino usa o PPO \cite{schulman2017}, um método de RL
+\emph{on-policy}: a política corrente
 coleta um lote de transições e é então atualizada por alguns passos de gradiente
-sobre esse lote, maximizando o objetivo \emph{surrogate} recortado
+sobre esse lote, maximizando o objetivo \emph{surrogate} recortado. Seja
+$\rho_t = \pi_\theta(a_t\mid s_t)/\pi_{\theta_{\mathrm{old}}}(a_t\mid s_t)$ a
+\emph{razão de importância}: $\rho_t < 1$ indica que a ação ficou menos
+provável na política nova; $\rho_t > 1$, mais provável. O objetivo é
 \begin{equation}
 L(\theta) = \mathbb{E}_t\!\left[\min\!\big(\rho_t\hat{A}_t,\;
-\operatorname{clip}(\rho_t,\,1{-}\epsilon,\,1{+}\epsilon)\,\hat{A}_t\big)\right],
-\qquad
-\rho_t = \frac{\pi_\theta(a_t\mid s_t)}{\pi_{\theta_{\mathrm{old}}}(a_t\mid s_t)},
+\operatorname{clip}(\rho_t,\,1{-}\epsilon,\,1{+}\epsilon)\,\hat{A}_t\big)\right].
 \label{eq:ppo}
 \end{equation}
-em que $\rho_t$ é a \emph{razão de importância} (quanto a política nova se
-afastou da que gerou os dados) e $\hat{A}_t$ é a \emph{vantagem} (quão melhor a
-ação foi do que a média prevista pelo crítico $V$). O recorte
-$\epsilon{=}0{,}2$ impede que um único \emph{update} mova a política longe
-demais --- uma região de confiança barata, de onde vem a estabilidade do PPO.
+Aqui $\hat{A}_t$ é a \emph{vantagem}: quão melhor a ação foi do que a média
+prevista pelo crítico $V$ --- subtrair essa média centra o sinal de
+aprendizado em torno de zero e reduz a variância do gradiente. O recorte
+$\epsilon{=}0{,}2$ impede que um único \emph{update} mova a política para
+longe demais, o que dá estabilidade ao PPO; é ele que torna seguro reutilizar
+o mesmo lote em vários minibatches e épocas, prática incomum em RL
+\emph{on-policy} \cite{barth2026}.
 A vantagem é estimada por \textbf{GAE} \cite{schulman2016}: uma soma dos erros
 temporais $\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$ ponderada por
 $(\gamma\lambda)$, em que $\gamma$ é o fator de desconto (horizonte efetivo) e
 $\lambda$ ajusta o compromisso viés--variância da estimativa. Ainda na
 Tabela~\ref{tab:hparams}: o \emph{coeficiente de valor} pesa a perda do
-crítico; o \emph{coeficiente de entropia} bonifica políticas estocásticas
-(preserva exploração); a \emph{norma máxima de gradiente} e o \emph{clip de
-valor} são estabilizadores numéricos. A política é uma MLP: codificador linear
+crítico; o \emph{coeficiente de entropia} bonifica políticas estocásticas,
+preservando exploração; norma máxima de gradiente e \emph{clip} de valor são
+estabilizadores numéricos. A política é uma MLP: codificador linear
 $\to$ 2 camadas ocultas de 256 unidades $\to$ decodificador com cabeças de ação
 (3 logits) e de valor. A Tabela~\ref{tab:hparams} resume a configuração de
 $n{=}5$; os demais $n$ variam apenas a escala de paralelismo.
@@ -309,34 +311,36 @@ Política & MLP $2\times256$ & Ação & discreta (3)\\
 \end{tabular}
 \end{table}
 
-Para destravar platôs em orçamentos longos usamos \emph{warm-restarts} de LR ao
-estilo SGDR: a cada extensão de orçamento (500B $\to$ 1T $\to$ 2T), o LR
+Para destravar platôs em orçamentos longos usamos \emph{warm-restarts} da taxa
+de aprendizado (LR) ao estilo SGDR (\emph{stochastic gradient descent with
+warm restarts}): a cada extensão de orçamento (500B $\to$ 1T $\to$ 2T), o LR
 retorna a $1{,}5\times10^{-4}$ e re-anela.
 
 \subsection{Variante POMDP: swing-up às cegas}\label{sec:pomdp-metodo}
 
-Para isolar o papel da memória, construímos uma variante $n{=}1$ com
-observação parcial: a política vê \emph{apenas} $(x, \dot{x})$ --- posição e
+Para isolar o papel da memória, construímos uma variante $n{=}1$ parcialmente
+observável (POMDP, \emph{Partially Observable Markov Decision
+Process}): a política vê \emph{apenas} $(x, \dot{x})$ --- posição e
 velocidade do carrinho --- e precisa inferir o estado do pêndulo a partir do
 histórico de reações do carrinho. O desenho experimental tem três braços:
 (i) observação completa $+$ MLP (teto de referência); (ii) observação parcial
 $+$ MLP sem memória (\textbf{controle negativo}: deve falhar, pois
 $(x,\dot{x})$ instantâneo é ambíguo); (iii) observação parcial $+$ política
-recorrente (LSTM), a hipótese sob teste. Nessa variante a recompensa foi
+recorrente LSTM (\emph{Long Short-Term Memory}), a hipótese sob teste. Nessa variante a recompensa foi
 \emph{de-confundida}: removemos o termo $\mathrm{center}$ farmável e medimos
 sucesso por métricas físicas lidas do estado real do simulador ---
 $\cos\theta$ médio e \%up (fração do tempo com $\cos\theta > 0{,}6$) --- nunca
-pelo retorno proxy. Um refinamento essencial foi o TBPTT \emph{stateful}: o
-estado oculto $(h, c)$ capturado no início de cada janela de 128 passos
-alimenta o \texttt{nn.LSTM} no update, de modo que o gradiente enxerga a mesma
-``trajetória de crença'' quente que gerou as ações (treinar de $h{=}0$ a cada
-janela corrompe a atribuição de crédito; ver Seção~\ref{sec:analise-pomdp}).
+pelo retorno proxy. Um refinamento essencial foi o TBPTT \emph{stateful}
+(\emph{truncated backpropagation through time} com estado persistente): cada
+janela de 128 passos do update é inicializada com o estado oculto real
+capturado no rollout, e não com $h{=}0$ (análise na
+Seção~\ref{sec:analise-pomdp}).
 
 \subsection{Implementação: ambiente GPU-nativo e pilha de execução}
 \label{sec:sistemas}
 
-\textbf{Ambiente GPU-nativo.} Tudo até aqui é o método; daqui em diante, como
-ele é realizado em GPU. A dinâmica da Seção~\ref{sec:env} é um CuPy
+\textbf{Ambiente GPU-nativo.} As seções anteriores descreveram o método. Esta
+seção descreve como ele é implementado em GPU. A dinâmica da Seção~\ref{sec:env} é um CuPy
 \texttt{RawKernel} (CUDA C compilado via NVRTC em tempo de execução), genérico
 em $N$ por macro de compilação (\texttt{\#define NUM\_LINKS}): o mesmo
 código-fonte gera executáveis especializados para cada $n$, com laços de
@@ -348,7 +352,10 @@ treino. A paridade numérica do \emph{kernel} genérico foi validada contra uma
 implementação $n{=}4$ desenrolada à mão (diferença máxima
 $8{,}8\times10^{-7}$, ruído de fp32) e contra referência NumPy
 ($\sim 5\times10^{-7}$). O laço de PPO da Seção~\ref{sec:ppo} é implementado à
-mão sobre \texttt{pufferlib.models}.
+mão sobre a PufferLib \cite{suarez2024}, uma biblioteca de RL que padroniza a
+vetorização de ambientes de alta velocidade. É sobre a sua infraestrutura de
+vetorização e seus modelos (\texttt{pufferlib.models}) que o ambiente e o laço
+de treino deste trabalho foram construídos.
 
 \textbf{Pilha de execução.} Sobre esse ambiente, quatro alavancas foram
 avaliadas --- sempre com o \emph{workload} (modelo, batch, ambiente) fixo,
@@ -360,26 +367,20 @@ variando apenas a execução:
     fp32 por incompatibilidade de dtypes no estado persistente).
   \item \textbf{\texttt{torch.compile}}: compilação do grafo do update
     (no rollout, a compilação \emph{piora} o tempo e foi desativada).
-  \item \textbf{Kernels Triton fundidos}: $\mathrm{GELU}(XW+b)$ em um único
-    \emph{kernel}, eliminando uma ida e volta à HBM em relação a
-    cuBLAS $+$ GELU separados.
+  \item \textbf{Kernels Triton fundidos} (\emph{fused}): $\mathrm{GELU}(XW+b)$ em um único
+    \emph{kernel}, eliminando uma ida e volta à HBM (\emph{High Bandwidth
+    Memory}, a memória principal da GPU) em relação a cuBLAS $+$ GELU
+    separados.
   \item \textbf{CUDA graphs}: captura do laço de rollout em grafo para
     eliminar overhead de lançamento de \emph{kernels}.
 \end{itemize}
-
-Adicionalmente, a política foi treinada com \textbf{NF4-QAT}: pesos
-quantizados para NormalFloat-4 \cite{dettmers2023} no caminho de inferência com
-gradiente \emph{straight-through}, produzindo um artefato final $8\times$
-menor.
 
 \subsection{Metodologia de medição}\label{sec:medicao}
 
 Três princípios disciplinam as medições, todos aprendidos por violação:
 \textbf{(1) ponta a ponta contra a produção real} --- speedup medido no laço
 completo de treino com política \emph{treinada}, nunca contra réplicas
-sintéticas (uma política aleatória termina episódios o tempo todo, gerando
-dezenas de milhares de sincronizações device$\to$host/época que não existem em
-produção; Seção~\ref{sec:graph}); \textbf{(2) roofline para atribuir causa} ---
+sintéticas (o porquê fica claro na Seção~\ref{sec:graph}); \textbf{(2) roofline para atribuir causa} ---
 localizar o laço no \emph{roofline} da RTX~3060 (banda ${\sim}360$~GB/s, pico
 ${\sim}51$~TFLOP/s fp16/bf16, \emph{ridge point} $\mathrm{AI}=142$~FLOP/byte)
 antes de creditar ganho a compute ou banda; e \textbf{(3) A/B de aprendizado,
@@ -396,37 +397,49 @@ escalabilidade (Seção~\ref{sec:escalabilidade}).
 
 \subsection{Pilar 1 --- Throughput}\label{sec:throughput}
 
-A Tabela~\ref{tab:sps} resume o throughput. O ambiente isolado (sem política)
-sustenta centenas de milhões de passos/s; o laço completo, após todas as
-otimizações, sustenta 7--8 milhões --- a diferença é o custo do PPO (forward,
-GAE, backward), que domina o tempo de época.
+O ambiente isolado (sem política) sustenta centenas de milhões de passos de
+ambiente por segundo (SPS): 333~M em $n{=}4$ e 260~M em $n{=}5$ --- apenas ${\sim}22\%$ mais lento
+apesar de resolver um sistema $6\times6$ em vez de $5\times5$, pois a
+eliminação gaussiana desenrolada em registradores escala suavemente. O laço
+completo (ambiente $+$ PPO), após todas as otimizações, sustenta 7--8 milhões
+de passos/s (7,2~M em $n{=}4$; 7,7~M em $n{=}5$); a diferença é o custo do PPO
+(forward, GAE, backward), que domina o tempo de época. Para contexto: a linha
+legada do projeto, um ambiente distinto implementado em C sobre a CPU
+(\emph{ctypes}) na mesma máquina, sustentava 125\,K SPS no laço de treino; a
+reimplementação como \emph{kernel} CUDA residente na GPU multiplicou o
+throughput do laço completo por ${\sim}60\times$ (comparação laço contra laço,
+ambos ambiente $+$ PPO). A Tabela~\ref{tab:throughput-cumulativo} resume essa
+evolução, das referências históricas às otimizações de execução do Pilar~2.
 
 \begin{table}[ht]
 \centering
-\caption{Throughput em passos de ambiente por segundo (RTX 3060).}
-\label{tab:sps}
+\caption{Evolução do throughput na RTX~3060, em dois blocos com referências
+próprias. SPS medido pelo próprio laço em janelas de 100~M passos; as duas
+primeiras linhas do segundo bloco convertem tempos de época medidos
+($4\,194\,304$ passos/época) e a última é a média$\pm$desvio das 2\,000
+janelas finais do treino de $n{=}5$ (inclui avaliação e checkpoints). TF32 $=$
+TensorFloat-32, o modo padrão de fp32 em \emph{tensor cores}.}
+\label{tab:throughput-cumulativo}
 \small
 \begin{tabular}{lrr}
 \toprule
-Configuração & Ambiente isolado & Laço completo (env $+$ PPO)\\
+Etapa & SPS & Ganho (vs.\ etapa anterior)\\
 \midrule
-$n=4$ & 333 M SPS & 7,2 M SPS\\
-$n=5$ & 260 M SPS & 7,7 M SPS\\
+\multicolumn{3}{l}{\emph{Implementação do ambiente (laço de treino completo)}}\\
+Python/NumPy (\texttt{np.linalg.solve}) & ${\sim}9{,}9$~K & 1$\times$ (ref.)\\
+\quad $\to$ C/CPU (\emph{ctypes}) & ${\sim}125$~K & ${\sim}13\times$\\
+\quad $\to$ \emph{kernel} CUDA (TF32) & ${\sim}4{,}1$~M & ${\sim}33\times$\\
+\midrule
+\multicolumn{3}{l}{\emph{Otimizações de execução (ambiente CUDA $+$ PPO)}}\\
+TF32 & ${\sim}4{,}2$~M & 1$\times$ (ref.)\\
+\quad $+$ bf16 autocast & ${\sim}7{,}9$~M & $1{,}87\times$\\
+\quad $+$ \texttt{torch.compile} & $7{,}72 \pm 0{,}19$~M & $1{,}09\times$\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Nota-se que $n{=}5$ é apenas ${\sim}22\%$ mais lento que $n{=}4$ no ambiente
-isolado, apesar de resolver um sistema $6\times6$ em vez de $5\times5$ --- a
-eliminação gaussiana desenrolada em registradores escala suavemente. Para
-contexto histórico: a linha legada do projeto --- um ambiente distinto,
-implementado em C sobre a CPU (\emph{ctypes}), na mesma máquina --- sustentava
-125\,K SPS no laço de treino; a reimplementação do ambiente como \emph{kernel}
-CUDA residente na GPU multiplicou o throughput do laço completo por
-${\sim}60\times$ (comparação laço-de-treino contra laço-de-treino, ambos
-ambiente $+$ PPO).
-
-\textbf{Onde o laço vive no roofline.} O GEMM dominante do update
+\textbf{Onde o laço vive no roofline.} O GEMM (\emph{General Matrix
+Multiplication}, a multiplicação de matrizes) dominante do update
 ($K{=}N{=}256$, a largura da MLP) tem intensidade aritmética
 $\mathrm{AI} \approx 85$~FLOP/byte --- abaixo do \emph{ridge point} de 142 da
 RTX~3060. O laço é, portanto, \textbf{limitado por banda de memória}: o teto
@@ -442,7 +455,7 @@ reduzir bytes (precisão) deve valer mais do que reduzir lançamentos de
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.7\linewidth]{roofline.png}
+\includegraphics[width=0.64\linewidth]{roofline.pdf}
 \caption{Varredura roofline do GEMM do update (bf16, $K{=}N{=}256$) na
 RTX~3060: no tamanho de produção ($M{\approx}262\,144$) opera a $23{,}9$ TFLOP/s
 ($78\%$ da banda), saturando em ${\sim}24{,}4$ ($79\%$) para $M$ maiores ---
@@ -457,19 +470,20 @@ execução avaliada, com veredito honesto.
 
 \begin{table}[ht]
 \centering
-\caption{Alavancas de execução: microbenchmark vs.\ efeito ponta a ponta (e2e).}
+\caption{Alavancas de execução e seu efeito ponta a ponta no laço de treino
+(microbenchmarks e vereditos discutidos no texto).}
 \label{tab:speedups}
 \small
-\begin{tabular}{lccl}
+\small
+\begin{tabular}{@{}lr@{}}
 \toprule
-Alavanca & Micro & E2e & Veredito\\
+Alavanca & Efeito ponta a ponta (e2e)\\
 \midrule
-bf16 autocast & $1{,}97\times$ (update) & $\mathbf{1{,}87\times}$ (992$\to$529 ms) & A alavanca real. A/B: sem degradação\\
-\texttt{torch.compile} (update) & $1{,}10$--$1{,}14\times$ & $+9\%$ (6,8$\to$7,6 M SPS) & Ganho modesto, gratuito\\
-Triton fundido (GELU(XW+b)) & $\mathbf{2{,}88\times}$ vs cuBLAS & $+2\%$ & Op é memory-bound; rollout é 30\% da época\\
-CUDA graphs & --- & $\sim 1{,}05\times$ & Paridade (o ``1,52$\times$'' era espantalho)\\
-Staleness de gradiente ($K{=}2$) & $1{,}50\times$ (update) & $1{,}35\times$ & \textbf{Revertido}: degrada o aprendizado\\
-int8 (cuBLAS / Triton) & $0{,}89$--$1{,}05\times$ & --- & Morto: kernel é occupancy-bound\\
+bf16 autocast & $\mathbf{1{,}87\times}$ (992$\to$529 ms)\\
+\texttt{torch.compile} (update) & $1{,}09\times$\\
+Triton fundido (\emph{fused}) & $1{,}02\times$\\
+CUDA graphs & $\sim 1{,}05\times$ (paridade)\\
+Staleness ($K{=}2$, \textbf{revertida}) & $1{,}35\times$\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -495,17 +509,8 @@ $2{,}88\times$ mais rápido que cuBLAS $+$ GELU separados em microbenchmark
 memory-bound --- mas sobreviveu à integração como apenas $+2\%$ ponta a ponta,
 porque o rollout é só ${\sim}30\%$ da época; a variante multi-camada
 totalmente fundida esbarrou no limite de memória compartilhada e não foi
-concluída. A lição, quantificada: \emph{neste regime, o ganho veio de
-precisão, não de kernelização}.
-
-\textbf{NF4-QAT: compressão da política.} Na ponta agressiva do espectro de
-precisão, a política treinada sob NF4-QAT (quantização NormalFloat-4
-\cite{dettmers2023} no forward, gradiente \emph{straight-through}) converge
-normalmente e produz um artefato $8\times$ menor que o fp32. Ressalva
-metodológica explícita: o NF4 permaneceu \emph{sempre ligado} nos treinos
-dessa linha --- não existe A/B fp32-vs-NF4 de recompensa final. Sem essa
-ablação, o NF4 conta como infraestrutura funcionando, não como claim de que 4
-bits bastam sem custo; a ablação é trabalho futuro.
+concluída. Em termos quantitativos, neste regime o ganho veio da redução de
+precisão, e não da fusão de \emph{kernels}.
 
 \subsection{Pilar 3 --- Escalabilidade}\label{sec:escalabilidade}
 
@@ -514,39 +519,58 @@ Distinguimos duas dimensões de escala, deliberadamente: escalar o
 segunda é onde o estudo encontra sua fronteira.
 
 \textbf{(a) Escalar o sistema.} Os dois pilares anteriores compõem: 32\,768
-ambientes paralelos residentes na GPU, 7--8M passos/s sustentados, e
-estabilidade numérica suficiente (zero NaN sob bf16) para campanhas
-ininterruptas de dias. É isso que torna executáveis, em uma única GPU de
-consumo, orçamentos de $10^{11}$--$10^{12}$ passos --- o experimento $n{=}5$
-acumulou $1{,}6$ trilhão de passos. Sem essa escala de sistema, a escada de
-$n$ abaixo sequer poderia ser tentada com PPO e ação discreta.
+ambientes paralelos, 7--8M passos/s sustentados e estabilidade numérica (zero
+NaN sob bf16) para campanhas ininterruptas de dias, tornando executáveis, em
+uma GPU de consumo, orçamentos de $10^{11}$--$10^{12}$ passos --- o
+experimento $n{=}5$ acumulou $1{,}6$ trilhão.
 
 \textbf{(b) Escalar o problema: a escada de $n$.}\label{sec:reward-n}
 
-A Tabela~\ref{tab:reward-n} consolida o resultado de controle por $n$. O teto
-teórico de retorno por episódio é ${\sim}2250$ (1500 passos $\times$ 1,5).
+A Tabela~\ref{tab:reward-n} consolida o melhor resultado de controle por $n$
+(orçamentos indicados) e a Figura~\ref{fig:rewardn} isola o efeito de $n$
+comparando todos os tamanhos sob o \emph{mesmo} orçamento de 50~B passos. O
+teto teórico de retorno por episódio é ${\sim}2250$ (1500 passos $\times$
+1,5).
 
 \begin{table}[ht]
 \centering
 \caption{Resultado de swing-up por $n$ (linha principal, observação completa,
-exceto onde indicado). \%up $=$ fração do tempo com $\cos\theta > 0{,}6$.}
+exceto onde indicado). \%up $=$ fração do tempo com \emph{todos} os elos em
+$\cos\theta > 0{,}6$, medida a posteriori sobre o checkpoint final (1024
+episódios de avaliação).}
 \label{tab:reward-n}
 \small
-\begin{tabular}{llrrl}
+\footnotesize
+\begin{tabular}{@{}llrrl@{}}
 \toprule
 Config & Política & Retorno / teto & \%up & Veredito\\
 \midrule
 $n=1$ full-obs & MLP & 2188 / 2250 & 97\% & \textbf{Resolvido}\\
+$n=2$ full-obs (50B) & MLP & 2121 / 2250 & 95{,}5\% & \textbf{Resolvido}\\
+$n=3$ full-obs (50B) & MLP & 1930 / 2250 & 88{,}4\% & Quase resolvido\\
 $n=1$ POMDP $(x,\dot{x})$ & LSTM & --- & \textbf{96,8\%} (245B) & \textbf{Resolvido às cegas}\\
 $n=1$ POMDP $(x,\dot{x})$ & MLP & --- & ${\sim}11\%$ & Controle negativo: falha\\
 $n=2$ POMDP & LSTM & --- & ${\sim}38\%$ & Em progresso\\
-$n=4$ full-obs & MLP & 1031 / 2250 & n/d & Parcial / instável\\
-$n=5$ full-obs & MLP & 610--624 / 2250 & n/d (${\sim}27\%$ do teto) & \textbf{Não resolvido} (1,6 T passos)\\
+$n=4$ full-obs & MLP & 1031 / 2250 & 56{,}4\% & Parcial (500B)\\
+$n=5$ full-obs & MLP & 610--624 / 2250 (27\%) & 39{,}9\% & \textbf{Não resolvido} (1,6T)\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{$n=1$: o PPO brilha.} Com observação completa, o swing-up é resolvido
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.55\linewidth]{reward_vs_n.pdf}
+\caption{Desempenho do swing-up (\% do teto de recompensa) em função do número
+de elos $n$, sob o \textbf{mesmo orçamento de 50~B passos} e o mesmo código
+para todos os $n$: o ``clique'' do swing-up ocorre dentro do orçamento até
+$n{=}3$; para $n \geq 4$ ele não ocorre em 50~B --- e, no caso de $n{=}5$, nem
+com $32\times$ mais orçamento (Figura~\ref{fig:n5curve}). Corridas de semente
+única; a diferença entre $n{=}1$ e $n{=}2$ está dentro do ruído entre
+sementes.}
+\label{fig:rewardn}
+\end{figure}
+
+\textbf{Resultado em $n=1$.} Com observação completa, o swing-up é resolvido
 com folga (2188 de 2250; 97\% do tempo ereto). Mais notável é a variante às
 cegas: observando \emph{apenas} o carrinho, a LSTM com TBPTT stateful atinge
 96,8\% ereto aos 245 bilhões de passos --- estatisticamente o mesmo teto do
@@ -555,34 +579,34 @@ custo da cegueira é eficiência amostral (${\sim}20$--$40\times$ mais passos),
 não teto de desempenho. O controle negativo confirma o desenho: a mesma
 observação parcial com MLP sem memória estaciona em ${\sim}11\%$.
 
-\textbf{$n=5$: a fronteira.} A Figura~\ref{fig:n5curve} mostra a curva de
-aprendizado. A progressão é real mas brutalmente lenta: retorno 61 aos 100
-milhões de passos, 372 aos 500 milhões, platô em ${\sim}470$ por centenas de
-bilhões, e \emph{warm-restarts} de LR arrancando ganhos decrescentes ---
-$530 \to 612{,}6$ no primeiro ciclo (1T), sem recuperação do nível anterior no
-segundo (2T, interrompido a 1,4T por reboot; retomou a ${\sim}575$). O melhor
-resultado, ${\sim}610$--$624$ de 2250 (${\sim}27\%$ do teto), foi obtido com
-$1{,}6$ trilhão de passos acumulados. Os episódios sobrevivem os 1500 passos
-inteiros: a política aprendeu a não falhar, mas não a completar o swing-up dos
-5 elos. É um platô de otimização/exploração, não de sobrevivência.
+\textbf{Resultado em $n=5$.} A Figura~\ref{fig:n5curve} mostra as curvas de
+aprendizado sob o mesmo orçamento: o $n{=}5$ nunca sai do platô de
+sobrevivência dentro dos 50~B. Estendendo o treino muito além, a progressão é
+real, mas brutalmente lenta: retorno 61 aos 100 milhões de passos, 372 aos 500
+milhões, platô em ${\sim}470$ por centenas de bilhões, e \emph{warm-restarts}
+de LR arrancando ganhos decrescentes --- $530 \to 612{,}6$ no primeiro ciclo
+(1T), sem recuperação do nível anterior no segundo (2T, interrompido a 1,4T
+por reboot; retomou a ${\sim}575$). O melhor resultado, ${\sim}610$--$624$ de
+2250 (${\sim}27\%$ do teto), foi obtido com $1{,}6$ trilhão de passos
+acumulados. Os episódios sobrevivem os 1500 passos inteiros: a política
+aprendeu a não falhar, mas não a completar o swing-up dos 5 elos. É um platô
+de otimização/exploração, não de sobrevivência.
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.7\linewidth]{n5_reward.png}
-\caption{Curva de recompensa do $n{=}5$ (completa, até $1{,}6$~T passos, eixo
-$x$ em escala log): salto inicial, platô longo e ganhos decrescentes por
-warm-restart de LR (linhas verticais). O platô final ${\approx}602$ fica em
-${\sim}27\%$ do teto teórico (2250) --- fronteira aberta.}
+\includegraphics[width=0.75\linewidth]{curvas_n.pdf}
+\caption{Curvas de aprendizado sob o mesmo orçamento de 50~B passos, $n = 1$ a
+$5$ (recompensa de avaliação, \% do teto de 2250). Até $n{=}3$ o ``clique'' do
+swing-up ocorre e o desempenho converge acima de 85\%; $n{=}4$ e $n{=}5$
+permanecem no platô de sobrevivência (${\sim}20\%$). O $n{=}5$ foi treinado
+adicionalmente até $1{,}6$~T passos e alcançou apenas ${\sim}27\%$ (ver
+texto).}
 \label{fig:n5curve}
 \end{figure}
 
+
 % =========================================================================
 \section{Análise}\label{sec:analise}
-
-A análise espelha os três pilares: por que o throughput é a alavanca
-(Seção~\ref{sec:analise-capacidade}), o que a precisão mista ensinou sobre
-medição (Seção~\ref{sec:analise-medicao}) e o que acontece ao escalar o
-problema (Seções~\ref{sec:analise-quebra} e~\ref{sec:analise-pomdp}).
 
 \subsection{Pilar 1 --- Por que throughput é a alavanca: capacidade não é o
 gargalo}\label{sec:analise-capacidade}
@@ -598,12 +622,10 @@ fosse o gargalo, veríamos subajuste também nas competências parciais; o que
 vemos é uma política competente presa em uma bacia de comportamento, sintoma
 de \emph{exploração} insuficiente sobre uma paisagem de recompensa com
 gradiente quase nulo entre ``balançar alto'' e ``completar o swing-up de 5
-elos''. Terceiro, a aritmética do orçamento: cada $1{,}87\times$ de throughput
-transformou semanas de GPU em dias e viabilizou os regimes de $10^{11}$--%
-$10^{12}$ passos em hardware de consumo --- foi o bf16, não qualquer mudança
-algorítmica, que tornou o experimento de 1,6 trilhão de passos executável.
-Nesse regime, otimizações de sistemas \emph{são} metodologia científica: elas
-definem quais perguntas cabem no hardware.
+elos''. Terceiro, a aritmética do orçamento: foi o bf16 ($1{,}87\times$), e
+não uma mudança algorítmica, que transformou semanas de GPU em dias e tornou
+viável o experimento de 1,6 trilhão de passos. Nesse regime, otimizações de
+sistemas determinam quais perguntas de pesquisa cabem no hardware disponível.
 
 \subsection{Pilar 2 --- Precisão vs.\ kernelização: lições de medição}
 \label{sec:analise-medicao}
@@ -614,8 +636,9 @@ pareceram render $1{,}52\times$ --- mas contra uma réplica com política
 device$\to$host por época. Contra a produção real (política treinada, que
 completa os 1500 passos e quase não sincroniza) o ganho é ${\sim}1{,}05\times$:
 paridade. O mesmo condenou o Triton ($2{,}88\times$ micro, $+2\%$ real), cujo
-microbenchmark comparava contra um cuBLAS artificialmente lento. Lição:
-\emph{speedup contra espantalho não sobrevive à integração}.
+microbenchmark comparava contra um cuBLAS artificialmente lento. Ou seja: um
+speedup medido contra uma \emph{baseline} fraca não se sustenta após a
+integração no sistema real.
 
 \textbf{Throughput não é o objetivo, aprendizado é.}\label{sec:staleness}
 Reusar gradientes por 2 minibatches deu $1{,}35\times$ e \emph{pareceu} inócuo
@@ -627,47 +650,45 @@ perda lenta.
 (Seção~\ref{sec:pomdp-metodo}), o controle negativo (MLP cega) teve retorno
 \emph{maior} que o full-obs (212 vs.\ 66) --- parado no centro, colhendo o
 termo $\mathrm{center}$ com o pêndulo pendurado; só a métrica física
-($\cos\theta$ do simulador) revelou o hack. E aos 245B, o agente cego reportava
-\%up igual ao full-obs, mas o \emph{vídeo} revelou $4\times$ mais velocidade de
-carrinho --- sensoriamento ativo do POMDP, invisível a qualquer escalar
-agregado.
+($\cos\theta$ do simulador) revelou o hack.
 
 \subsection{Pilar 3 --- Onde o PPO quebra ao crescer $n$}
 \label{sec:analise-quebra}
 
-A degradação $n{=}1$ (97\%) $\to$ $n{=}4$ (parcial) $\to$ $n{=}5$ (27\% do
-teto) tem causas identificáveis. O espaço de estados cresce ($2n+2$
-dimensões), mas o fator dominante é a interação entre \textbf{subatuação e
-caos}: com um único atuador para $n{+}1$ graus de liberdade, a sequência de
-chaveamentos que bombeia energia \emph{coerentemente} para todos os elos é uma
-agulha em um palheiro que cresce exponencialmente --- e a dinâmica caótica
-pune qualquer imprecisão de fase. A recompensa densa em altura
-(Eq.~\ref{eq:reward}) guia bem os primeiros elos, mas o gradiente
-comportamental entre ``4 elos altos oscilando'' e ``5 elos travados no topo''
-é quase invisível para exploração por perturbação local de uma política
-determinística-em-média. Os warm-restarts de LR --- que escapam de bacias
-locais e re-convergem --- extraíram $+15\%$, com retornos decrescentes por
-ciclo, exatamente o comportamento esperado quando o problema é a paisagem de
-exploração e não a otimização local. As saídas prováveis (currículo sobre $n$
-ou sobre gravidade, transferência de $n{-}1 \to n$, \emph{shaping} de energia
-à la \cite{astrom2000}) mudam a paisagem, não o otimizador. Em síntese:
-escalar o sistema foi resolvido; escalar o problema é a pergunta de pesquisa
-que o sistema agora permite formular com precisão.
+Sob orçamento uniforme, a transição não é gradual: de $n{=}3$ (86\%) para
+$n{=}4$ (20\%) o desempenho \emph{despenca} (Figura~\ref{fig:rewardn}). O
+``clique'' do swing-up, que ocorre em menos de 1~B de passos para $n{=}1$,
+${\sim}5$~B para $n{=}2$ e ${\sim}20$~B para $n{=}3$
+(Figura~\ref{fig:n5curve}), simplesmente não acontece para $n \geq 4$ nesse
+orçamento. A causa é identificável. O espaço de estados cresce ($2n+2$
+dimensões), mas o fator dominante é a combinação de \textbf{subatuação e
+caos}: com um único
+atuador para $n{+}1$ graus de liberdade, achar a sequência de chaveamentos que
+faz todos os elos ganharem energia de forma coerente fica exponencialmente mais
+difícil, e a dinâmica caótica pune qualquer erro de fase. A recompensa densa em
+altura (Eq.~\ref{eq:reward}) guia os primeiros elos, mas o gradiente entre ``4
+elos oscilando alto'' e ``5 elos no topo'' é quase invisível para a exploração.
+Os warm-restarts de LR extraíram $+15\%$ com retornos decrescentes, o esperado
+quando o gargalo é a exploração, não a otimização local. As saídas prováveis
+(currículo sobre $n$ ou gravidade, transferência $n{-}1 \to n$, \emph{shaping}
+de energia \cite{astrom2000}) mudam a paisagem, não o otimizador.
 
 \subsection{Pilar 3 --- O resultado POMDP e o mecanismo do TBPTT}
 \label{sec:analise-pomdp}
 
-O experimento às cegas quase falhou por uma razão sutil: com BPTT
-reiniciando de $h{=}0$ a cada janela de 128 passos, a LSTM treinava sobre uma
-trajetória de crença ``fria'' diferente da trajetória ``quente'' (acumulada
-por até 1500 passos) que gerou as ações --- corrompendo a atribuição de
-crédito. Com esse defeito, a recorrente empatava com o controle negativo
+O experimento às cegas quase falhou por um motivo específico: como o BPTT
+reiniciava o estado oculto em $h{=}0$ a cada janela de 128 passos, a LSTM era
+treinada sobre um estado inicial diferente daquele que de fato gerou as ações,
+acumulado ao longo de até 1500 passos. Essa inconsistência corrompia a
+atribuição de crédito. Com esse defeito, a recorrente empatava com o controle
+negativo
 (${\sim}11\%$). O TBPTT stateful (janela inicializada com o estado oculto real
 do rollout) destravou a curva: 25\% aos 9B, 50\% aos 40B, 96,8\% aos 245B. O
-resultado final --- inferir e inverter um pêndulo que nunca se observa,
-apenas pelas reações do carrinho --- é, a nosso ver, a demonstração mais
-limpa do artigo de que o PPO com o orçamento certo de amostras resolve
-problemas de estimação-e-controle não triviais.
+resultado final mostra que é possível inferir o estado de um pêndulo nunca
+observado diretamente, apenas a partir das reações do carrinho, e ainda assim
+invertê-lo. Entre os resultados deste artigo, é o que melhor ilustra que o PPO,
+com orçamento de amostras suficiente, resolve problemas não triviais de
+estimação e controle conjuntos.
 
 \subsection{Limitações}\label{sec:limitacoes}
 
@@ -676,10 +697,10 @@ resolvido} --- 27\% do teto após 1,6T passos; throughput sozinho não venceu a
 paisagem de exploração para $n \geq 4$. (ii) A linha principal em CUDA ainda
 carrega o termo $\mathrm{center}$ farmável na recompensa
 (Eq.~\ref{eq:reward}); a correção existe apenas na variante POMDP, e os
-retornos de $n \geq 4$ devem ser lidos com essa ressalva. (iii) As métricas
-\%up de $n{=}4$ e $n{=}5$ não foram logadas --- reportamos retorno/teto, um
-proxy que a Seção~\ref{sec:analise-medicao} nos ensinou a desconfiar.
-(iv) O NF4-QAT não tem A/B de qualidade. (v) Os resultados de throughput são
+retornos de $n \geq 4$ devem ser lidos com essa ressalva. (iii) A métrica
+\%up não foi registrada durante os treinos; foi medida a posteriori sobre os
+checkpoints finais (Tabela~\ref{tab:reward-n}).
+(iv) Os resultados de throughput são
 de uma única GPU (RTX 3060); as conclusões roofline devem transferir para
 outras arquiteturas memory-bound, mas não foram verificadas nelas.
 
@@ -692,27 +713,26 @@ Este trabalho tratou o swing-up do pêndulo-$N$ subatuado como um problema de
 sustenta 7--8M passos/s ponta a ponta em uma RTX~3060 --- a alavanca que
 financia a exploração, já que a capacidade da rede não é o gargalo. Em
 \textbf{precisão mista}, o resultado central é que, num laço memory-bound, a
-\emph{precisão} (bf16, $1{,}87\times$ sem degradar o aprendizado; NF4-QAT,
-$8\times$) vale mais que a kernelização (que rendeu paridade) --- e a própria
+\emph{precisão} (bf16, $1{,}87\times$ sem degradar o aprendizado) vale mais
+que a kernelização (que rendeu paridade) --- e a própria
 metodologia de medição (baseline de produção, A/B multi-semente sustentado) é
 contribuição. Em \textbf{escalabilidade}, o sistema escala (trilhões de passos
-em GPU de consumo) e é isso que permite \emph{tentar} escalar o problema: o PPO
-resolve $n{=}1$ com folga, inclusive às cegas por LSTM (96,8\% ereto observando
-só o carrinho), fica parcial em $n{=}4$ e para em $n{=}5$ (27\% do teto).
-Escalar $n$ permanece, explicitamente, fronteira aberta.
+em GPU de consumo) e é isso que permite \emph{tentar} escalar o problema: sob
+50~B de passos o PPO resolve até $n{=}3$ (94\% e 86\% do teto; em $n{=}1$
+inclusive às cegas por LSTM, com 96,8\% do tempo ereto), despenca em $n{=}4$
+(20\% em 50~B; 46\% mesmo com 500~B) e para em $n{=}5$ (27\% após 1,6~T).
+Escalar $n \geq 4$ permanece, explicitamente, fronteira aberta.
 
-Trabalhos futuros, em ordem de prioridade: (i) completar a ablação NF4
-(A/B fp32 vs.\ NF4 de recompensa final); (ii) atacar $n \geq 5$ mudando a
-paisagem de exploração --- currículo sobre $n$ e sobre gravidade,
-transferência $n{-}1 \to n$ e shaping de energia \cite{astrom2000} ---
-mantendo o orçamento que o throughput viabiliza; (iii) vieses estruturais para
-generalizar entre $n$ (codificador compartilhado por elo, 1D-conv ou
-message-passing sobre a cadeia), pré-requisito para (iv) subir a escada até
-$n{=}21$ e mapear como a dificuldade escala com o número de elos; e (v) concluir
-o $n{=}2$ às cegas, hoje em ${\sim}38\%$ e em progresso.
+Trabalhos futuros, em ordem de prioridade: (i) atacar $n \geq 5$ mudando a
+paisagem de exploração (currículo sobre $n$ ou gravidade, transferência
+$n{-}1 \to n$, shaping de energia \cite{astrom2000}); (ii) vieses estruturais
+para generalizar entre $n$ (codificador por elo, 1D-conv, message-passing),
+pré-requisito para (iii) subir a escada até $n{=}21$; e (iv) concluir o
+$n{=}2$ às cegas, hoje em ${\sim}38\%$.
 
 % =========================================================================
 \begin{thebibliography}{99}
+\scriptsize
 \setlength{\itemsep}{0pt}
 \setlength{\parskip}{0pt}
 
@@ -721,32 +741,29 @@ o $n{=}2$ às cegas, hoje em ${\sim}38\%$ e em progresso.
 Swinging up a pendulum by energy control.
 \emph{Automatica}, 36(2):287--295.
 
+\bibitem[Barth 2026]{barth2026}
+Barth, F. (2026).
+Proximal Policy Optimization (PPO). Notas de aula, Insper.
+\url{https://insper.github.io/rl/classes/18_ppo/}.
+
 \bibitem[Boubaker 2013]{boubaker2013}
 Boubaker, O. (2013).
 The inverted pendulum benchmark in nonlinear control theory: a survey.
 \emph{International Journal of Advanced Robotic Systems}, 10(5):233.
 
-\bibitem[Dettmers et al. 2023]{dettmers2023}
-Dettmers, T., Pagnoni, A., Holtzman, A., e Zettlemoyer, L. (2023).
-QLoRA: Efficient finetuning of quantized LLMs.
-Em \emph{Advances in Neural Information Processing Systems (NeurIPS)}.
-
 \bibitem[Freeman et al. 2021]{freeman2021}
-Freeman, C.~D., Frey, E., Raichuk, A., Girgin, S., Mordatch, I., e Bachem, O.
-(2021).
+Freeman, C.~D., Frey, E., Raichuk, A., et al. (2021).
 Brax --- a differentiable physics engine for large scale rigid body
 simulation.
 Em \emph{NeurIPS Datasets and Benchmarks Track}.
 
 \bibitem[Makoviychuk et al. 2021]{makoviychuk2021}
-Makoviychuk, V., Wawrzyniak, L., Guo, Y., Lu, M., Storey, K., Macklin, M.,
-Hoeller, D., Rudin, N., Allshire, A., Handa, A., e State, G. (2021).
+Makoviychuk, V., Wawrzyniak, L., Guo, Y., et al. (2021).
 Isaac Gym: High performance GPU-based physics simulation for robot learning.
 Em \emph{NeurIPS Datasets and Benchmarks Track}.
 
 \bibitem[Micikevicius et al. 2018]{micikevicius2018}
-Micikevicius, P., Narang, S., Alben, J., Diamos, G., Elsen, E., García, D.,
-Ginsburg, B., Houston, M., Kuchaiev, O., Venkatesh, G., e Wu, H. (2018).
+Micikevicius, P., Narang, S., Alben, J., et al. (2018).
 Mixed precision training.
 Em \emph{International Conference on Learning Representations (ICLR)}.
 
@@ -757,7 +774,7 @@ asynchronous reinforcement learning.
 Em \emph{International Conference on Machine Learning (ICML)}.
 
 \bibitem[Schulman et al. 2016]{schulman2016}
-Schulman, J., Moritz, P., Levine, S., Jordan, M., e Abbeel, P. (2016).
+Schulman, J., Moritz, P., Levine, S., et al. (2016).
 High-dimensional continuous control using generalized advantage estimation.
 Em \emph{International Conference on Learning Representations (ICLR)}.
 
@@ -785,8 +802,7 @@ nice.
 \emph{arXiv preprint arXiv:2406.12905}.
 
 \bibitem[Weng et al. 2022]{weng2022}
-Weng, J., Lin, M., Huang, S., Liu, B., Makoviichuk, D., Makoviychuk, V., Liu,
-Z., Song, Y., Luo, T., Jiang, Y., Xu, Z., e Yan, S. (2022).
+Weng, J., Lin, M., Huang, S., et al. (2022).
 EnvPool: A highly parallel reinforcement learning environment execution
 engine.
 Em \emph{Advances in Neural Information Processing Systems (NeurIPS)}.

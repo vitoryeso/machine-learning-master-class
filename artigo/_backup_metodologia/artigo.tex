@@ -1,0 +1,860 @@
+% =============================================================================
+% Artigo final — Aprendizado de Máquina 2026.1 (PPgEEC/UFRN, Prof. Marcelo Fernandes)
+% Formato SBC. Para compilar, coloque nesta pasta o arquivo `sbc-template.sty`
+% (distribuído no zip do modelo SBC fornecido pelo professor) e, se usar as
+% figuras, mantenha os caminhos relativos ../projeto-*/output/*.png.
+%   pdflatex artigo.tex && pdflatex artigo.tex
+% =============================================================================
+\documentclass[12pt]{article}
+
+\usepackage{sbc-template}   % <- vem do zip do modelo SBC do professor
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+\sloppy
+
+\title{A Seed Única Engana: Avaliação Multi-Seed e Testes Pareados\\ em Métodos Clássicos de Aprendizado de Máquina}
+
+\author{Vitor Y. F. Freitas\inst{1}}
+
+\address{Programa de Pós-Graduação em Engenharia Elétrica e de Computação (PPgEEC)\\
+  Universidade Federal do Rio Grande do Norte (UFRN) -- Natal, RN -- Brasil
+  \email{vitoryeso@outlook.com}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  Machine learning results are routinely reported as a single number obtained
+  from a single random seed, a practice that conflates real effects with
+  sampling noise. Using as an empirical testbed eight classical methods
+  implemented mostly from scratch for course mini-projects --- K-means, linear
+  regression (batch GD vs.\ LMS), logistic regression, decision trees, RBF
+  networks, SVM, MLP and CNN --- we retrofit every experiment with a
+  multi-seed protocol (mean $\pm$ sample standard deviation) and per-seed
+  paired comparisons. Two findings emerge. First, the relevant lever to shrink
+  variance depends on its source: for stable models (linear/logistic), the
+  seed-to-seed spread is dominated by the binomial sampling error of the test
+  set, and enlarging the test set shrinks it (from $\pm 2.5$ p.p.\ to $\pm
+  0.3$ p.p.\ in our logistic experiment); for high-variance models (unpruned
+  trees, CNNs), the spread comes from the model itself and more data does not
+  help (the tree's std \emph{grew} from $\pm 0.021$ to $\pm 0.033$). Second,
+  paired per-seed comparisons cancel shared sampling noise, reducing the
+  standard deviation of the difference by $\approx 7\times$ and cleanly
+  separating true ties (Gini vs.\ entropy, $t=0.11$; RGB vs.\ grayscale,
+  $t=1.3$) from real but masked effects (2D vs.\ 1D CNN, $t\approx 5$;
+  K-means centers in RBF networks, $t\approx 16$--$20$). We distill these
+  observations into concrete reporting recommendations for ML coursework and
+  research.
+\end{abstract}
+
+\begin{resumo}
+  Resultados de aprendizado de máquina costumam ser reportados como um único
+  número obtido com uma única seed aleatória, prática que confunde efeitos
+  reais com ruído amostral. Usando como bancada empírica oito métodos
+  clássicos implementados majoritariamente do zero em miniprojetos da
+  disciplina --- K-means, regressão linear (GD em lote vs.\ LMS), regressão
+  logística, árvore de decisão, redes RBF, SVM, MLP e CNN ---, retrofitamos
+  todos os experimentos com um protocolo multi-seed (média $\pm$
+  desvio-padrão amostral) e comparações pareadas por seed. Duas descobertas
+  emergem. Primeira: a alavanca correta para encolher a variância depende da
+  sua origem --- em modelos estáveis (linear/logística) a dispersão entre
+  seeds é dominada pelo erro amostral binomial do conjunto de teste, e
+  aumentar o teste a reduz (de $\pm 2{,}5$ p.p.\ para $\pm 0{,}3$ p.p.\ na
+  logística); em modelos de alta variância (árvore não podada, CNN) a
+  dispersão vem do próprio modelo e mais dados não ajudam (o desvio da árvore
+  \emph{cresceu} de $\pm 0{,}021$ para $\pm 0{,}033$). Segunda: a comparação
+  pareada por seed cancela o ruído amostral compartilhado, reduz o
+  desvio-padrão da diferença em $\approx 7\times$ e separa com clareza
+  empates reais (Gini vs.\ entropia, $t=0{,}11$; RGB vs.\ cinza, $t=1{,}3$)
+  de efeitos reais mascarados (CNN 2D vs.\ 1D, $t\approx 5$; centros K-means
+  em redes RBF, $t\approx 16$--$20$). Destilamos essas observações em
+  recomendações concretas de como reportar resultados de AM.
+\end{resumo}
+
+% =============================================================================
+\section{Introdução}\label{sec:intro}
+
+Quase todo curso e boa parte da literatura aplicada de aprendizado de máquina
+(AM) reporta desempenho como um número pontual: ``a regressão logística
+atingiu 96{,}7\% de acurácia'', ``Gini (96\%) superou entropia (94\%)''.
+Esses números, porém, são \emph{realizações de variáveis aleatórias}: dependem
+da seed que gerou os dados sintéticos, do embaralhamento do split
+treino/teste, da inicialização dos pesos e da ordem de apresentação dos
+exemplos. Uma única realização não distingue um efeito real de um golpe de
+sorte --- e, como mostraremos com experimentos deste próprio trabalho, ambos
+os exemplos acima eram enganosos: o ``96{,}7\%'' era uma realização otimista
+de um teste com apenas 60 amostras (o valor multi-seed é $96{,}3\% \pm
+0{,}3\%$), e a ``vantagem de 2 pontos do Gini'' era puro ruído de amostragem
+(o efeito pareado medido é $-0{,}0002 \pm 0{,}008$, $t=0{,}11$ --- zero).
+
+Este artigo usa como bancada empírica os oito miniprojetos da disciplina de
+Aprendizado de Máquina (PPgEEC/UFRN, 2026.1), que implementam
+majoritariamente do zero uma trilha completa de métodos clássicos: K-means,
+regressão linear otimizada por gradiente em lote (GD) e por LMS/Widrow-Hoff,
+regressão logística, árvore de decisão CART, redes de funções de base radial
+(RBF), SVM com kernel RBF, perceptron multicamadas (MLP) e redes
+convolucionais (CNN). Originalmente, todos os projetos rodavam com uma seed
+fixa (42) e reportavam um único número. Nossa contribuição é
+\emph{retrofitar} toda a bancada com um protocolo estatístico uniforme ---
+repetição multi-seed com média $\pm$ desvio-padrão amostral e, nas
+comparações entre variantes de um mesmo método, teste pareado por seed --- e
+analisar o que muda nas conclusões.
+
+As perguntas de pesquisa são:
+
+\begin{enumerate}
+  \item \textbf{RQ1} --- Quais conclusões tiradas com seed única sobrevivem à
+        validação multi-seed, e quais se revelam ruído?
+  \item \textbf{RQ2} --- De onde vem a variância entre seeds: do erro amostral
+        da \emph{medida} (teste finito) ou da instabilidade do próprio
+        \emph{modelo}? A resposta muda a alavanca de mitigação correta?
+  \item \textbf{RQ3} --- Quanto o pareamento por seed aumenta a sensibilidade
+        das comparações entre métodos, e que decisões ele muda na prática?
+\end{enumerate}
+
+As respostas resumidas: (RQ1) três conclusões de seed única caíram e duas se
+confirmaram; (RQ2) a origem da variância separa os modelos em dois regimes
+com receitas opostas --- para modelos estáveis, aumentar o conjunto de teste
+(de graça, quando os dados são sintéticos) encolhe o desvio; para modelos de
+alta variância, só regularizar o modelo ajuda; (RQ3) o pareamento reduziu o
+desvio da diferença em $\approx 7\times$ e revelou tanto empates verdadeiros
+quanto um sinal real que a comparação não pareada mascarava.
+
+O restante do artigo se organiza assim: a Seção~\ref{sec:sota} revisa a
+literatura de testes estatísticos e reprodutibilidade em AM; a
+Seção~\ref{sec:met} descreve a bancada (métodos, dados e protocolo); a
+Seção~\ref{sec:res} apresenta os resultados; a Seção~\ref{sec:ana} discute as
+duas descobertas e suas implicações; a Seção~\ref{sec:conc} conclui.
+
+% =============================================================================
+\section{Estado da Arte}\label{sec:sota}
+
+A preocupação com o rigor estatístico na comparação de algoritmos de AM não é
+nova. \cite{dietterich1998} formalizou o problema no contexto de
+classificação supervisionada, mostrou que testes ingênuos (como o teste $t$
+sobre repetições com dados sobrepostos) têm erro Tipo~I inflado e propôs
+alternativas hoje canônicas: o teste de McNemar para uma única partição e o
+teste $t$ pareado \emph{5x2cv} para comparações com re-treino. Na mesma
+linha, \cite{salzberg1997} catalogou armadilhas recorrentes --- comparações
+múltiplas sem correção, reuso do conjunto de teste, ausência de
+replicações --- e \cite{nadeau2003} mostraram que a variância do erro de
+generalização estimado por reamostragem é sistematicamente subestimada pelos
+estimadores usuais, propondo correções que hoje levam seu nome.
+\cite{demsar2006} estendeu a discussão para comparações de múltiplos
+classificadores sobre múltiplos conjuntos de dados, recomendando testes não
+paramétricos (Wilcoxon, Friedman com post-hoc de Nemenyi) no lugar de médias
+de acurácia --- trabalho que se tornou referência obrigatória na área.
+
+Uma segunda onda de interesse veio com o aprendizado profundo, no qual o
+custo de cada execução tornou tentador (e comum) reportar corridas únicas.
+\cite{henderson2018} mostraram que, em aprendizado por reforço profundo, a
+simples mudança de seed produz curvas de recompensa tão diferentes que
+subconjuntos de seeds do \emph{mesmo} algoritmo parecem algoritmos distintos
+--- e que boa parte dos resultados publicados não sobrevive a re-execução.
+\cite{reimers2017} documentaram o mesmo fenômeno em PLN: a diferença entre
+duas arquiteturas de rede para etiquetagem de sequências é frequentemente
+menor que a dispersão entre seeds de uma delas, e recomendam reportar
+\emph{distribuições} de escores em vez de valores únicos.
+\cite{bouthillier2021} deram o tratamento mais sistemático ao problema:
+decompuseram a variância de benchmarks de AM em suas fontes (splits de
+dados, inicialização, ordem dos lotes, ajuste de hiperparâmetros), mostraram
+que a variância induzida pelos dados domina a da inicialização e que
+randomizar o máximo possível de fontes --- em vez de fixá-las --- produz
+estimativas menos enviesadas da diferença entre algoritmos. No plano
+institucional, \cite{pineau2021} descrevem o programa de reprodutibilidade
+do NeurIPS, que consagrou checklists exigindo múltiplas execuções e medidas
+de dispersão.
+
+Nosso trabalho não propõe um teste novo: ele transporta esse ferramental ---
+repetição multi-seed \cite{reimers2017,bouthillier2021} e comparação pareada
+\cite{dietterich1998,demsar2006} --- para uma bancada didática de métodos
+clássicos implementados do zero, e extrai dela duas lições que a literatura
+trata separadamente: a distinção entre variância da medida e variância do
+modelo \cite{nadeau2003,bouthillier2021} e o ganho de sensibilidade do
+pareamento por seed. A novidade está na demonstração controlada, de ponta a
+ponta e com os mesmos dados e código, de como cada conclusão de seed única se
+transforma (ou não) sob o protocolo estatístico.
+
+% =============================================================================
+\section{Metodologia}\label{sec:met}
+
+\subsection{Bancada: os oito métodos}\label{sec:met-metodos}
+
+A bancada empírica são os miniprojetos da disciplina (numerados P1--P10, sem
+P6), implementados em Rust, Python/numpy ou PyTorch. Salvo indicação, os
+modelos foram implementados \emph{do zero}, sem bibliotecas de AM:
+
+\begin{itemize}
+  \item \textbf{P1 --- K-means} (Rust, do zero): algoritmo de Lloyd com
+        inicialização K-means++ sobre 8.000 embeddings CLIP (512-d) de uma
+        coleção pessoal de imagens; escolha de $K$ por cotovelo e silhueta.
+  \item \textbf{P2 --- Classificação de taxonomia descoberta} (Python):
+        \emph{linear probes} sobre os rótulos derivados do clustering de P1,
+        usados aqui como estudo da circularidade de avaliação
+        (Seção~\ref{sec:res-outros}).
+  \item \textbf{P3 --- Regressão linear: GD vs.\ LMS} (Rust, do zero):
+        mesma regressão linear otimizada por gradiente em lote e pela regra
+        LMS/Widrow-Hoff \cite{widrow1960} sobre dados sintéticos com pesos
+        verdadeiros conhecidos ($y = 3x_1 - 2x_2 + 1 + \varepsilon$,
+        $\sigma^2 = 0{,}25$).
+  \item \textbf{P4 --- Regressão logística} (Rust, do zero): sigmoid
+        numericamente estável, perda BCE e gradiente analítico, sobre duas
+        gaussianas 2D com limite de Bayes conhecido
+        ($\Phi(-\sqrt{13}/2) \approx 3{,}57\%$ de erro).
+  \item \textbf{P5 --- Árvore de decisão CART} (Python, do zero): impureza,
+        busca gulosa de split, recursão e predição manuais \cite{breiman1984};
+        comparação dos critérios Gini vs.\ entropia.
+  \item \textbf{P7 --- Rede RBF} (numpy, do zero): camada de gaussianas +
+        saída linear por mínimos quadrados \cite{broomhead1988}; ablação da
+        estratégia de escolha de centros (aleatório, subconjunto, K-means).
+  \item \textbf{P8 --- SVM com kernel RBF} (scikit-learn): varredura
+        $C \times \gamma$ \cite{cortes1995}; único modelo não implementado à
+        mão (o foco era o papel dos vetores de suporte).
+  \item \textbf{P9 --- MLP} (numpy, backpropagation manual
+        \cite{rumelhart1986}): MSE vs.\ entropia cruzada e ablação de
+        arquitetura (0 a 128 neurônios ocultos).
+  \item \textbf{P10 --- CNN} (PyTorch \cite{lecun1998}): CNN 2D vs.\ 1D,
+        entrada RGB vs.\ tons de cinza, ablação de número de filtros e
+        tamanho de kernel, e visualização de \emph{feature maps}.
+\end{itemize}
+
+\subsection{Dados}\label{sec:met-dados}
+
+Três famílias de dados são usadas:
+
+\begin{itemize}
+  \item \textbf{Sintéticos com verdade conhecida} (P3, P4, P5): gaussianas 2D
+        e \texttt{make\_classification}. A vantagem metodológica é dupla:
+        (i) o ótimo é conhecido (piso de ruído $\sigma^2$ em P3; limite de
+        Bayes em P4), permitindo aferir o quão perto o modelo chega do
+        possível; (ii) dados novos são \emph{de graça} --- cada seed gera uma
+        realização inteiramente nova do problema, e o tamanho do conjunto de
+        teste é um parâmetro livre.
+  \item \textbf{Features CLIP reais} (P1, P2, P7, P8, P9): embeddings de
+        512 dimensões \cite{radford2021} extraídos de $\sim$8.000 imagens de
+        uma coleção pessoal, com três tarefas binárias de dificuldade
+        crescente: \emph{macro\_vs\_rest} (balanceada, quase separável),
+        \emph{has\_people} e \emph{screenshot\_vs\_photo} (desbalanceadas,
+        base 84\%). P7--P9 usam o mesmo split, permitindo a meta-comparação
+        da Seção~\ref{sec:res-outros}.
+  \item \textbf{Imagens brutas} (P10): 450 imagens ($64\times 64$) da mesma
+        coleção, na tarefa real foto vs.\ captura de tela.
+\end{itemize}
+
+\subsection{Protocolo multi-seed}\label{sec:met-multiseed}
+
+Cada experimento é repetido com $N$ seeds ($N \in \{3, 5, 10, 30\}$ conforme
+o custo computacional do projeto; a lista de seeds é fixa e publicada nos
+relatórios). A seed controla todas as fontes de aleatoriedade do pipeline:
+geração dos dados sintéticos (quando aplicável), embaralhamento do split
+treino/teste, inicialização de pesos/centróides e ordem de apresentação.
+Reportamos média e desvio-padrão \emph{amostral},
+
+\begin{equation}
+  \bar{m} = \frac{1}{N}\sum_{s=1}^{N} m_s, \qquad
+  \hat{\sigma} = \sqrt{\frac{1}{N-1}\sum_{s=1}^{N}(m_s - \bar{m})^2},
+  \label{eq:multiseed}
+\end{equation}
+
+onde $m_s$ é a métrica (acurácia, F1, MSE\ldots) obtida com a seed $s$ e o
+denominador $N-1$ (\texttt{ddof=1}) corrige o viés do estimador de variância
+para amostras pequenas. O número reportado como \emph{oficial} de cada
+projeto é sempre $\bar{m} \pm \hat{\sigma}$; valores de seed única são
+mantidos nos relatórios apenas como ilustração, com essa ressalva explícita.
+
+\subsection{Teste pareado por seed}\label{sec:met-pareado}
+
+Para comparar duas variantes $A$ e $B$ de um mesmo método (Gini vs.\
+entropia; centros K-means vs.\ aleatórios; CNN 2D vs.\ 1D), o protocolo não
+pareado --- comparar $\bar{m}_A \pm \hat{\sigma}_A$ com $\bar{m}_B \pm
+\hat{\sigma}_B$, cada um sobre sorteios independentes --- desperdiça
+informação: grande parte de $\hat{\sigma}$ é ruído de amostragem
+\emph{compartilhado} (a mesma seed produz um split fácil ou difícil para
+ambas as variantes). No protocolo pareado, cada seed $s$ gera \emph{uma
+única} realização dos dados (mesmo dataset, mesmo split) sobre a qual ambas
+as variantes são treinadas e avaliadas; a estatística de interesse é a
+diferença por seed $d_s = m_{A,s} - m_{B,s}$, resumida por
+
+\begin{equation}
+  \bar{d} \pm \hat{\sigma}_d, \qquad
+  t = \frac{\bar{d}}{\hat{\sigma}_d / \sqrt{N}},
+  \label{eq:paired}
+\end{equation}
+
+onde $\bar{d}$ é a diferença média, $\hat{\sigma}_d$ o desvio-padrão amostral
+das diferenças e $t$ a estatística do teste $t$ pareado (a diferença média em
+unidades do seu erro-padrão). Como o ruído comum a $A$ e $B$ se cancela em
+$d_s$, $\hat{\sigma}_d$ pode ser muito menor que $\hat{\sigma}_A$ ou
+$\hat{\sigma}_B$ --- na prática observamos redução de $\approx 7\times$
+(Seção~\ref{sec:res-p5}). Com $N=30$ seeds, $|t| \gtrsim 2$ indica efeito
+distinguível de zero ao nível usual de 5\%; valores de $|t| \ll 1$ indicam
+efeito \emph{medido como zero}, o que é uma afirmação mais forte do que
+``não conseguimos distinguir'' \cite{dietterich1998}.
+
+\subsection{Diagnóstico: variância da medida vs.\ variância do modelo}
+\label{sec:met-var}
+
+Por fim, para responder à RQ2, usamos um diagnóstico simples. Se o modelo é
+(quase) determinístico dado o problema --- caso dos modelos lineares
+convexos ---, a dispersão entre seeds da acurácia de teste deve coincidir com
+o erro-padrão \emph{binomial} de medir uma proporção $p$ com $n$ amostras de
+teste:
+
+\begin{equation}
+  \mathrm{EP}_{\text{binomial}} = \sqrt{\frac{p(1-p)}{n_{\text{teste}}}},
+  \label{eq:binomial}
+\end{equation}
+
+que depende apenas do tamanho do teste. Nesse regime, aumentar
+$n_{\text{teste}}$ encolhe o desvio como $1/\sqrt{n}$, e rodar mais seeds
+apenas re-mede a mesma incerteza. Se, ao contrário, a dispersão observada
+excede (ou não responde a) esse previsor, a variância vem da instabilidade
+do próprio modelo --- pequenas mudanças no treino mudam a função aprendida
+--- e a alavanca passa a ser regularização/poda, não mais dados de teste. O
+experimento crítico é variar $n_{\text{teste}}$ e observar se
+$\hat{\sigma}$ responde.
+
+% =============================================================================
+\section{Resultados}\label{sec:res}
+
+\subsection{P4 --- Regressão logística: a seed sortuda e o teste pequeno}
+\label{sec:res-p4}
+
+Com a seed original (42) e um teste de apenas 60 amostras, a logística
+reportava 96{,}67\% de acurácia de teste (erro 3{,}33\%, nominalmente
+\emph{abaixo} do limite de Bayes de 3{,}57\% --- um alerta em si). O
+protocolo multi-seed (10 seeds, dataset de 10.000 amostras por seed, teste
+$\sim$2.000) produz o resultado oficial da Tabela~\ref{tab:p4}.
+
+\begin{table}[htb]
+\centering
+\caption{P4 --- Regressão logística (do zero, Rust): multi-seed, 10 seeds,
+teste $\sim$2.000 amostras por seed. Fonte:
+\texttt{projeto-4/output/report\_multiseed.txt}.}
+\label{tab:p4}
+\begin{tabular}{lcc}
+\toprule
+Métrica (teste) & Média & Desvio ($\hat{\sigma}$, ddof=1) \\
+\midrule
+Acurácia   & 96{,}29\% & 0{,}27\% \\
+Precisão   & 0{,}9609  & 0{,}0057 \\
+Recall     & 0{,}9652  & 0{,}0044 \\
+F1         & 0{,}9630  & 0{,}0030 \\
+BCE        & 0{,}0977  & 0{,}0054 \\
+\midrule
+Erro de teste & \multicolumn{2}{c}{$3{,}71\% \pm 0{,}27\%$} \\
+Limite de Bayes (teórico) & \multicolumn{2}{c}{$3{,}57\%$
+  \ [$\Phi(-\sqrt{13}/2)$]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Três leituras. (i)~O número oficial é $96{,}3\% \pm 0{,}3\%$; o ``96{,}7\%''
+da seed única era uma realização otimista dentro da variância esperada ---
+entre as 10 seeds do protocolo original com teste de 60 pontos, uma chegou a
+100\%. (ii)~A Eq.~\eqref{eq:binomial} explica quantitativamente o ganho: com
+$n=60$, $\mathrm{EP} \approx \sqrt{0{,}96 \cdot 0{,}04/60} \approx 2{,}5$
+p.p.; com $n=2.000$, $\approx 0{,}4$ p.p.\ --- e o desvio observado entre
+seeds ($0{,}27$ p.p.) é compatível com esse previsor binomial, confirmando
+que a logística é um modelo estável: a variância era da \emph{medida}, não do
+modelo. Como os dados são sintéticos, o teste maior é gratuito. (iii)~O erro
+oficial ($3{,}71\% \pm 0{,}27\%$) fica a $\sim$0,5 desvio do limite de Bayes:
+o gargalo é o ruído irredutível do problema, e o modelo está essencialmente
+resolvido.
+
+\subsection{P3 --- GD vs.\ LMS: um efeito real que sobrevive}
+\label{sec:res-p3}
+
+Nem toda conclusão de seed única cai. Na regressão linear, o LMS (60.000
+passos por execução) converge ao piso de ruído e o GD em lote com
+\emph{learning rate} conservador (escolha didática deliberada) fica no meio
+do caminho. O multi-seed (10 seeds, $N=10.000$) confirma e quantifica:
+
+\begin{table}[htb]
+\centering
+\caption{P3 --- Regressão linear: GD vs.\ LMS, 10 seeds, $N=10.000$.
+Verdadeiros: $w = [3, -2]$, $b = 1$; piso de ruído $\sigma^2 = 0{,}25$.
+Fonte: \texttt{projeto-3/RELATORIO.md}.}
+\label{tab:p3}
+\begin{tabular}{lccc}
+\toprule
+Métrica & GD & LMS & Referência \\
+\midrule
+MSE final & $0{,}5018 \pm 0{,}0118$ & $0{,}2517 \pm 0{,}0039$ & 0{,}25 \\
+$w_0$     & $2{,}60 \pm 0{,}013$    & $2{,}996 \pm 0{,}011$   & 3{,}0 \\
+$w_1$     & $-1{,}73 \pm 0{,}012$   & $-2{,}001 \pm 0{,}006$  & $-2{,}0$ \\
+$b$       & $0{,}86 \pm 0{,}014$    & $0{,}991 \pm 0{,}016$   & 1{,}0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+O gap de MSE entre GD e LMS ($\approx 0{,}25$) é $\approx 20\times$ maior que
+o desvio de qualquer um dos dois --- as bandas nem se aproximam. Este é o
+padrão de um \emph{efeito real}: robusto, com margem folgada sobre o ruído.
+Note também o comportamento da variância: ao passar de $N=300$ (seed única)
+para $N=10.000$, o desvio encolheu $\approx 4\times$ --- de novo o regime de
+modelo estável da Seção~\ref{sec:met-var}, em que mais dados firmam o número.
+
+\subsection{P5 --- Gini vs.\ entropia: o empate que parecia vitória}
+\label{sec:res-p5}
+
+Este é o caso central do artigo. Com seed única (42, teste de 100 amostras),
+a árvore CART manual dava a impressão de uma vitória clara do Gini
+(Tabela~\ref{tab:p5-single}). O multi-seed não pareado já derruba a
+conclusão; o teste pareado a substitui por uma afirmação mais forte.
+
+\begin{table}[htb]
+\centering
+\caption{P5 --- Árvore de decisão, seed única (42): a ``vitória'' do Gini.
+Fonte: \texttt{projeto-5/output/report.txt}.}
+\label{tab:p5-single}
+\begin{tabular}{lcc}
+\toprule
+Métrica (seed=42) & Gini & Entropia \\
+\midrule
+Acurácia (treino) & 1{,}0000 & 1{,}0000 \\
+Acurácia (teste)  & \textbf{0{,}9600} & 0{,}9400 \\
+F1                & 0{,}9608 & 0{,}9412 \\
+Profundidade      & 9        & 13 \\
+Folhas com 1 amostra & 10    & 8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htb]
+\centering
+\caption{P5 --- O mesmo experimento sob os três protocolos. Não pareado:
+10 seeds, $N=2.000$. Pareado: 30 seeds, mesmo split por seed, teste $N=400$.
+Fonte: \texttt{projeto-5/RELATORIO.md}.}
+\label{tab:p5-proto}
+\begin{tabular}{llll}
+\toprule
+Protocolo & Gini & Entropia & Conclusão \\
+\midrule
+Seed única (42)     & 0{,}960 & 0{,}940 & ``Gini vence por 2 p.p.'' \\
+Multi-seed não pareado & $0{,}943 \pm 0{,}033$ & $0{,}945 \pm 0{,}033$ &
+  indistinguíveis (ranking inverte) \\
+Pareado (30 seeds)  & \multicolumn{2}{l}{$d = -0{,}0002 \pm 0{,}008$
+  \ ($t = 0{,}11$)} & \textbf{empate real: efeito $\approx$ 0} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Três observações:
+
+\begin{itemize}
+  \item \textbf{O pareamento encolhe o desvio $\approx 7\times$}: o
+        desvio-padrão da \emph{diferença} pareada ($\pm 0{,}008$) é cerca de
+        sete vezes menor que o desvio não pareado ($\pm 0{,}055$ no mesmo
+        protocolo de 30 seeds), porque o ruído de amostragem que afeta os
+        dois critérios igualmente se cancela na diferença por seed. A
+        Figura~\ref{fig:paired} (\texttt{projeto-5/output/paired\_viz.png})
+        visualiza o contraste: à esquerda, as distribuições não pareadas se
+        sobrepõem largamente; à direita, a distribuição das diferenças por
+        seed se concentra em torno de zero.
+  \item \textbf{$t = 0{,}11$ não é ``empate por falta de dados''}: a
+        diferença média está a 0{,}1 erro-padrão de zero. Com a
+        sensibilidade que o pareamento dá, um efeito de meio ponto percentual
+        seria detectado; o efeito medido é zero. O único efeito real e
+        consistente entre os critérios é \emph{estrutural}: a árvore da
+        entropia cresce mais profunda (17{,}8 vs.\ 15{,}5 níveis sem poda),
+        porque a maior curvatura da entropia perto de $p = 0{,}5$ reordena os
+        splits gulosos.
+  \item \textbf{Com poda, o empate persiste} ($t = 0{,}57$ com
+        \texttt{max\_depth}=5) e a acurácia até melhora (0{,}947 vs.\
+        0{,}936 sem poda) --- evidência adicional de que a árvore irrestrita
+        (100\% no treino, folhas de 1 amostra) estava memorizando.
+\end{itemize}
+
+\begin{figure}[htb]
+\centering
+% Caminho relativo à pasta artigo/; ajuste se compilar de outro diretório.
+\includegraphics[width=0.95\textwidth]{../projeto-5/output/paired_viz.png}
+\caption{Comparação não pareada (esq.) vs.\ pareada (dir.) para Gini vs.\
+entropia (P5, 30 seeds). No protocolo não pareado as distribuições de
+acurácia se sobrepõem e a comparação é inconclusiva; no pareado, a
+distribuição das diferenças por seed concentra-se em zero com desvio
+$\approx 7\times$ menor, permitindo afirmar o empate real ($t=0{,}11$).}
+\label{fig:paired}
+\end{figure}
+
+Igualmente importante é o comportamento da variância com o tamanho dos
+dados: ao aumentar o dataset de $N=500$ para $N=2.000$, o desvio entre seeds
+\emph{cresceu} de $\pm 0{,}021$ para $\pm 0{,}033$ --- o oposto do observado
+em P3/P4. A árvore não podada é um modelo de alta variância por construção
+(cresce até folhas puras), então a dispersão entre seeds reflete a
+instabilidade estrutural do modelo, não o erro amostral da medida; mais
+dados não firmam o número, só a poda o faria (Seção~\ref{sec:ana}).
+
+\subsection{P7 --- RBF: vitória robusta e empate real na mesma ablação}
+\label{sec:res-p7}
+
+A rede RBF manual (features CLIP, tarefa \emph{macro\_vs\_rest}) compara três
+estratégias de posicionamento dos centros. Na seed única, o ranking aparente
+era K-means $>$ aleatório $>$ subconjunto em todo $k$
+(Tabela~\ref{tab:p7}).
+
+\begin{table}[htb]
+\centering
+\caption{P7 --- Ablação de centros da RBF (F1, \emph{macro\_vs\_rest},
+seed=42) e veredito do teste pareado multi-seed. Fontes:
+\texttt{projeto-7/output/report.txt} e \texttt{projeto-7/slides.html}.}
+\label{tab:p7}
+\begin{tabular}{lcccl}
+\toprule
+Estratégia & $k=10$ & $k=30$ & $k=60$ & Veredito pareado \\
+\midrule
+K-means     & 0{,}913 & 0{,}926 & 0{,}931 & vence, robusto
+  ($t \approx 16$--$20$) \\
+Aleatório   & 0{,}829 & 0{,}897 & 0{,}920 &
+  \multirow{2}{*}{aleatório vs.\ subset: empate ($t = 0{,}36$)} \\
+Subconjunto & 0{,}723 & 0{,}871 & 0{,}915 & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+O teste pareado separa as duas comparações que a seed única tratava por
+igual: K-means vs.\ demais é um efeito enorme e robusto ($t \approx
+16$--$20$ em todos os $k$: posicionar os centros onde os dados se concentram
+importa de verdade), enquanto aleatório vs.\ subconjunto --- que na seed
+única parecia uma diferença de até 10 pontos em $k=10$ --- é empate real
+($t = 0{,}36$): zero medido, não falta de dado. Os números oficiais da RBF
+(multi-seed, 3 seeds, $k=30$, K-means) são F1 $0{,}921 \pm 0{,}005$
+(\emph{macro}), $0{,}682 \pm 0{,}010$ (\emph{has\_people}) e $0{,}668 \pm
+0{,}030$ (\emph{screenshot}).
+
+\subsection{P10 --- CNN: o pareamento revela um sinal mascarado}
+\label{sec:res-p10}
+
+O caso mais instrutivo para a RQ3. Na tarefa real foto vs.\ captura de tela
+(450 imagens, $64 \times 64$), a seed única sugeria o ranking RGB $>$ cinza
+$>$ 1D (Tabela~\ref{tab:p10}). Como a CNN é um modelo de alta variância
+(inicialização, ordem dos lotes, poucos dados), a comparação não pareada
+entre seeds tem desvios grandes --- grandes o suficiente para enterrar
+\emph{todas} as diferenças como ``ruído''. O teste pareado (30 seeds, mesmos
+dados e split por seed) decompõe o ranking em um efeito real e um espúrio:
+
+\begin{table}[htb]
+\centering
+\caption{P10 --- CNN foto vs.\ screenshot: F1 da seed única (42) e veredito
+do teste pareado (30 seeds). Fontes: \texttt{projeto-10/output/report.txt} e
+\texttt{projeto-10/slides.html}.}
+\label{tab:p10}
+\begin{tabular}{lccl}
+\toprule
+Comparação & \multicolumn{2}{c}{F1 (seed=42)} & Veredito pareado (30 seeds)\\
+\midrule
+2D-RGB vs.\ 2D-cinza & 0{,}917 & 0{,}891 &
+  empate real ($t = 1{,}3$): cor não agrega \\
+2D vs.\ 1D (perfil)  & 0{,}917 & 0{,}872 &
+  \textbf{efeito real} ($t \approx 5$): estrutura espacial importa \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A leitura da seed única (``RGB $>$ cinza $>$ 1D'') misturava um sinal
+verdadeiro com ruído: a vantagem do 2D sobre o 1D é real e forte ($t \approx
+5$ --- colapsar a imagem num perfil de linha descarta a estrutura espacial
+que a convolução 2D explora, e os \emph{feature maps} confirmam
+qualitativamente: os filtros viram detectores de borda nas caixas de UI dos
+screenshots), mas a vantagem do RGB sobre o cinza é empate ($t = 1{,}3$): o
+canal de cor não acrescenta nada além da estrutura espacial nessa tarefa. O
+ponto fino é que, \emph{sem} pareamento, a alta variância da CNN mascarava
+inclusive o efeito real --- o 2D vs.\ 1D não passaria de um teste não
+pareado com poucas seeds. O pareamento não serve só para desmascarar falsas
+vitórias; serve também para \emph{resgatar} efeitos verdadeiros que o ruído
+esconde. Na ablação restante, o multi-seed confirma o ponto ótimo em kernel
+$3$ (F1 0{,}913 na seed única) com queda forte em kernel $7$ (0{,}793) ---
+filtro grande demais para imagens $64 \times 64$.
+
+\subsection{Demais projetos e meta-comparação}\label{sec:res-outros}
+
+Os demais projetos seguem o mesmo protocolo; destacamos os resultados que
+alimentam a análise da Seção~\ref{sec:ana}:
+
+\begin{itemize}
+  \item \textbf{P8 --- SVM-RBF} (3 seeds): F1 \emph{macro} $0{,}954 \pm
+        0{,}004$; \emph{has\_people} $0{,}883 \pm 0{,}010$;
+        \emph{screenshot} $0{,}770 \pm 0{,}007$. O efeito de $\gamma$ é
+        gigantesco e robusto ($\gamma = 0{,}1$ colapsa o F1 para 0{,}09;
+        efeito $\approx 200\times$ o desvio entre seeds) --- exemplo de
+        conclusão de seed única que o multi-seed confirma com folga.
+  \item \textbf{P9 --- MLP} (3 seeds): F1 \emph{macro} $0{,}965 \pm 0{,}001$
+        (entropia cruzada). Dois efeitos pequenos que a seed única não
+        resolvia ganham veredito: CE fica consistentemente acima do MSE
+        ($0{,}965 \pm 0{,}001$ vs.\ $0{,}961 \pm 0{,}003$, bandas sem
+        sobreposição) e a camada oculta rende $\approx 1$ p.p.\ reprodutível
+        sobre a logística ($0{,}954 \pm 0{,}002$ sem camada oculta,
+        $\approx 3\hat{\sigma}$) --- ganho real, porém pequeno, pois as
+        features CLIP já são quase linearmente separáveis.
+  \item \textbf{P2 --- circularidade quantificada} (5 seeds): classificar os
+        clusters no próprio espaço que os gerou (CLIP) dá acurácia
+        $0{,}954$ (macro) / $0{,}896$ (folha); num espaço independente
+        (ConvNeXt), $0{,}833$ / $0{,}661$. O gap CLIP$\to$ConvNeXt vale
+        \textbf{16--47$\times$} o desvio entre seeds ($\hat{\sigma}$ de
+        0{,}004 a 0{,}008) --- a circularidade é um efeito real e mensurável,
+        não um acaso do split.
+  \item \textbf{Meta-comparação P7/P8/P9} (mesmo dataset e split, F1
+        \emph{macro\_vs\_rest}, multi-seed): MLP $0{,}965 \pm 0{,}001$ $>$
+        SVM $0{,}954 \pm 0{,}004$ $>$ RBF $0{,}921 \pm 0{,}005$. Os gaps entre
+        modelos são maiores que os desvios, então o ranking é estatisticamente
+        sustentado; nas tarefas desbalanceadas o ranking muda (SVM na frente),
+        ilustrando o \emph{No Free Lunch}.
+\end{itemize}
+
+% =============================================================================
+\section{Análise}\label{sec:ana}
+
+\subsection{Descoberta 1: a alavanca certa depende da origem da variância}
+\label{sec:ana-var}
+
+Os resultados de P3/P4 e P5/P10 formam um contraste limpo entre dois regimes
+(Tabela~\ref{tab:regimes}).
+
+\begin{table}[htb]
+\centering
+\caption{Dois regimes de variância entre seeds e a alavanca de mitigação
+correta em cada um.}
+\label{tab:regimes}
+\begin{tabular}{p{0.3\textwidth}p{0.3\textwidth}p{0.3\textwidth}}
+\toprule
+ & \textbf{Modelo estável} (linear, logística) & \textbf{Modelo de alta
+variância} (árvore não podada, CNN pequena) \\
+\midrule
+Origem da dispersão entre seeds & Erro amostral da \emph{medida}: teste
+finito, $\mathrm{EP} \approx \sqrt{p(1-p)/n}$ & Instabilidade do próprio
+\emph{modelo}: a função aprendida muda com a seed \\
+Evidência na bancada & P4: $\pm 2{,}5$ p.p.\ ($n{=}60$) $\to$ $\pm 0{,}3$
+p.p.\ ($n{\approx}2.000$); desvio observado $\approx$ previsor binomial.
+P3: desvio encolheu $4\times$ com $N$ maior & P5: desvio \emph{cresceu} de
+$\pm 0{,}021$ para $\pm 0{,}033$ ao ir de $N{=}500$ para $N{=}2.000$;
+P10: desvios grandes apesar do teste fixo \\
+Alavanca que funciona & Aumentar o conjunto de teste (de graça em dados
+sintéticos); seeds servem só para confirmar consistência & Regularizar o
+modelo (poda, \texttt{max\_depth}); em P5, podar mantém o empate e
+\emph{melhora} a acurácia \\
+Alavanca que \emph{não} funciona & Rodar mais seeds com o mesmo teste pequeno
+(re-mede a mesma incerteza) & Aumentar os dados de teste (a variância não
+está na medida) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A lição prática: antes de ``rodar mais seeds'', vale perguntar \emph{o que} a
+dispersão entre seeds está medindo. O diagnóstico é barato --- comparar o
+desvio observado com o previsor binomial da Eq.~\eqref{eq:binomial} e/ou
+variar $n_{\text{teste}}$ e ver se o desvio responde. Essa distinção é a
+mesma que \cite{nadeau2003} e \cite{bouthillier2021} fazem formalmente entre
+os componentes de variância do estimador do erro de generalização; nossa
+bancada a exibe de forma controlada, com os dois regimes convivendo no mesmo
+conjunto de projetos.
+
+\subsection{Descoberta 2: parear por seed muda vereditos}
+\label{sec:ana-pareado}
+
+O pareamento por seed é a versão ``multi-seed'' do princípio dos testes
+pareados clássicos \cite{dietterich1998}: avaliar os dois tratamentos na
+mesma realização e analisar as diferenças. Nossa bancada mostra os três
+desfechos possíveis, todos com decisões práticas distintas:
+
+\begin{enumerate}
+  \item \textbf{Falsa vitória $\to$ empate real} (P5 Gini vs.\ entropia,
+        $t=0{,}11$; P7 aleatório vs.\ subconjunto, $t=0{,}36$; P10 RGB vs.\
+        cinza, $t=1{,}3$): a escolha entre as variantes é indiferente para o
+        desempenho; a decisão deve se apoiar em outros critérios (custo,
+        interpretabilidade --- p.\ ex., a árvore Gini é mais rasa).
+  \item \textbf{Vitória confirmada e quantificada} (P7 K-means,
+        $t \approx 16$--$20$; P3 LMS vs.\ GD, gap $20\times$ o desvio): o
+        efeito sobrevive com margem e pode ser reportado sem ressalva.
+  \item \textbf{Sinal mascarado $\to$ efeito real} (P10 2D vs.\ 1D,
+        $t \approx 5$): sem pareamento, a alta variância do modelo enterraria
+        um efeito verdadeiro. Este desfecho é o menos discutido em cursos: o
+        rigor estatístico não serve apenas para derrubar claims, mas para
+        \emph{recuperar potência} e afirmar com segurança efeitos que uma
+        comparação ingênua descartaria.
+\end{enumerate}
+
+A mecânica do ganho é a covariância: $\mathrm{Var}(m_A - m_B) =
+\mathrm{Var}(m_A) + \mathrm{Var}(m_B) - 2\,\mathrm{Cov}(m_A, m_B)$. Quando as
+duas variantes são avaliadas na mesma realização, a covariância é alta (um
+split difícil prejudica ambas) e a variância da diferença despenca --- os
+$7\times$ observados em P5 equivalem a rodar $\approx 50\times$ mais seeds no
+protocolo não pareado.
+
+\subsection{Implicações: como reportar resultados de AM}
+\label{sec:ana-implicacoes}
+
+Destilamos o protocolo em cinco recomendações, todas exercitadas na bancada:
+
+\begin{enumerate}
+  \item \textbf{Nunca reportar seed única como resultado}: todo número
+        oficial deve ser $\bar{m} \pm \hat{\sigma}$ (ddof=1) sobre uma lista
+        fixa e publicada de seeds; valores de seed única podem permanecer
+        como ilustração, rotulados como tal.
+  \item \textbf{Reportar o tamanho do teste junto com a métrica}: uma
+        acurácia sobre 60 amostras carrega $\pm 2{,}5$ p.p.\ de ruído
+        binomial; o leitor não tem como saber sem o $n$.
+  \item \textbf{Diagnosticar a origem da variância} antes de escolher a
+        mitigação (Tabela~\ref{tab:regimes}).
+  \item \textbf{Parear toda comparação entre variantes}: mesma realização por
+        seed, estatística sobre as diferenças, reportando $\bar{d} \pm
+        \hat{\sigma}_d$ e $t$ --- tanto para evitar falsas vitórias quanto
+        para não perder efeitos reais.
+  \item \textbf{Distinguir ``empate medido'' de ``inconclusivo''}: $|t| \ll
+        1$ com pareamento sensível autoriza afirmar efeito $\approx 0$;
+        intervalos largos não pareados, não.
+\end{enumerate}
+
+\subsection{Limitações}\label{sec:ana-lim}
+
+(i)~O número de seeds varia entre projetos (3 a 30) por custo computacional;
+com 3 seeds, o próprio $\hat{\sigma}$ é impreciso e os vereditos
+correspondentes (P7--P9 multi-seed) devem ser lidos como indicativos ---
+as comparações decisivas usaram 30 seeds. (ii)~Usamos o teste $t$ pareado
+assumindo aproximadamente normalidade das diferenças; com poucas seeds,
+alternativas não paramétricas (Wilcoxon \cite{demsar2006}) seriam mais
+conservadoras. (iii)~Seeds re-sorteiam dados sintéticos e splits, mas nos
+projetos com dados reais fixos (P7--P10) parte da variância populacional não
+é capturada --- as conclusões valem para a coleção usada. (iv)~Não aplicamos
+correção para comparações múltiplas; os $|t|$ decisivos aqui são extremos
+($0{,}1$--$0{,}4$ ou $5$--$20$), regiões em que a correção não muda o
+veredito, mas em efeitos limítrofes ($t \approx 2$) ela seria necessária.
+(v)~Validação cruzada k-fold, que quantificaria a variância estrutural dos
+modelos instáveis melhor que seeds isoladas, ficou como trabalho futuro.
+
+% =============================================================================
+\section{Conclusões}\label{sec:conc}
+
+Este trabalho retrofitou uma bancada de oito métodos clássicos de AM ---
+implementados majoritariamente do zero em miniprojetos da disciplina --- com
+um protocolo estatístico uniforme de repetição multi-seed e testes pareados
+por seed. As contribuições são:
+
+\begin{enumerate}
+  \item \textbf{Uma auditoria empírica da prática de seed única}: das
+        conclusões originais, caíram a ``vitória'' do Gini sobre a entropia
+        (empate real, $t=0{,}11$), a acurácia de 96{,}7\% da logística
+        (realização otimista de um teste pequeno; oficial $96{,}3\% \pm
+        0{,}3\%$) e a vantagem de RGB sobre cinza na CNN ($t=1{,}3$);
+        sobreviveram, com margem quantificada, o gap GD vs.\ LMS
+        ($20\times$ o desvio), a superioridade dos centros K-means na RBF
+        ($t \approx 16$--$20$) e a vantagem da CNN 2D sobre a 1D
+        ($t \approx 5$) --- esta última só detectável \emph{com} pareamento.
+  \item \textbf{A distinção operacional entre variância da medida e
+        variância do modelo}, com um diagnóstico barato (previsor binomial;
+        resposta do desvio ao tamanho do teste) e alavancas opostas em cada
+        regime --- mais dados de teste no primeiro, regularização/poda no
+        segundo.
+  \item \textbf{A demonstração do valor do pareamento por seed} nos três
+        desfechos possíveis (empate real, vitória confirmada, sinal
+        mascarado), com redução de $\approx 7\times$ no desvio da diferença.
+  \item \textbf{Um protocolo de reporte} em cinco regras, aplicável
+        diretamente a trabalhos de disciplina e pesquisa.
+\end{enumerate}
+
+Como trabalhos futuros: (i)~substituir/complementar o multi-seed por
+validação cruzada repetida com as correções de variância de
+\cite{nadeau2003}, especialmente para os modelos instáveis; (ii)~adotar
+testes não paramétricos e correção de comparações múltiplas
+\cite{demsar2006} nas ablações com muitas variantes; (iii)~decompor
+formalmente a variância por fonte (dados, inicialização, ordem dos lotes) no
+espírito de \cite{bouthillier2021}, o que a bancada já permite ao controlar
+cada fonte pela seed; e (iv)~estender o protocolo pareado às comparações
+\emph{entre} métodos (meta-comparação P7/P8/P9), hoje sustentada apenas por
+bandas não pareadas.
+
+% =============================================================================
+% \bibliographystyle{sbc}  % <- ativar quando migrar para BibTeX (.bib)
+% As referências abaixo estão embutidas para o draft compilar sem .bib;
+% na versão final, migrar para referencias.bib + \bibliography{referencias}.
+\begin{thebibliography}{99}
+
+\bibitem[Bouthillier et al. 2021]{bouthillier2021}
+Bouthillier, X., Delaunay, P., Bronzi, M., Trofimov, A., Nichyporuk, B.,
+Szeto, J., Sepah, N., Raff, E., Madan, K., Voleti, V., Kahou, S. E.,
+Michalski, V., Serdyuk, D., Arbel, T., Pal, C., Varoquaux, G., and
+Vincent, P. (2021). Accounting for variance in machine learning benchmarks.
+In \emph{Proceedings of Machine Learning and Systems (MLSys)}, volume 3.
+
+\bibitem[Breiman et al. 1984]{breiman1984}
+Breiman, L., Friedman, J. H., Olshen, R. A., and Stone, C. J. (1984).
+\emph{Classification and Regression Trees}. Wadsworth, Belmont, CA.
+
+\bibitem[Broomhead and Lowe 1988]{broomhead1988}
+Broomhead, D. S. and Lowe, D. (1988). Multivariable functional interpolation
+and adaptive networks. \emph{Complex Systems}, 2:321--355.
+
+\bibitem[Cortes and Vapnik 1995]{cortes1995}
+Cortes, C. and Vapnik, V. (1995). Support-vector networks.
+\emph{Machine Learning}, 20(3):273--297.
+
+\bibitem[Demšar 2006]{demsar2006}
+Demšar, J. (2006). Statistical comparisons of classifiers over multiple data
+sets. \emph{Journal of Machine Learning Research}, 7:1--30.
+
+\bibitem[Dietterich 1998]{dietterich1998}
+Dietterich, T. G. (1998). Approximate statistical tests for comparing
+supervised classification learning algorithms.
+\emph{Neural Computation}, 10(7):1895--1923.
+
+\bibitem[Henderson et al. 2018]{henderson2018}
+Henderson, P., Islam, R., Bachman, P., Pineau, J., Precup, D., and
+Meger, D. (2018). Deep reinforcement learning that matters. In
+\emph{Proceedings of the AAAI Conference on Artificial Intelligence},
+volume 32.
+
+\bibitem[LeCun et al. 1998]{lecun1998}
+LeCun, Y., Bottou, L., Bengio, Y., and Haffner, P. (1998). Gradient-based
+learning applied to document recognition.
+\emph{Proceedings of the IEEE}, 86(11):2278--2324.
+
+\bibitem[Nadeau and Bengio 2003]{nadeau2003}
+Nadeau, C. and Bengio, Y. (2003). Inference for the generalization error.
+\emph{Machine Learning}, 52(3):239--281.
+
+\bibitem[Pineau et al. 2021]{pineau2021}
+Pineau, J., Vincent-Lamarre, P., Sinha, K., Larivière, V., Beygelzimer, A.,
+d'Alché-Buc, F., Fox, E., and Larochelle, H. (2021). Improving
+reproducibility in machine learning research (a report from the NeurIPS 2019
+reproducibility program). \emph{Journal of Machine Learning Research},
+22(164):1--20.
+
+\bibitem[Radford et al. 2021]{radford2021}
+Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S.,
+Sastry, G., Askell, A., Mishkin, P., Clark, J., Krueger, G., and
+Sutskever, I. (2021). Learning transferable visual models from natural
+language supervision. In \emph{Proceedings of the 38th International
+Conference on Machine Learning (ICML)}, pages 8748--8763.
+
+\bibitem[Reimers and Gurevych 2017]{reimers2017}
+Reimers, N. and Gurevych, I. (2017). Reporting score distributions makes a
+difference: Performance study of LSTM-networks for sequence tagging. In
+\emph{Proceedings of the 2017 Conference on Empirical Methods in Natural
+Language Processing (EMNLP)}, pages 338--348.
+
+\bibitem[Rumelhart et al. 1986]{rumelhart1986}
+Rumelhart, D. E., Hinton, G. E., and Williams, R. J. (1986). Learning
+representations by back-propagating errors.
+\emph{Nature}, 323:533--536.
+
+\bibitem[Salzberg 1997]{salzberg1997}
+Salzberg, S. L. (1997). On comparing classifiers: Pitfalls to avoid and a
+recommended approach. \emph{Data Mining and Knowledge Discovery},
+1(3):317--328.
+
+\bibitem[Widrow and Hoff 1960]{widrow1960}
+Widrow, B. and Hoff, M. E. (1960). Adaptive switching circuits. In
+\emph{IRE WESCON Convention Record}, part 4, pages 96--104.
+
+\end{thebibliography}
+
+\end{document}

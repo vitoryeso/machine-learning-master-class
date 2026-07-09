@@ -6,14 +6,14 @@ Tarefa: screenshot vs foto (imagens em data/, 64x64).
 Device: cuda | imagens: 450 (treino 360 / teste 90)
 
 Modalidades (F1 teste):
-  2D-RGB     acc=0.8778 f1=0.8889 prec=0.8800 rec=0.8980
-  2D-gray    acc=0.8889 f1=0.8958 prec=0.9149 rec=0.8776
-  1D-perfil  acc=0.8556 f1=0.8602 prec=0.9091 rec=0.8163
+  2D-RGB     acc=0.9111 f1=0.9167 prec=0.9362 rec=0.8980
+  2D-gray    acc=0.8889 f1=0.8913 prec=0.9535 rec=0.8367
+  1D-perfil  acc=0.8667 f1=0.8723 prec=0.9111 rec=0.8367
 
 Ablação (F1 teste):
-  nf=4     0.8791
-  nf=16    0.9038
-  nf=32    0.9293
-  k=3      0.9053
-  k=5      0.8723
-  k=7      0.8660
+  nf=4     0.8846
+  nf=16    0.9184
+  nf=32    0.9000
+  k=3      0.9126
+  k=5      0.8911
+  k=7      0.7928

@@ -26,7 +26,7 @@ GRAFICO: elbow_silhouette.png (arrastar para o slide)
 
 Resultados:
 - Cotovelo sutil em K=4 na curva de inercia
-- Melhor silhouette score em K=4 (0.0576)
+- Melhor silhouette score em K=4 (0.0591)
 - Scores de silhueta baixos (~0.05) sao esperados para embeddings 512D com dados visuais heterogeneos
 - Interpretacao: os clusters existem mas nao sao perfeitamente separados - inerente a natureza continua de features visuais
 
@@ -34,9 +34,9 @@ Tabela resumida:
 | K | Inercia | Silhouette |
 |---|---------|------------|
 | 2 | 3753.7 | 0.0559 |
-| 4 | 3520.9 | 0.0576 (best) |
+| 4 | 3520.9 | 0.0591 (best) |
 | 8 | 3290.3 | 0.0488 |
-| 15 | 3087.1 | 0.0554 |
+| 15 | 3087.1 | 0.0432 |
 
 === SLIDE 3: Analise dos Clusters e Metadados ===
 
@@ -44,9 +44,9 @@ GRAFICOS: pca_by_cluster.png + pca_by_folder.png (arrastar)
 
 4 clusters identificados:
 - Cluster 0 (26.6%): "Arte digital" - wallpapers 35%, AI images 32%, maioria landscape/square
-- Cluster 1 (28.8%): "Pessoas/retratos" - 50% people, 75% portrait, 5.9MB mediano
-- Cluster 2 (20.0%): "Screenshots" - iPhone 57%, capturas de tela 12%, 241KB mediano
-- Cluster 3 (24.6%): "Fotos pessoais" - iPhone 81%, 70% portrait, 8.5MB mediano
+- Cluster 1 (24.6%): "Fotos pessoais" - iPhone 81%, 70% portrait, 8.5MB mediano
+- Cluster 2 (28.8%): "Pessoas/retratos" - 50% people, 75% portrait, 5.9MB mediano
+- Cluster 3 (20.0%): "Screenshots" - iPhone 57%, capturas de tela 12%, 241KB mediano
 
 Insight chave: CLIP separou por semantica visual, NAO por metadados. Fotos de iPhone aparecem nos 4 clusters. Formato (.png/.jpg) e distribuido uniformemente. Tamanho e aspect ratio correlacionam com conteudo, nao com cluster assignment.
 

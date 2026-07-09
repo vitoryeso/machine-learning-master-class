@@ -228,6 +228,11 @@ estratégias, para que o ruído de amostragem se cancele na diferença.
   512-d — ela ajuda a intuir o mecanismo (gaussianas locais somadas), mas não
   deve ser lida como representativa do desempenho real, que é sempre
   reportado em full-dim.
+- **`report_multiseed.txt` e `metrics_multiseed.png`** (gerados pela rodada
+  multi-seed em `rbf.py`) não estão presentes em `output/` neste momento — os
+  números multi-seed citados aqui (mean±std das 3 seeds) vêm de `slides.html`
+  (fonte oficial dos números) e do roteiro do vídeo; os valores brutos por seed
+  não puderam ser re-verificados linha a linha a partir de um arquivo bruto.
 
 ## Conclusão
 
